@@ -1,4 +1,4 @@
-"""SQLite persistence for Patent Watch rules and seen-family state."""
+"""SQLite persistence for Patent Watch rules, state and run history."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from app.watch.models import WatchRule
+from app.watch.models import WatchRule, WatchRunResult
 
 
 @dataclass(frozen=True, slots=True)
@@ -16,6 +16,21 @@ class WatchRuleState:
     rule_id: str
     baselined_at: datetime | None
     last_run_at: datetime | None
+
+
+@dataclass(frozen=True, slots=True)
+class WatchRunHistory:
+    run_id: int
+    rule_id: str
+    status: str
+    started_at: datetime
+    completed_at: datetime
+    baseline_created: bool
+    searched_hits: int
+    resolved_families: int
+    event_count: int
+    error_count: int
+    fatal_error: str | None
 
 
 class SQLiteWatchStateStore:
@@ -42,7 +57,8 @@ class SQLiteWatchStateStore:
                 jurisdictions_json TEXT NOT NULL,
                 enabled INTEGER NOT NULL,
                 lookback_days INTEGER NOT NULL,
-                notify_on_first_run INTEGER NOT NULL
+                notify_on_first_run INTEGER NOT NULL,
+                cadence_hours INTEGER NOT NULL DEFAULT 24
             );
 
             CREATE TABLE IF NOT EXISTS watch_rule_state (
@@ -71,17 +87,53 @@ class SQLiteWatchStateStore:
                 PRIMARY KEY(rule_id, publication_number),
                 FOREIGN KEY(rule_id) REFERENCES watch_rule(rule_id) ON DELETE CASCADE
             );
+
+            CREATE TABLE IF NOT EXISTS watch_run_history (
+                run_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                rule_id TEXT NOT NULL,
+                status TEXT NOT NULL,
+                started_at TEXT NOT NULL,
+                completed_at TEXT NOT NULL,
+                baseline_created INTEGER NOT NULL DEFAULT 0,
+                searched_hits INTEGER NOT NULL DEFAULT 0,
+                resolved_families INTEGER NOT NULL DEFAULT 0,
+                event_count INTEGER NOT NULL DEFAULT 0,
+                error_count INTEGER NOT NULL DEFAULT 0,
+                fatal_error TEXT,
+                FOREIGN KEY(rule_id) REFERENCES watch_rule(rule_id) ON DELETE CASCADE
+            );
             """
         )
+        self._ensure_column(
+            "watch_rule",
+            "cadence_hours",
+            "INTEGER NOT NULL DEFAULT 24",
+        )
         self.connection.commit()
+
+    def _ensure_column(
+        self,
+        table: str,
+        column: str,
+        definition: str,
+    ) -> None:
+        columns = {
+            row["name"]
+            for row in self.connection.execute(f"PRAGMA table_info({table})").fetchall()
+        }
+        if column not in columns:
+            self.connection.execute(
+                f"ALTER TABLE {table} ADD COLUMN {column} {definition}"
+            )
 
     def upsert_rule(self, rule: WatchRule) -> None:
         self.connection.execute(
             """
             INSERT INTO watch_rule (
                 rule_id, name, company_group, technology_terms_json,
-                jurisdictions_json, enabled, lookback_days, notify_on_first_run
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                jurisdictions_json, enabled, lookback_days, notify_on_first_run,
+                cadence_hours
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(rule_id) DO UPDATE SET
                 name=excluded.name,
                 company_group=excluded.company_group,
@@ -89,7 +141,8 @@ class SQLiteWatchStateStore:
                 jurisdictions_json=excluded.jurisdictions_json,
                 enabled=excluded.enabled,
                 lookback_days=excluded.lookback_days,
-                notify_on_first_run=excluded.notify_on_first_run
+                notify_on_first_run=excluded.notify_on_first_run,
+                cadence_hours=excluded.cadence_hours
             """,
             (
                 rule.rule_id,
@@ -100,6 +153,7 @@ class SQLiteWatchStateStore:
                 int(rule.enabled),
                 rule.lookback_days,
                 int(rule.notify_on_first_run),
+                rule.cadence_hours,
             ),
         )
         self.connection.execute(
@@ -124,6 +178,7 @@ class SQLiteWatchStateStore:
             enabled=bool(row["enabled"]),
             lookback_days=int(row["lookback_days"]),
             notify_on_first_run=bool(row["notify_on_first_run"]),
+            cadence_hours=int(row["cadence_hours"]),
         )
 
     def list_rules(self) -> tuple[WatchRule, ...]:
@@ -253,6 +308,79 @@ class SQLiteWatchStateStore:
                 last_seen_at=excluded.last_seen_at
             """,
             (rule_id, publication_number, family_key, stamp, stamp),
+        )
+
+    def record_run(self, result: WatchRunResult) -> None:
+        self.connection.execute(
+            """
+            INSERT INTO watch_run_history (
+                rule_id, status, started_at, completed_at, baseline_created,
+                searched_hits, resolved_families, event_count, error_count, fatal_error
+            ) VALUES (?, 'success', ?, ?, ?, ?, ?, ?, ?, NULL)
+            """,
+            (
+                result.rule_id,
+                _format_datetime(result.started_at),
+                _format_datetime(result.completed_at),
+                int(result.baseline_created),
+                result.searched_hits,
+                result.resolved_families,
+                len(result.events),
+                len(result.errors),
+            ),
+        )
+        self.connection.commit()
+
+    def record_failure(
+        self,
+        rule_id: str,
+        *,
+        started_at: datetime,
+        completed_at: datetime,
+        error: str,
+    ) -> None:
+        self.connection.execute(
+            """
+            INSERT INTO watch_run_history (
+                rule_id, status, started_at, completed_at, baseline_created,
+                searched_hits, resolved_families, event_count, error_count, fatal_error
+            ) VALUES (?, 'failure', ?, ?, 0, 0, 0, 0, 1, ?)
+            """,
+            (
+                rule_id,
+                _format_datetime(started_at),
+                _format_datetime(completed_at),
+                error,
+            ),
+        )
+        self.connection.commit()
+
+    def recent_runs(self, limit: int = 50) -> tuple[WatchRunHistory, ...]:
+        if limit < 1:
+            raise ValueError("limit must be >= 1")
+        rows = self.connection.execute(
+            """
+            SELECT * FROM watch_run_history
+            ORDER BY run_id DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+        return tuple(
+            WatchRunHistory(
+                run_id=int(row["run_id"]),
+                rule_id=row["rule_id"],
+                status=row["status"],
+                started_at=datetime.fromisoformat(row["started_at"]),
+                completed_at=datetime.fromisoformat(row["completed_at"]),
+                baseline_created=bool(row["baseline_created"]),
+                searched_hits=int(row["searched_hits"]),
+                resolved_families=int(row["resolved_families"]),
+                event_count=int(row["event_count"]),
+                error_count=int(row["error_count"]),
+                fatal_error=row["fatal_error"],
+            )
+            for row in rows
         )
 
     def commit(self) -> None:
