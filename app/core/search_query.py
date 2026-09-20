@@ -19,13 +19,18 @@ def _or_group(clauses: list[str]) -> str:
     return "(" + " or ".join(clauses) + ")"
 
 
+def _technology_clause(term: str) -> str:
+    normalized = " ".join(term.split())
+    if " " in normalized:
+        return f"ta all {_cql_quote(normalized)}"
+    return f"ta={_cql_quote(normalized)}"
+
+
 def compile_epo_cql(expression: SearchExpression) -> str:
     """Compile a search expression using documented OPS CQL indexes.
 
-    - applicant: pa
-    - title or abstract: ta
-    - publication number/country: pn
-    - publication date: pd
+    Applicant aliases are ORed. Distinct technology concept groups are ANDed,
+    while synonyms inside each concept group are ORed.
     """
     groups: list[str] = []
 
@@ -35,17 +40,14 @@ def compile_epo_cql(expression: SearchExpression) -> str:
         )
 
     if expression.text_terms:
-        term_clauses = []
-        for term in expression.text_terms:
-            normalized = " ".join(term.split())
-            if not normalized:
-                continue
-            if " " in normalized:
-                term_clauses.append(f"ta all {_cql_quote(normalized)}")
-            else:
-                term_clauses.append(f"ta={_cql_quote(normalized)}")
-        if term_clauses:
-            groups.append(_or_group(term_clauses))
+        clauses = [_technology_clause(term) for term in expression.text_terms if term.strip()]
+        if clauses:
+            groups.append(_or_group(clauses))
+
+    for text_group in expression.text_groups:
+        clauses = [_technology_clause(term) for term in text_group if term.strip()]
+        if clauses:
+            groups.append(_or_group(clauses))
 
     if expression.jurisdictions:
         groups.append(
