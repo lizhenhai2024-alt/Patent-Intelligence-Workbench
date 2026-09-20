@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from app.library.models import LibraryPatent
-from app.watch.state import WatchRunHistory, WatchRuleState
 from app.watch.models import WatchRule
+from app.watch.state import WatchRuleState, WatchRunHistory
 
 
 def patent_row(patent: LibraryPatent) -> tuple[str, str, str, str, str, str]:
