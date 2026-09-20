@@ -1,8 +1,11 @@
 """EPO Open Patent Services adapter.
 
-V1 P2 starts with INPADOC extended-family retrieval through the dedicated OPS
-family service. DOCDB simple-family support will use the OPS Published Data
-"equivalents" constituent in the next increment.
+Supports:
+- INPADOC extended-family retrieval via the dedicated OPS family service.
+- DOCDB simple-family retrieval via Published Data "equivalents" + biblio.
+
+The adapter deliberately converts all provider output to the internal family
+domain model before any UI or persistence layer sees it.
 """
 
 from __future__ import annotations
@@ -20,6 +23,7 @@ from app.domain.family import FamilyType, PatentFamily, PatentPublication, Prior
 from app.providers.base import (
     ProviderCapability,
     ProviderConfigurationError,
+    ProviderError,
     ProviderInfo,
     ProviderResponseError,
 )
@@ -54,31 +58,9 @@ def _docdb_document_id(container: ET.Element) -> ET.Element | None:
     return None
 
 
-def _publication_from_family_member(member: ET.Element) -> PatentPublication | None:
-    publication_reference = next(
-        (
-            node
-            for node in member
-            if _local_name(node.tag) == "publication-reference"
-        ),
-        None,
-    )
-    if publication_reference is None:
-        return None
-
-    doc_id = _docdb_document_id(publication_reference)
-    if doc_id is None:
-        return None
-
-    country = _first_child_text(doc_id, "country")
-    number = _first_child_text(doc_id, "doc-number")
-    kind = _first_child_text(doc_id, "kind")
-    publication_date = _parse_yyyymmdd(_first_child_text(doc_id, "date"))
-    if not country or not number:
-        return None
-
+def _priority_claims(container: ET.Element) -> tuple[PriorityClaim, ...]:
     priorities: list[PriorityClaim] = []
-    for node in member.iter():
+    for node in container.iter():
         if _local_name(node.tag) != "priority-claim":
             continue
         priority_doc_id = _docdb_document_id(node)
@@ -96,32 +78,59 @@ def _publication_from_family_member(member: ET.Element) -> PatentPublication | N
                 priority_type=node.attrib.get("kind"),
             )
         )
+    return tuple(priorities)
 
-    application_number: str | None = None
-    for node in member:
+
+def _application_number(container: ET.Element) -> str | None:
+    for node in container.iter():
         if _local_name(node.tag) != "application-reference":
             continue
         application_doc_id = _docdb_document_id(node)
         if application_doc_id is None:
             continue
-        application_country = _first_child_text(application_doc_id, "country")
-        application_doc_number = _first_child_text(application_doc_id, "doc-number")
-        if application_country and application_doc_number:
-            application_number = f"{application_country}{application_doc_number}"
-            break
+        country = _first_child_text(application_doc_id, "country")
+        number = _first_child_text(application_doc_id, "doc-number")
+        if country and number:
+            return f"{country}{number}"
+    return None
+
+
+def _publication_from_docdb_container(container: ET.Element) -> PatentPublication | None:
+    publication_reference = next(
+        (
+            node
+            for node in container.iter()
+            if _local_name(node.tag) == "publication-reference"
+            and _docdb_document_id(node) is not None
+        ),
+        None,
+    )
+    if publication_reference is None:
+        return None
+
+    doc_id = _docdb_document_id(publication_reference)
+    if doc_id is None:
+        return None
+
+    country = _first_child_text(doc_id, "country")
+    number = _first_child_text(doc_id, "doc-number")
+    kind = _first_child_text(doc_id, "kind")
+    publication_date = _parse_yyyymmdd(_first_child_text(doc_id, "date"))
+    if not country or not number:
+        return None
 
     return PatentPublication(
         publication_number=f"{country}{number}{kind or ''}",
         jurisdiction=country,
         kind_code=kind,
-        application_number=application_number,
+        application_number=_application_number(container),
         publication_date=publication_date,
-        priorities=tuple(priorities),
+        priorities=_priority_claims(container),
     )
 
 
 def parse_extended_family_xml(xml_text: str) -> PatentFamily:
-    """Parse an OPS family-service XML response into the internal domain model."""
+    """Parse an OPS family-service XML response into an INPADOC family."""
     try:
         root = ET.fromstring(xml_text)
     except ET.ParseError as exc:
@@ -143,12 +152,54 @@ def parse_extended_family_xml(xml_text: str) -> PatentFamily:
     for member in patent_family:
         if _local_name(member.tag) != "family-member":
             continue
-        publication = _publication_from_family_member(member)
+        publication = _publication_from_docdb_container(member)
         if publication is not None:
             family.add_member(publication)
 
     if not family.members:
         raise ProviderResponseError("EPO OPS family response contained no usable family members.")
+    return family
+
+
+def parse_simple_family_xml(xml_text: str) -> PatentFamily:
+    """Parse Published Data equivalents/biblio XML into a DOCDB simple family."""
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError as exc:
+        raise ProviderResponseError("Invalid XML from EPO OPS equivalents service.") from exc
+
+    equivalents = next(
+        (node for node in root.iter() if _local_name(node.tag) == "equivalents-inquiry"),
+        None,
+    )
+    if equivalents is None:
+        raise ProviderResponseError(
+            "EPO OPS response did not contain an equivalents-inquiry element."
+        )
+
+    family = PatentFamily(
+        family_type=FamilyType.DOCDB_SIMPLE,
+        source="EPO_OPS",
+    )
+
+    family_ids: list[str] = []
+    for exchange_document in equivalents.iter():
+        if _local_name(exchange_document.tag) != "exchange-document":
+            continue
+        family_id = exchange_document.attrib.get("family-id")
+        if family_id:
+            family_ids.append(family_id)
+        publication = _publication_from_docdb_container(exchange_document)
+        if publication is not None:
+            family.add_member(publication)
+
+    if family_ids:
+        family.source_family_id = family_ids[0]
+
+    if not family.members:
+        raise ProviderResponseError(
+            "EPO OPS equivalents response contained no usable simple-family members."
+        )
     return family
 
 
@@ -169,6 +220,7 @@ class EpoOpsProvider:
         name="EPO_OPS",
         capabilities=frozenset(
             {
+                ProviderCapability.FAMILY_SIMPLE,
                 ProviderCapability.FAMILY_EXTENDED,
                 ProviderCapability.BIBLIOGRAPHY,
                 ProviderCapability.LEGAL_STATUS,
@@ -190,15 +242,19 @@ class EpoOpsProvider:
     async def _access_token(self, client: httpx.AsyncClient) -> str:
         key, secret = self._require_credentials()
         basic = base64.b64encode(f"{key}:{secret}".encode()).decode()
-        response = await client.post(
-            TOKEN_URL,
-            headers={
-                "Authorization": f"Basic {basic}",
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
-            content="grant_type=client_credentials",
-        )
-        response.raise_for_status()
+        try:
+            response = await client.post(
+                TOKEN_URL,
+                headers={
+                    "Authorization": f"Basic {basic}",
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                content="grant_type=client_credentials",
+            )
+            response.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise ProviderError("EPO OPS OAuth token request failed.") from exc
+
         token = response.json().get("access_token")
         if not token:
             raise ProviderResponseError("EPO OPS token response did not include access_token.")
@@ -209,19 +265,34 @@ class EpoOpsProvider:
         publication: PatentNumber,
         family_type: FamilyType,
     ) -> PatentFamily:
-        if family_type is not FamilyType.INPADOC_EXTENDED:
-            raise NotImplementedError("DOCDB simple-family retrieval is scheduled for P2B.")
-
         async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
             token = await self._access_token(client)
             docdb = to_docdb_publication(publication)
-            url = f"{OPS_BASE_URL}/family/publication/docdb/{docdb}"
-            response = await client.get(
-                url,
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Accept": "application/ops+xml",
-                },
-            )
-            response.raise_for_status()
-            return parse_extended_family_xml(response.text)
+
+            if family_type is FamilyType.INPADOC_EXTENDED:
+                url = f"{OPS_BASE_URL}/family/publication/docdb/{docdb}"
+                parser = parse_extended_family_xml
+            elif family_type is FamilyType.DOCDB_SIMPLE:
+                url = (
+                    f"{OPS_BASE_URL}/published-data/publication/docdb/"
+                    f"{docdb}/equivalents/biblio"
+                )
+                parser = parse_simple_family_xml
+            else:
+                raise ValueError(f"Unsupported family type: {family_type}")
+
+            try:
+                response = await client.get(
+                    url,
+                    headers={
+                        "Authorization": f"Bearer {token}",
+                        "Accept": "application/ops+xml",
+                    },
+                )
+                response.raise_for_status()
+            except httpx.HTTPError as exc:
+                raise ProviderError(
+                    f"EPO OPS {family_type.value} request failed for {publication.canonical}."
+                ) from exc
+
+            return parser(response.text)
