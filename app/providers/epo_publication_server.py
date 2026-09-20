@@ -9,7 +9,7 @@ import httpx
 from app.core.patent_number import PatentNumber
 from app.downloads.base import DownloadError, PdfPayload
 
-EPS_PDF_URL = "https://data.epo.org/publication-server/pdf-document"
+EPS_PDF_URL = "https://data.epo.org/publication-server/rest/v1.2/patents"
 
 
 @dataclass(slots=True)
@@ -29,7 +29,7 @@ class EpoPublicationServerProvider:
             )
         number = publication.number_without_kind[2:]
         return (
-            f"{EPS_PDF_URL}?cc=EP&pn={number}&ki={publication.kind_code}"
+            f"{EPS_PDF_URL}/EP{number}NW{publication.kind_code}/document.pdf"
         )
 
     async def fetch_pdf(self, publication: PatentNumber) -> PdfPayload:

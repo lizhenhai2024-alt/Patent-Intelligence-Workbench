@@ -10,8 +10,8 @@ def test_epo_publication_server_supports_ep_and_builds_official_pdf_url():
     assert provider.supports(publication)
     assert (
         provider.pdf_url(publication)
-        == "https://data.epo.org/publication-server/pdf-document"
-        "?cc=EP&pn=1502502&ki=A1"
+        == "https://data.epo.org/publication-server/rest/v1.2/patents/"
+        "EP1502502NWA1/document.pdf"
     )
 
 

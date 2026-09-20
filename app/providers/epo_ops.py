@@ -127,7 +127,9 @@ def _publication_from_docdb_container(container: ET.Element) -> PatentPublicatio
         jurisdiction=country,
         kind_code=kind,
         application_number=_application_number(container),
+        title=_extract_title(container),
         publication_date=publication_date,
+        original_assignees=_extract_applicants(container),
         priorities=_priority_claims(container),
     )
 

@@ -153,3 +153,16 @@ def test_multilingual_dictionary_expands_chinese_company_technology_query():
         "external control valve",
     ) in expression.text_groups
     assert ("back pressure", "back pressure chamber") in expression.text_groups
+
+
+def test_typed_company_name_routes_to_company_search():
+    provider = FakeProvider()
+    service = SearchService(provider=provider, company_registry=_registry())
+
+    result = asyncio.run(service.search("ClearMotion"))
+
+    expression = provider.search_calls[0][0]
+    assert result.mode.value == "COMPANY"
+    assert result.company_group_id == "clearmotion"
+    assert expression.applicants == ("ClearMotion, Inc.",)
+    assert expression.text_terms == ()

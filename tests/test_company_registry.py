@@ -38,3 +38,10 @@ def test_company_technology_search_includes_scoped_acquired_portfolio():
         "ClearMotion, Inc.",
         "Bose Corporation",
     )
+
+
+def test_registry_resolves_legal_entity_alias_to_group():
+    registry = CompanyRegistry.from_dict(PAYLOAD)
+
+    assert registry.get("ClearMotion, Inc.").group_id == "clearmotion"
+    assert registry.get("ClearMotion").group_id == "clearmotion"

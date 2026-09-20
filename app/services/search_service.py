@@ -71,6 +71,15 @@ class SearchService:
                 normalized_query=publication.canonical,
             )
 
+        if not company and raw:
+            try:
+                group = self.company_registry.get(raw)
+            except KeyError:
+                group = None
+            if group is not None:
+                company = group.group_id
+                raw = ""
+
         if company:
             group = self.company_registry.get(company)
             terms = technology_terms or ((raw,) if raw else ())

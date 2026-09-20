@@ -249,17 +249,18 @@ class PatentWorkbenchApp(tk.Tk):
         )
         self.family_download_button.grid(row=1, column=4)
 
-        columns = ("number", "country", "application", "date")
+        columns = ("number", "country", "title", "application", "date")
         self.family_tree = ttk.Treeview(
             self.family_tab,
             columns=columns,
             show="headings",
         )
         for column, title, width in (
-            ("number", "公开号", 210),
-            ("country", "国家", 80),
-            ("application", "申请号", 210),
-            ("date", "公开日", 120),
+            ("number", "公开号", 180),
+            ("country", "国家", 70),
+            ("title", "标题", 430),
+            ("application", "申请号", 180),
+            ("date", "公开日", 110),
         ):
             self.family_tree.heading(column, text=title)
             self.family_tree.column(column, width=width, anchor="w")
@@ -960,6 +961,7 @@ class PatentWorkbenchApp(tk.Tk):
                 values=(
                     member.publication_number,
                     member.jurisdiction,
+                    member.title or "",
                     member.application_number or "",
                     member.publication_date.isoformat()
                     if member.publication_date

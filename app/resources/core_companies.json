@@ -4,7 +4,7 @@
   "companies": [
     {
       "group_id": "astemo",
-      "display_name": "Hitachi Astemo",
+      "display_name": "ASTEMO",
       "core_watch": true,
       "entities": [
         {"name": "Hitachi Astemo, Ltd.", "relation": "SAME_ENTITY"},
