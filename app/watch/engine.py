@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 from app.core.patent_number import PatentNumberError, normalize_patent_number
 from app.domain.family import FamilyType, PatentFamily, PatentPublication
@@ -30,7 +30,7 @@ class PatentWatchEngine:
         page_size: int = 100,
         max_pages: int = 10,
     ) -> WatchRunResult:
-        started_at = now or datetime.now(timezone.utc)
+        started_at = now or datetime.now(UTC)
         if started_at.tzinfo is None:
             raise ValueError("now must be timezone-aware")
         if page_size < 1 or page_size > 100:
@@ -185,7 +185,7 @@ class PatentWatchEngine:
             )
             self.state_store.commit()
 
-        completed_at = datetime.now(timezone.utc)
+        completed_at = datetime.now(UTC)
         if first_run:
             self.state_store.mark_baselined(rule.rule_id, completed_at)
         self.state_store.mark_run(rule.rule_id, completed_at)
