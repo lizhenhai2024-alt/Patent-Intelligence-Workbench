@@ -14,6 +14,7 @@ from app.desktop.runtime import DesktopRuntime
 from app.domain.family import FamilyType, PatentFamily
 from app.library.ingest import ingest_download_summary, ingest_family
 from app.library.models import LibraryQuery
+from app.version import RELEASE_TAG
 
 
 class PatentWorkbenchApp(tk.Tk):
@@ -22,7 +23,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.runtime = runtime
         self._current_family: PatentFamily | None = None
 
-        self.title("Patent Intelligence Workbench")
+        self.title(f"Patent Intelligence Workbench · {RELEASE_TAG}")
         self.geometry("1280x820")
         self.minsize(1000, 650)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
