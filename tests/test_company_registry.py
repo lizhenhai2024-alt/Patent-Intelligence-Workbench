@@ -1,5 +1,6 @@
-from app.core.company_registry import CompanyRegistry
+from __future__ import annotations
 
+from app.core.company_registry import CompanyRegistry
 
 PAYLOAD = {
     "companies": [
