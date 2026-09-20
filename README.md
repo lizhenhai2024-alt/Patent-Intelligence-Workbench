@@ -51,14 +51,23 @@ pytest
 ruff check .
 ```
 
-Current phase: **P1 Foundation**
+## Current status
 
-- Patent number normalization
-- Entity relationship model
-- Test baseline
-- CI baseline
+Core V1 implementation is now end-to-end:
 
-See `docs/ARCHITECTURE.md` for the frozen V1 architecture.
+- P1 Foundation: patent-number normalization, entity graph, CI
+- P2 Family Providers: DOCDB simple / INPADOC extended family, EPO OPS, JPO validation client
+- P3 Search: patent number, text, company, company + technology, multilingual terminology
+- P4 Download Center: family PDF batch download, fallback policy, retry/cache/manifest
+- P5 Patent Watch: baseline, new-family/new-member detection, SQLite state, scheduler
+- P6 Local Library: family/publication persistence, favorites, tags, projects, PDFs, provenance, CSV/XLSX
+- P7 Desktop: lightweight Windows UI, secure EPO credentials, editable library details, automatic EXE build
+
+Fresh desktop installations use one local `workbench.db` for Patent Library and Patent Watch tables. Existing legacy database paths are preserved to avoid silent data loss.
+
+Current phase: **P8 V1 Release Candidate hardening** — end-to-end acceptance, release documentation, packaging verification and optional credentialed provider smoke tests.
+
+See `docs/ARCHITECTURE.md` and `docs/DOWNLOAD_SOURCES.md` for the frozen V1 architecture and source policy.
 
 ## License
 
