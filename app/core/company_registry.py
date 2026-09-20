@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from importlib import resources
 from pathlib import Path
 
 from app.core.entity import EntityRelationType, include_in_default_group_search
@@ -70,8 +71,12 @@ class CompanyRegistry:
 
     @classmethod
     def default(cls) -> CompanyRegistry:
-        root = Path(__file__).resolve().parents[2]
-        return cls.from_json_file(root / "data" / "companies" / "core_companies.json")
+        text = (
+            resources.files("app.resources")
+            .joinpath("core_companies.json")
+            .read_text(encoding="utf-8")
+        )
+        return cls.from_dict(json.loads(text))
 
     def get(self, value: str) -> CompanyGroup:
         needle = _normalize_company_key(value)
