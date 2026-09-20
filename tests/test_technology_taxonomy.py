@@ -83,3 +83,27 @@ def test_active_suspension_contains_core_architecture_nodes():
         "hydraulic accumulator suspension",
         "active suspension accumulator",
     )
+
+
+def test_air_suspension_contains_core_system_nodes():
+    taxonomy = TechnologyTaxonomy.default()
+    air = taxonomy.find("air_suspension")
+
+    expected = {
+        "air_spring",
+        "air_supply_unit",
+        "compressor",
+        "reservoir",
+        "valve_block",
+        "height_control",
+        "ride_height_sensor",
+        "air_dryer",
+        "air_fail_safe",
+    }
+    assert {child.node_id for child in air.children} == expected
+    assert all(child.search_terms for child in air.children)
+    assert taxonomy.find("valve_block").search_terms == (
+        "air suspension valve block",
+        "pneumatic valve manifold suspension",
+        "air distribution valve suspension",
+    )

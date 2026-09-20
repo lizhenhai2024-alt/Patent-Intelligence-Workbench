@@ -58,7 +58,22 @@
             {"id": "active_fail_safe", "name": "Fail-safe", "search_terms": ["active suspension fail safe", "fail safe active damper", "fallback damping mode"], "children": []}
           ]
         },
-        {"id": "air_suspension", "name": "Air Suspension", "search_terms": ["air suspension", "air spring"], "children": []},
+        {
+          "id": "air_suspension",
+          "name": "Air Suspension",
+          "search_terms": ["air suspension", "air spring"],
+          "children": [
+            {"id": "air_spring", "name": "Air Spring", "search_terms": ["air spring", "pneumatic spring", "air suspension spring"], "children": []},
+            {"id": "air_supply_unit", "name": "Air Supply Unit", "search_terms": ["air suspension supply unit", "air supply module suspension", "pneumatic supply unit vehicle"], "children": []},
+            {"id": "compressor", "name": "Compressor", "search_terms": ["air suspension compressor", "pneumatic suspension compressor", "vehicle suspension compressor"], "children": []},
+            {"id": "reservoir", "name": "Reservoir", "search_terms": ["air suspension reservoir", "compressed air reservoir suspension", "air tank suspension"], "children": []},
+            {"id": "valve_block", "name": "Valve Block", "search_terms": ["air suspension valve block", "pneumatic valve manifold suspension", "air distribution valve suspension"], "children": []},
+            {"id": "height_control", "name": "Height Control", "search_terms": ["air suspension height control", "ride height control", "level control suspension"], "children": []},
+            {"id": "ride_height_sensor", "name": "Ride Height Sensor", "search_terms": ["ride height sensor", "suspension height sensor", "vehicle level sensor"], "children": []},
+            {"id": "air_dryer", "name": "Dryer", "search_terms": ["air suspension dryer", "compressed air dryer suspension", "pneumatic dryer vehicle"], "children": []},
+            {"id": "air_fail_safe", "name": "Fail-safe", "search_terms": ["air suspension fail safe", "air suspension emergency mode", "air suspension fallback mode"], "children": []}
+          ]
+        },
         {"id": "active_anti_roll", "name": "Active Anti-roll", "search_terms": ["active anti roll", "active stabilizer"], "children": []}
       ]
     }
