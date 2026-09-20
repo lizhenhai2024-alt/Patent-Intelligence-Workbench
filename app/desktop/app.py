@@ -886,9 +886,29 @@ class PatentWorkbenchApp(tk.Tk):
         toolbar = ttk.Frame(toolbar_card, style="Surface.TFrame")
         toolbar.pack(fill="x")
         self.evidence_query_var = tk.StringVar()
-        entry = ttk.Entry(toolbar, textvariable=self.evidence_query_var, width=55)
+        entry = ttk.Entry(toolbar, textvariable=self.evidence_query_var, width=36)
         entry.pack(side="left", fill="x", expand=True)
         entry.bind("<Return>", lambda _event: self.refresh_evidence())
+        self.evidence_type_var = tk.StringVar(value="All types")
+        ttk.Combobox(
+            toolbar,
+            textvariable=self.evidence_type_var,
+            values=("All types", "url", "file"),
+            state="readonly",
+            width=12,
+        ).pack(side="left", padx=(8, 0))
+        self.evidence_company_var = tk.StringVar()
+        ttk.Entry(
+            toolbar,
+            textvariable=self.evidence_company_var,
+            width=16,
+        ).pack(side="left", padx=(8, 0))
+        self.evidence_topic_var = tk.StringVar()
+        ttk.Entry(
+            toolbar,
+            textvariable=self.evidence_topic_var,
+            width=16,
+        ).pack(side="left", padx=(8, 0))
         ttk.Button(toolbar, text="搜索", command=self.refresh_evidence).pack(
             side="left", padx=(8, 0)
         )
@@ -933,8 +953,13 @@ class PatentWorkbenchApp(tk.Tk):
 
     def refresh_evidence(self) -> None:
         query = self.evidence_query_var.get().strip() or None
+        source_type = self.evidence_type_var.get()
         self._evidence_center_records = self.runtime.library_store.list_evidence(
-            text=query, limit=1000
+            text=query,
+            source_type=None if source_type == "All types" else source_type,
+            company_group=self.evidence_company_var.get().strip() or None,
+            technology_topic=self.evidence_topic_var.get().strip() or None,
+            limit=1000,
         )
         self.evidence_tree.delete(*self.evidence_tree.get_children())
         for record in self._evidence_center_records:

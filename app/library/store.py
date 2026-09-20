@@ -227,9 +227,7 @@ class SQLitePatentLibrary:
         rows = self.connection.execute(f"PRAGMA table_info({table})").fetchall()
         columns = {row["name"] for row in rows}
         if column not in columns:
-            self.connection.execute(
-                f"ALTER TABLE {table} ADD COLUMN {column} {definition}"
-            )
+            self.connection.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
     def upsert_family(
         self,
@@ -270,9 +268,7 @@ class SQLitePatentLibrary:
                 source,
                 family.source_family_id,
                 earliest.number if earliest else None,
-                earliest.priority_date.isoformat()
-                if earliest and earliest.priority_date
-                else None,
+                earliest.priority_date.isoformat() if earliest and earliest.priority_date else None,
                 stamp.isoformat(),
                 stamp.isoformat(),
             ),
@@ -614,6 +610,9 @@ class SQLitePatentLibrary:
         *,
         publication_number: str | None = None,
         text: str | None = None,
+        source_type: str | None = None,
+        company_group: str | None = None,
+        technology_topic: str | None = None,
         limit: int = 200,
     ) -> tuple[EvidenceRecord, ...]:
         clauses: list[str] = []
@@ -625,6 +624,15 @@ class SQLitePatentLibrary:
             needle = f"%{text.strip()}%"
             clauses.append("(source LIKE ? OR title LIKE ? OR markdown LIKE ?)")
             params.extend((needle, needle, needle))
+        if source_type and source_type.strip():
+            clauses.append("source_type = ?")
+            params.append(source_type.strip())
+        if company_group and company_group.strip():
+            clauses.append("company_group = ?")
+            params.append(company_group.strip())
+        if technology_topic and technology_topic.strip():
+            clauses.append("technology_topic = ?")
+            params.append(technology_topic.strip())
         sql = "SELECT * FROM library_evidence"
         if clauses:
             sql += " WHERE " + " AND ".join(clauses)
@@ -837,9 +845,7 @@ class SQLitePatentLibrary:
                 "tag",
                 publication_number,
             ),
-            pdf_paths=tuple(
-                document.path for document in self._documents(publication_number)
-            ),
+            pdf_paths=tuple(document.path for document in self._documents(publication_number)),
             watch_rule_ids=self._relation_values(
                 "library_watch_source",
                 "rule_id",
@@ -1044,9 +1050,7 @@ class SQLitePatentLibrary:
         values: Iterable[str],
     ) -> None:
         self._require_publication(publication_number)
-        normalized = tuple(
-            dict.fromkeys(value.strip() for value in values if value.strip())
-        )
+        normalized = tuple(dict.fromkeys(value.strip() for value in values if value.strip()))
         with self.connection:
             self.connection.execute(
                 f"DELETE FROM {table} WHERE publication_number = ?",
