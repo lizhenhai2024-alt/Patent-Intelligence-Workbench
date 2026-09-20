@@ -8,11 +8,12 @@ from pathlib import Path
 from app.core.patent_number import PatentNumber
 from app.downloads.base import (
     DownloadAttempt,
-    DownloadError,
+    DownloadExhaustedError,
     DownloadResult,
     DownloadValidationError,
     PdfDownloadProvider,
 )
+from app.downloads.source_catalog import DownloadSourceCatalog
 
 
 def is_valid_pdf(data: bytes) -> bool:
@@ -27,8 +28,13 @@ def is_valid_pdf_file(path: Path) -> bool:
 
 
 class DownloadManager:
-    def __init__(self, providers: Iterable[PdfDownloadProvider]):
+    def __init__(
+        self,
+        providers: Iterable[PdfDownloadProvider],
+        source_catalog: DownloadSourceCatalog | None = None,
+    ):
         self.providers = tuple(providers)
+        self.source_catalog = source_catalog
 
     async def download(
         self,
@@ -68,7 +74,9 @@ class DownloadManager:
                         f"{provider.name} returned a non-PDF payload."
                     )
                 _atomic_write(destination_path, payload.data)
-            except DownloadError as exc:
+            except Exception as exc:
+                if isinstance(exc, (KeyboardInterrupt, SystemExit)):
+                    raise
                 attempts.append(
                     DownloadAttempt(
                         provider=provider.name,
@@ -92,12 +100,15 @@ class DownloadManager:
                 attempts=tuple(attempts),
             )
 
-        details = "; ".join(
-            f"{attempt.provider}: {attempt.error or 'failed'}"
-            for attempt in attempts
+        official_sources = (
+            self.source_catalog.hints_for(publication)
+            if self.source_catalog is not None
+            else ()
         )
-        raise DownloadError(
-            f"No PDF provider succeeded for {publication.canonical}. {details}"
+        raise DownloadExhaustedError(
+            publication_number=publication.canonical,
+            attempts=tuple(attempts),
+            official_sources=official_sources,
         )
 
 
