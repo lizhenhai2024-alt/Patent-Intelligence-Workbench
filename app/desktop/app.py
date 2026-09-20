@@ -28,7 +28,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.title("Patent Intelligence Workbench")
         self.geometry("1460x900")
         self.minsize(1180, 720)
-        self.configure(bg="#F6F7F9")
+        self.configure(bg="#F5F7FA")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
         self._configure_style()
@@ -41,14 +41,14 @@ class PatentWorkbenchApp(tk.Tk):
         if "clam" in style.theme_names():
             style.theme_use("clam")
 
-        bg = "#F6F7F9"
+        bg = "#F5F7FA"
         surface = "#FFFFFF"
-        border = "#E5E7EB"
-        text = "#111827"
-        muted = "#6B7280"
-        accent = "#111827"
-        accent_hover = "#1F2937"
-        selected = "#EEF2FF"
+        border = "#DDE3EA"
+        text = "#25364A"
+        muted = "#66788A"
+        accent = "#1769AA"
+        accent_hover = "#125A94"
+        selected = "#EAF3FB"
 
         style.configure("TFrame", background=bg)
         style.configure("Surface.TFrame", background=surface)
@@ -67,8 +67,8 @@ class PatentWorkbenchApp(tk.Tk):
         )
         style.configure(
             "Status.TLabel",
-            background="#111827",
-            foreground="#F9FAFB",
+            background="#EAF0F5",
+            foreground="#52677B",
             padding=(12, 7),
             font=("Segoe UI", 9),
         )
@@ -98,8 +98,23 @@ class PatentWorkbenchApp(tk.Tk):
             padding=(7, 3),
             font=("Segoe UI Semibold", 8),
         )
-        style.configure("TButton", font=("Segoe UI Semibold", 9), padding=(12, 7), relief="flat")
-        style.map("TButton", background=[("active", "#E5E7EB")])
+        style.configure(
+            "TButton",
+            background="#E7EDF3",
+            foreground="#34495E",
+            borderwidth=1,
+            bordercolor="#D2DAE3",
+            lightcolor="#D2DAE3",
+            darkcolor="#D2DAE3",
+            font=("Segoe UI Semibold", 9),
+            padding=(12, 7),
+            relief="flat",
+        )
+        style.map(
+            "TButton",
+            background=[("active", "#DCE6EF"), ("pressed", "#D1DEE9"), ("disabled", "#F0F3F6")],
+            foreground=[("active", "#1769AA"), ("disabled", "#9AA7B4")],
+        )
         style.configure(
             "Accent.TButton",
             background=accent,
@@ -109,18 +124,43 @@ class PatentWorkbenchApp(tk.Tk):
         )
         style.map(
             "Accent.TButton",
-            background=[("active", accent_hover), ("disabled", "#9CA3AF")],
-            foreground=[("disabled", "#F3F4F6")],
+            background=[
+                ("active", accent_hover),
+                ("pressed", "#0F4E82"),
+                ("disabled", "#AFC4D6"),
+            ],
+            foreground=[("disabled", "#F7FAFC")],
         )
         style.configure(
             "Ghost.TButton",
-            background=surface,
-            foreground=text,
+            background="#FFFFFF",
+            foreground="#52677B",
             borderwidth=1,
+            bordercolor="#CDD7E1",
+            lightcolor="#CDD7E1",
+            darkcolor="#CDD7E1",
             relief="solid",
             padding=(12, 7),
         )
-        style.map("Ghost.TButton", background=[("active", "#F3F4F6")])
+        style.configure(
+            "Quiet.TButton",
+            background="#FFFFFF",
+            foreground="#66788A",
+            borderwidth=0,
+            relief="flat",
+            padding=(9, 6),
+            font=("Segoe UI", 9),
+        )
+        style.map(
+            "Quiet.TButton",
+            background=[("active", "#F2F6F9"), ("pressed", "#E8EFF5")],
+            foreground=[("active", "#1769AA")],
+        )
+        style.map(
+            "Ghost.TButton",
+            background=[("active", "#F2F6F9"), ("pressed", "#E8EFF5")],
+            foreground=[("active", "#1769AA")],
+        )
         style.configure(
             "TEntry",
             padding=7,
@@ -162,8 +202,8 @@ class PatentWorkbenchApp(tk.Tk):
         style.map("Treeview.Heading", background=[("active", "#F3F4F6")])
         style.configure(
             "Nav.TButton",
-            background="#111827",
-            foreground="#9CA3AF",
+            background="#F1F5F9",
+            foreground="#52677B",
             borderwidth=0,
             anchor="w",
             padding=(14, 11),
@@ -171,13 +211,13 @@ class PatentWorkbenchApp(tk.Tk):
         )
         style.map(
             "Nav.TButton",
-            background=[("active", "#1F2937")],
-            foreground=[("active", "#FFFFFF")],
+            background=[("active", "#E4EDF5")],
+            foreground=[("active", "#1769AA")],
         )
         style.configure(
             "NavActive.TButton",
-            background="#FFFFFF",
-            foreground="#111827",
+            background="#DCEAF7",
+            foreground="#125A94",
             borderwidth=0,
             anchor="w",
             padding=(14, 11),
@@ -185,16 +225,16 @@ class PatentWorkbenchApp(tk.Tk):
         )
         style.map(
             "NavActive.TButton",
-            background=[("active", "#F3F4F6")],
-            foreground=[("active", "#111827")],
+            background=[("active", "#D2E4F3")],
+            foreground=[("active", "#125A94")],
         )
         style.configure(
             "Horizontal.TProgressbar",
             troughcolor="#E5E7EB",
-            background="#111827",
-            bordercolor="#E5E7EB",
-            lightcolor="#111827",
-            darkcolor="#111827",
+            background="#1769AA",
+            bordercolor="#DDE3EA",
+            lightcolor="#1769AA",
+            darkcolor="#1769AA",
         )
 
     def _build_shell(self) -> None:
@@ -219,17 +259,19 @@ class PatentWorkbenchApp(tk.Tk):
             style="Subtle.TLabel",
         ).pack(side="right")
 
-        workspace = tk.Frame(self, bg="#F6F7F9")
+        workspace = tk.Frame(self, bg="#F5F7FA")
         workspace.pack(fill="both", expand=True, padx=(18, 18), pady=(0, 12))
 
-        sidebar = tk.Frame(workspace, bg="#111827", width=190)
+        sidebar = tk.Frame(
+            workspace, bg="#F1F5F9", width=190, highlightthickness=1, highlightbackground="#DDE3EA"
+        )
         sidebar.pack(side="left", fill="y")
         sidebar.pack_propagate(False)
         tk.Label(
             sidebar,
             text="PIW",
-            bg="#111827",
-            fg="#FFFFFF",
+            bg="#F1F5F9",
+            fg="#25364A",
             font=("Segoe UI Semibold", 20),
             anchor="w",
             padx=14,
@@ -238,8 +280,8 @@ class PatentWorkbenchApp(tk.Tk):
         tk.Label(
             sidebar,
             text="Patent Intelligence",
-            bg="#111827",
-            fg="#9CA3AF",
+            bg="#F1F5F9",
+            fg="#66788A",
             font=("Segoe UI", 8),
             anchor="w",
             padx=14,
@@ -248,8 +290,8 @@ class PatentWorkbenchApp(tk.Tk):
         tk.Label(
             sidebar,
             text="WORKSPACE",
-            bg="#111827",
-            fg="#6B7280",
+            bg="#F1F5F9",
+            fg="#8494A5",
             font=("Segoe UI Semibold", 8),
             anchor="w",
             padx=14,
@@ -415,9 +457,26 @@ class PatentWorkbenchApp(tk.Tk):
         form.columnconfigure(2, weight=1)
         form.columnconfigure(3, weight=1)
 
+        results_card = ttk.LabelFrame(self.search_tab, text="检索结果", padding=8)
+        results_card.pack(fill="both", expand=True, pady=(0, 8))
+
+        results_toolbar = ttk.Frame(results_card, style="Surface.TFrame")
+        results_toolbar.pack(fill="x", pady=(0, 7))
+        self.search_result_count_var = tk.StringVar(value="尚未检索")
+        ttk.Label(
+            results_toolbar,
+            textvariable=self.search_result_count_var,
+            style="SurfaceSubtle.TLabel",
+        ).pack(side="left")
+        ttk.Label(
+            results_toolbar,
+            text="双击结果可直接进入 Patent Family",
+            style="SurfaceSubtle.TLabel",
+        ).pack(side="right")
+
         columns = ("number", "country", "title", "applicant", "date")
         self.search_tree = ttk.Treeview(
-            self.search_tab,
+            results_card,
             columns=columns,
             show="headings",
             selectmode="browse",
@@ -439,44 +498,63 @@ class PatentWorkbenchApp(tk.Tk):
         for column in columns:
             self.search_tree.heading(column, text=headings[column])
             self.search_tree.column(column, width=widths[column], anchor="w")
-        results_card = ttk.LabelFrame(self.search_tab, text="检索结果", padding=8)
-        results_card.pack(fill="both", expand=True, pady=(0, 8))
-        self.search_tree.master = results_card
-        self.search_tree.pack(in_=results_card, fill="both", expand=True)
+        self.search_tree.pack(fill="both", expand=True)
         self.search_tree.bind("<Double-1>", self._search_to_family)
 
-        actions = ttk.Frame(self.search_tab)
-        actions.pack(fill="x", pady=(8, 0))
+        evidence_card = ttk.LabelFrame(self.search_tab, text="Evidence 采集", padding=8)
+        evidence_card.pack(fill="x", pady=(0, 2))
+        actions = ttk.Frame(evidence_card, style="Surface.TFrame")
+        actions.pack(fill="x")
         ttk.Button(
             actions,
             text="分析选中专利族",
             command=self._search_to_family,
+            style="Ghost.TButton",
         ).pack(side="left")
         ttk.Button(
             actions,
             text="采集 URL / 文件",
             command=self.acquire_source,
-        ).pack(side="left", padx=(8, 0))
+            style="Quiet.TButton",
+        ).pack(side="left", padx=(6, 0))
         ttk.Button(
             actions,
             text="选择本地文件",
             command=self.choose_acquisition_file,
-        ).pack(side="left", padx=(8, 0))
+            style="Quiet.TButton",
+        ).pack(side="left", padx=(2, 0))
         ttk.Button(
             actions,
             text="保存为证据",
             command=self.save_current_acquisition,
-        ).pack(side="left", padx=(8, 0))
+            style="Quiet.TButton",
+        ).pack(side="left", padx=(2, 0))
 
+        ttk.Label(
+            actions,
+            text="关联专利",
+            style="SurfaceSubtle.TLabel",
+        ).pack(side="left", padx=(16, 5))
         self.acquisition_link_var = tk.StringVar()
         ttk.Entry(
             actions,
             textvariable=self.acquisition_link_var,
             width=24,
-        ).pack(side="left", padx=(12, 0))
-        ttk.Label(actions, text="关联专利号（可选）").pack(side="left", padx=(4, 0))
+        ).pack(side="left")
 
-        self.acquisition_preview = tk.Text(self.search_tab, height=9, wrap="word")
+        self.acquisition_preview = tk.Text(
+            evidence_card,
+            height=6,
+            wrap="word",
+            borderwidth=0,
+            highlightthickness=1,
+            highlightbackground="#DDE3EA",
+            background="#F9FBFC",
+            foreground="#52677B",
+            font=("Segoe UI", 9),
+            padx=10,
+            pady=8,
+        )
         self.acquisition_preview.pack(fill="x", pady=(8, 0))
         self.acquisition_preview.insert("1.0", "采集结果将在这里显示 Markdown 预览。")
         self.acquisition_preview.configure(state="disabled")
@@ -1395,8 +1473,13 @@ class PatentWorkbenchApp(tk.Tk):
                 ),
             )
         total = response.page.total_result_count
+        shown = len(response.page.hits)
+        self.search_result_count_var.set(
+            f"{response.provider} · 显示 {shown} 条"
+            + (f" / 共 {total} 条" if total is not None else "")
+        )
         self._set_status(
-            f"搜索完成：{response.provider} · 显示 {len(response.page.hits)} 条"
+            f"搜索完成：{response.provider} · 显示 {shown} 条"
             + (f" / 共 {total} 条" if total is not None else "")
         )
 
@@ -1405,7 +1488,7 @@ class PatentWorkbenchApp(tk.Tk):
         if not selection:
             return
         self.family_number_var.set(selection[0])
-        self.notebook.select(self.family_tab)
+        self._show_page("family")
         if self.runtime.family_resolver is not None:
             self.run_family_analysis()
 
