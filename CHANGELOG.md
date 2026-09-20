@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.0.0rc3 — Desktop thread safety, download feedback and Watch cadence
+
+### Desktop thread safety
+
+- SQLite-backed Local Library and Patent Watch now use one connection per thread.
+- Background Search and Watch workers no longer reuse the Tk/main-thread SQLite connection.
+- Worker completion and progress callbacks are marshalled through a thread-safe callback queue; worker threads no longer call Tk directly.
+
+### Patent Family download
+
+- “下载全部专利 PDF” now disables immediately while a download is active.
+- Added determinate family-download progress with current publication number and completed/total count.
+- Completion always shows an explicit success/partial-failure summary and output folder.
+- Added per-member progress callbacks in FamilyDownloader.
+
+### Patent Watch
+
+- The desktop Watch tab now exposes editable monitoring cadence in hours for the selected rule.
+- Cadence changes persist to SQLite and are respected by the due-rule scheduler.
+
+### Validation
+
+- Added cross-thread SQLite regression tests for Local Library and Patent Watch.
+- Added Tk callback-queue regression coverage.
+- Added family-download progress regression coverage.
+- Local GUI end-to-end validation passed with US20240003399A1: patent-number search, 4-member family resolution, and 4/4 PDF download.
+
 ## 1.0.0rc2 — Zero-configuration search fallback
 
 ### Search

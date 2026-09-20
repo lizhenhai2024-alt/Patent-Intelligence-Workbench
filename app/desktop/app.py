@@ -8,7 +8,7 @@ from tkinter import filedialog, messagebox, ttk
 
 from app.acquisition import AcquisitionRequest
 from app.core.patent_number import PatentNumberError, normalize_patent_number
-from app.desktop.async_runner import run_async_in_thread
+from app.desktop.async_runner import TkCallbackQueue, run_async_in_thread
 from app.desktop.opening import open_local_path
 from app.desktop.presenters import patent_row, watch_history_row, watch_rule_row
 from app.desktop.runtime import DesktopRuntime
@@ -21,6 +21,7 @@ class PatentWorkbenchApp(tk.Tk):
     def __init__(self, runtime: DesktopRuntime):
         super().__init__()
         self.runtime = runtime
+        self._ui_callbacks = TkCallbackQueue(self)
         self._current_family: PatentFamily | None = None
         self._current_acquisition = None
 
@@ -241,11 +242,12 @@ class PatentWorkbenchApp(tk.Tk):
             text="加入本地库",
             command=self.add_current_family_to_library,
         ).grid(row=1, column=3, padx=(0, 8))
-        ttk.Button(
+        self.family_download_button = ttk.Button(
             form,
-            text="下载整族 PDF",
+            text="下载全部专利 PDF",
             command=self.download_current_family,
-        ).grid(row=1, column=4)
+        )
+        self.family_download_button.grid(row=1, column=4)
 
         columns = ("number", "country", "application", "date")
         self.family_tree = ttk.Treeview(
@@ -270,6 +272,21 @@ class PatentWorkbenchApp(tk.Tk):
             style="Subtle.TLabel",
         ).pack(fill="x", pady=(8, 0))
 
+        self.family_download_progress = ttk.Progressbar(
+            self.family_tab,
+            mode="determinate",
+            maximum=1,
+        )
+        self.family_download_progress.pack(fill="x", pady=(8, 2))
+        self.family_download_progress_var = tk.StringVar(
+            value="下载状态：等待开始"
+        )
+        ttk.Label(
+            self.family_tab,
+            textvariable=self.family_download_progress_var,
+            style="Subtle.TLabel",
+        ).pack(fill="x")
+
     def _build_watch_tab(self) -> None:
         toolbar = ttk.Frame(self.watch_tab)
         toolbar.pack(fill="x", pady=(0, 8))
@@ -290,6 +307,26 @@ class PatentWorkbenchApp(tk.Tk):
         )
         self.run_watch_button.pack(side="left", padx=(8, 0))
 
+        ttk.Separator(toolbar, orient="vertical").pack(
+            side="left",
+            fill="y",
+            padx=10,
+        )
+        ttk.Label(toolbar, text="监控间隔(h)").pack(side="left")
+        self.watch_cadence_var = tk.StringVar(value="24")
+        ttk.Spinbox(
+            toolbar,
+            from_=1,
+            to=8760,
+            textvariable=self.watch_cadence_var,
+            width=7,
+        ).pack(side="left", padx=(4, 0))
+        ttk.Button(
+            toolbar,
+            text="应用到选中规则",
+            command=self.apply_selected_watch_cadence,
+        ).pack(side="left", padx=(6, 0))
+
         self.watch_rule_tree = ttk.Treeview(
             self.watch_tab,
             columns=("name", "enabled", "cadence", "last_run", "company"),
@@ -307,6 +344,10 @@ class PatentWorkbenchApp(tk.Tk):
             self.watch_rule_tree.heading(column, text=title)
             self.watch_rule_tree.column(column, width=width, anchor="w")
         self.watch_rule_tree.pack(fill="both", expand=True)
+        self.watch_rule_tree.bind(
+            "<<TreeviewSelect>>",
+            self._load_selected_watch_cadence,
+        )
 
         ttk.Label(
             self.watch_tab,
@@ -769,7 +810,7 @@ class PatentWorkbenchApp(tk.Tk):
             task,
             on_success=self._render_acquisition_result,
             on_error=lambda exc: self._network_error("采集失败", exc),
-            schedule_ui=lambda callback: self.after(0, callback),
+            schedule_ui=self._ui_callbacks.submit,
         )
 
     def _render_acquisition_result(self, result) -> None:
@@ -846,7 +887,7 @@ class PatentWorkbenchApp(tk.Tk):
             task,
             on_success=self._render_search_response,
             on_error=lambda exc: self._network_error("搜索失败", exc),
-            schedule_ui=lambda callback: self.after(0, callback),
+            schedule_ui=self._ui_callbacks.submit,
         )
 
     def _render_search_response(self, response) -> None:
@@ -903,7 +944,7 @@ class PatentWorkbenchApp(tk.Tk):
             task,
             on_success=self._render_family_resolution,
             on_error=lambda exc: self._network_error("专利族解析失败", exc),
-            schedule_ui=lambda callback: self.after(0, callback),
+            schedule_ui=self._ui_callbacks.submit,
         )
 
     def _render_family_resolution(self, resolution) -> None:
@@ -947,32 +988,90 @@ class PatentWorkbenchApp(tk.Tk):
         if family is None:
             messagebox.showinfo("没有专利族", "请先分析一个专利族。")
             return
-        self._set_status("正在下载整族 PDF…")
+
+        total = len(family.members)
+        self.family_download_button.state(["disabled"])
+        self.family_download_progress.configure(maximum=max(total, 1), value=0)
+        self.family_download_progress_var.set(
+            f"下载状态：准备开始，共 {total} 个专利成员"
+        )
+        self._set_status(f"正在下载整族 PDF：0 / {total}")
+
+        def progress_callback(progress) -> None:
+            self._ui_callbacks.submit(
+                lambda item=progress: self._render_family_download_progress(item)
+            )
 
         def task():
             return self.runtime.family_downloader.download_family(
                 family,
                 self.runtime.paths.downloads,
+                on_progress=progress_callback,
             )
 
         def success(summary) -> None:
+            self.family_download_button.state(["!disabled"])
             ingest_family(self.runtime.library_store, family)
             ingest_download_summary(self.runtime.library_store, summary)
             self.refresh_library()
+            self.family_download_progress.configure(
+                maximum=max(len(summary.members), 1),
+                value=len(summary.members),
+            )
+            self.family_download_progress_var.set(
+                f"下载完成：成功 {summary.succeeded}，失败 {summary.failed} · "
+                f"{summary.family_folder}"
+            )
             self._set_status(
                 f"下载完成：成功 {summary.succeeded}，失败 {summary.failed}"
             )
+
             if summary.failed:
+                failed = [
+                    f"{member.publication_number}: {member.error or '未下载'}"
+                    for member in summary.members
+                    if member.status == "failed"
+                ]
+                details = "\n".join(failed[:8])
+                if len(failed) > 8:
+                    details += f"\n…另有 {len(failed) - 8} 项"
                 messagebox.showwarning(
-                    "部分下载失败",
-                    "部分成员未自动下载，可在 family.json 中查看官方替代来源。",
+                    "整族 PDF 下载完成（有失败）",
+                    f"成功 {summary.succeeded}，失败 {summary.failed}\n\n"
+                    f"目录：{summary.family_folder}\n\n{details}",
                 )
+            else:
+                messagebox.showinfo(
+                    "整族 PDF 下载完成",
+                    f"成功下载 {summary.succeeded} 个专利 PDF。\n\n"
+                    f"目录：{summary.family_folder}",
+                )
+
+        def failed(exc: Exception) -> None:
+            self.family_download_button.state(["!disabled"])
+            self.family_download_progress_var.set(f"下载失败：{exc}")
+            self._network_error("下载失败", exc)
 
         run_async_in_thread(
             task,
             on_success=success,
-            on_error=lambda exc: self._network_error("下载失败", exc),
-            schedule_ui=lambda callback: self.after(0, callback),
+            on_error=failed,
+            schedule_ui=self._ui_callbacks.submit,
+        )
+
+    def _render_family_download_progress(self, progress) -> None:
+        self.family_download_progress.configure(
+            maximum=max(progress.total, 1),
+            value=progress.completed,
+        )
+        state = "成功" if progress.status == "success" else "失败"
+        self.family_download_progress_var.set(
+            f"下载中：{progress.completed} / {progress.total} · "
+            f"{progress.publication_number} · {state}"
+        )
+        self._set_status(
+            f"正在下载整族 PDF：{progress.completed} / {progress.total} · "
+            f"{progress.publication_number}"
         )
 
     def refresh_watch(self) -> None:
@@ -1007,6 +1106,44 @@ class PatentWorkbenchApp(tk.Tk):
         )
         self.refresh_watch()
 
+    def _load_selected_watch_cadence(self, _event=None) -> None:
+        selection = self.watch_rule_tree.selection()
+        if not selection:
+            return
+        rule = self.runtime.watch_store.get_rule(selection[0])
+        if rule is not None:
+            self.watch_cadence_var.set(str(rule.cadence_hours))
+
+    def apply_selected_watch_cadence(self) -> None:
+        selection = self.watch_rule_tree.selection()
+        if not selection:
+            messagebox.showinfo("未选择规则", "请先选择一条 Patent Watch 规则。")
+            return
+
+        try:
+            cadence_hours = int(self.watch_cadence_var.get().strip())
+        except ValueError:
+            messagebox.showerror("间隔错误", "监控间隔必须是整数小时。")
+            return
+        if cadence_hours < 1 or cadence_hours > 8760:
+            messagebox.showerror("间隔错误", "监控间隔必须在 1–8760 小时之间。")
+            return
+
+        rule = self.runtime.watch_store.get_rule(selection[0])
+        if rule is None:
+            return
+        self.runtime.watch_store.upsert_rule(
+            replace(rule, cadence_hours=cadence_hours)
+        )
+        self.refresh_watch()
+        if self.watch_rule_tree.exists(rule.rule_id):
+            self.watch_rule_tree.selection_set(rule.rule_id)
+            self.watch_rule_tree.focus(rule.rule_id)
+        self.watch_cadence_var.set(str(cadence_hours))
+        self._set_status(
+            f"Patent Watch 间隔已更新：{rule.name} → {cadence_hours} 小时"
+        )
+
     def run_due_watch_rules(self) -> None:
         scheduler = self.runtime.watch_scheduler
         if scheduler is None:
@@ -1031,7 +1168,7 @@ class PatentWorkbenchApp(tk.Tk):
             task,
             on_success=success,
             on_error=lambda exc: self._network_error("监控失败", exc),
-            schedule_ui=lambda callback: self.after(0, callback),
+            schedule_ui=self._ui_callbacks.submit,
         )
 
     def refresh_library(self) -> None:
@@ -1079,6 +1216,8 @@ class PatentWorkbenchApp(tk.Tk):
     def _network_error(self, title: str, exc: Exception) -> None:
         self.search_button.state(["!disabled"])
         self.family_analyze_button.state(["!disabled"])
+        if hasattr(self, "family_download_button"):
+            self.family_download_button.state(["!disabled"])
         self.run_watch_button.state(["!disabled"])
         self._set_status(f"{title}: {exc}")
         messagebox.showerror(title, str(exc))
@@ -1087,6 +1226,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.status_var.set(text)
 
     def _on_close(self) -> None:
+        self._ui_callbacks.close()
         self.runtime.close()
         self.destroy()
 

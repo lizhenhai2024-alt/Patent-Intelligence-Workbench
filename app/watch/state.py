@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from app.sqlite_connection import ThreadLocalSQLite
 from app.watch.models import WatchRule, WatchRunResult
 
 
@@ -37,12 +38,15 @@ class SQLiteWatchStateStore:
     def __init__(self, path: str | Path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.connection = sqlite3.connect(self.path)
-        self.connection.row_factory = sqlite3.Row
+        self._connections = ThreadLocalSQLite(self.path)
         self._init_schema()
 
+    @property
+    def connection(self) -> sqlite3.Connection:
+        return self._connections.get()
+
     def close(self) -> None:
-        self.connection.close()
+        self._connections.close_all()
 
     def _init_schema(self) -> None:
         self.connection.executescript(
