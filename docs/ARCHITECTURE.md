@@ -31,6 +31,31 @@ CN, JP, EP, US, WO, KR.
 
 JP is first-class. Classification storage must support IPC, CPC, FI, F-term and Theme Code.
 
+## Patent family sources
+
+The internal model explicitly distinguishes:
+
+- **DOCDB simple family**: same invention / equivalent publications.
+- **INPADOC extended family**: related technical content connected by priority links.
+
+EPO OPS is the primary cross-jurisdiction family source in V1 because it exposes
+both the Published Data equivalents service and the dedicated family service.
+
+### Japan
+
+JPO remains a first-class authoritative source for Japanese application data,
+including number reference, priority, progress, citation and registration data.
+
+The domestic JPO Patent Information Retrieval API is not treated as the primary
+cross-jurisdiction patent-family provider. JPO's separate OPD family API is
+optional because new OPD-API user registrations have been closed since
+2024-08-09. Family resolution for JP publications therefore uses the same
+provider fallback architecture as other jurisdictions, with EPO family data as
+the first implemented source and JPO domestic data used for JP validation.
+
+No API credential is stored in the repository. Provider credentials are loaded
+from environment variables or local settings only.
+
 ## Entity graph rule
 
 Company identity is not a flat alias list.
@@ -52,6 +77,20 @@ SECURITY_INTEREST and UNKNOWN relations are excluded from default company-group 
 A family is the primary analysis unit. The system must retain both simple-family and INPADOC-family identifiers when available and preserve individual national publications.
 
 A new family and a new member of an existing family are separate Patent Watch events.
+
+## Provider fallback rule
+
+Higher layers call a FamilyResolver rather than a provider directly.
+
+The resolver:
+1. checks provider capabilities,
+2. tries providers in configured order,
+3. records each attempt and error,
+4. returns the first valid normalized PatentFamily,
+5. raises one aggregated error only after all eligible providers fail.
+
+This enables EPO -> future secondary source -> cached/local source fallback
+without changing Search, Watch, Family Analysis or UI code.
 
 ## Download rule
 
