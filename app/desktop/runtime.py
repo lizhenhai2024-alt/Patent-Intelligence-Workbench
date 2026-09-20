@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.acquisition import AcquisitionEngine, default_engine
 from app.core.company_registry import CompanyRegistry
 from app.core.technology_dictionary import TechnologyDictionary
 from app.desktop.credentials import CredentialStore, DesktopCredentialStore, EpoOpsCredentials
@@ -32,6 +33,7 @@ class DesktopRuntime:
     watch_store: SQLiteWatchStateStore
     family_downloader: FamilyDownloader
     credential_store: CredentialStore
+    acquisition_engine: AcquisitionEngine | None = None
     search_service: SearchService | None = None
     family_resolver: FamilyResolver | None = None
     watch_scheduler: PatentWatchScheduler | None = None
@@ -61,6 +63,7 @@ class DesktopRuntime:
             watch_store=watch_store,
             family_downloader=FamilyDownloader(build_default_download_manager()),
             credential_store=credential_store or DesktopCredentialStore(),
+            acquisition_engine=default_engine(),
         )
         runtime.reload_network_services()
         return runtime

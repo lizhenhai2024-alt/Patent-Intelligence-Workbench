@@ -6,6 +6,7 @@ import tkinter as tk
 from dataclasses import replace
 from tkinter import filedialog, messagebox, ttk
 
+from app.acquisition import AcquisitionRequest
 from app.core.patent_number import PatentNumberError, normalize_patent_number
 from app.desktop.async_runner import run_async_in_thread
 from app.desktop.opening import open_local_path
@@ -173,6 +174,21 @@ class PatentWorkbenchApp(tk.Tk):
             text="分析选中专利族",
             command=self._search_to_family,
         ).pack(side="left")
+        ttk.Button(
+            actions,
+            text="采集 URL / 文件",
+            command=self.acquire_source,
+        ).pack(side="left", padx=(8, 0))
+        ttk.Button(
+            actions,
+            text="选择本地文件",
+            command=self.choose_acquisition_file,
+        ).pack(side="left", padx=(8, 0))
+
+        self.acquisition_preview = tk.Text(self.search_tab, height=9, wrap="word")
+        self.acquisition_preview.pack(fill="x", pady=(8, 0))
+        self.acquisition_preview.insert("1.0", "采集结果将在这里显示 Markdown 预览。")
+        self.acquisition_preview.configure(state="disabled")
 
     def _build_family_tab(self) -> None:
         form = ttk.Frame(self.family_tab)
@@ -660,6 +676,46 @@ class PatentWorkbenchApp(tk.Tk):
             open_local_path(target)
         except Exception as exc:
             messagebox.showerror("打开失败", str(exc))
+
+    def choose_acquisition_file(self) -> None:
+        path = filedialog.askopenfilename(
+            title="选择要采集的文件",
+            filetypes=[
+                ("Documents", "*.pdf *.docx *.pptx *.xlsx *.html *.htm *.txt"),
+                ("All files", "*.*"),
+            ],
+        )
+        if path:
+            self.search_query_var.set(path)
+            self.acquire_source()
+
+    def acquire_source(self) -> None:
+        engine = self.runtime.acquisition_engine
+        source = self.search_query_var.get().strip()
+        if engine is None or not source:
+            messagebox.showinfo("采集", "请输入 URL，或选择本地文件。")
+            return
+        self._set_status("正在采集并转换为 Markdown…")
+
+        def task():
+            return engine.acquire(AcquisitionRequest(source=source))
+
+        run_async_in_thread(
+            task,
+            on_success=self._render_acquisition_result,
+            on_error=lambda exc: self._network_error("采集失败", exc),
+            schedule_ui=lambda callback: self.after(0, callback),
+        )
+
+    def _render_acquisition_result(self, result) -> None:
+        preview = result.markdown[:12000]
+        self.acquisition_preview.configure(state="normal")
+        self.acquisition_preview.delete("1.0", "end")
+        self.acquisition_preview.insert("1.0", preview)
+        self.acquisition_preview.configure(state="disabled")
+        self._set_status(
+            f"采集完成：{result.kind.value} · {len(result.markdown)} 字符 · {result.source}"
+        )
 
     def run_search(self) -> None:
         service = self.runtime.search_service
