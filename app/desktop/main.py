@@ -3,13 +3,25 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
 from app.desktop.paths import AppPaths
 from app.desktop.runtime import DesktopRuntime
 
 
-def smoke_test() -> int:
-    runtime = DesktopRuntime.create()
+def paths_from_root(root: str | Path) -> AppPaths:
+    base = Path(root).expanduser()
+    return AppPaths(
+        root=base,
+        library_db=base / "patent_library.db",
+        watch_db=base / "patent_watch.db",
+        downloads=base / "downloads",
+        exports=base / "exports",
+    )
+
+
+def smoke_test(paths: AppPaths | None = None) -> int:
+    runtime = DesktopRuntime.create(paths)
     try:
         assert runtime.paths.library_db.parent.exists()
         assert runtime.paths.watch_db.parent.exists()
@@ -32,29 +44,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    if args.data_dir:
-        paths = AppPaths(
-            root=__import__("pathlib").Path(args.data_dir),
-            library_db=__import__("pathlib").Path(args.data_dir) / "patent_library.db",
-            watch_db=__import__("pathlib").Path(args.data_dir) / "patent_watch.db",
-            downloads=__import__("pathlib").Path(args.data_dir) / "downloads",
-            exports=__import__("pathlib").Path(args.data_dir) / "exports",
-        )
-        runtime = DesktopRuntime.create(paths)
-        if args.smoke:
-            runtime.close()
-            return 0
-        from app.desktop.app import run_desktop
-
-        run_desktop(runtime)
-        return 0
-
+    paths = paths_from_root(args.data_dir) if args.data_dir else None
     if args.smoke:
-        return smoke_test()
+        return smoke_test(paths)
 
+    runtime = DesktopRuntime.create(paths)
     from app.desktop.app import run_desktop
 
-    run_desktop()
+    run_desktop(runtime)
     return 0
 
 
