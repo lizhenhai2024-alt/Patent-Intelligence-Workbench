@@ -29,9 +29,6 @@ class CompanyGroup:
             if not include_in_default_group_search(entity.relation):
                 continue
             if entity.scope and not technology_context:
-                # A scoped acquired portfolio (e.g. Bose suspension patents
-                # under ClearMotion) must never expand a company-only search
-                # into every patent owned by the historical company.
                 continue
             if entity.name not in names:
                 names.append(entity.name)
@@ -45,7 +42,7 @@ class CompanyRegistry:
         self.groups = groups
 
     @classmethod
-    def from_dict(cls, payload: dict) -> "CompanyRegistry":
+    def from_dict(cls, payload: dict) -> CompanyRegistry:
         groups: list[CompanyGroup] = []
         for item in payload.get("companies", []):
             entities = tuple(
@@ -67,12 +64,12 @@ class CompanyRegistry:
         return cls(tuple(groups))
 
     @classmethod
-    def from_json_file(cls, path: str | Path) -> "CompanyRegistry":
+    def from_json_file(cls, path: str | Path) -> CompanyRegistry:
         payload = json.loads(Path(path).read_text(encoding="utf-8"))
         return cls.from_dict(payload)
 
     @classmethod
-    def default(cls) -> "CompanyRegistry":
+    def default(cls) -> CompanyRegistry:
         root = Path(__file__).resolve().parents[2]
         return cls.from_json_file(root / "data" / "companies" / "core_companies.json")
 
