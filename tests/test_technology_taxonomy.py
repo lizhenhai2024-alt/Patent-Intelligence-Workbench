@@ -131,3 +131,56 @@ def test_active_anti_roll_contains_core_architecture_nodes():
         "anti roll bar disconnect",
         "active stabilizer clutch",
     )
+
+
+def test_extended_suspension_taxonomy_core_nodes():
+    taxonomy = TechnologyTaxonomy.default()
+    suspension = taxonomy.find("suspension")
+    child_ids = {child.node_id for child in suspension.children}
+    expected = {
+        "suspension_spring",
+        "travel_control",
+        "suspension_structure",
+        "mount_bushing",
+        "seal_friction_guidance",
+        "damper_hardware",
+        "nvh_noise",
+        "materials_manufacturing",
+    }
+    assert expected.issubset(child_ids)
+
+    assert taxonomy.find("spring_seat").search_terms == (
+        "spring seat",
+        "suspension spring seat",
+        "coil spring seat",
+        "upper spring seat",
+        "lower spring seat",
+        "spring perch",
+    )
+    assert "Leaf Spring" not in {n.name for n in taxonomy.find("suspension_spring").children}
+    assert "Torsion Bar" not in {n.name for n in taxonomy.find("suspension_spring").children}
+
+
+def test_travel_control_and_fsd_are_structured():
+    taxonomy = TechnologyTaxonomy.default()
+    travel = taxonomy.find("travel_control")
+    assert "rebound_spring" in {child.node_id for child in travel.children}
+    assert taxonomy.find("rebound_spring").search_terms[0] == "rebound spring"
+
+    fsd = taxonomy.find("fsd")
+    assert fsd.name == "FSD / Frequency Selective Damping"
+    assert {child.node_id for child in fsd.children} == {
+        "frequency_selective_valve",
+        "hydraulic_delay",
+        "fsd_aux_chamber",
+        "fsd_bypass_flow",
+        "fsd_pressure_switching",
+        "fsd_inertial_switching",
+    }
+
+
+def test_separating_and_control_floating_pistons_remain_distinct():
+    taxonomy = TechnologyTaxonomy.default()
+    assert taxonomy.find("separating_piston").name == "Separating Piston"
+    assert taxonomy.find("floating_piston").name == "Floating Piston"
+    assert taxonomy.find("separating_piston").node_id != taxonomy.find("floating_piston").node_id
