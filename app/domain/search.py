@@ -34,7 +34,9 @@ class SearchHit:
     jurisdiction: str
     kind_code: str | None = None
     title: str | None = None
+    abstract: str | None = None
     applicants: tuple[str, ...] = ()
+    classifications: tuple[str, ...] = ()
     publication_date: date | None = None
     source: str | None = None
 

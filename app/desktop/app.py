@@ -1565,9 +1565,18 @@ class PatentWorkbenchApp(tk.Tk):
         self._search_technology_evidence.clear()
         for hit in response.page.hits:
             classification_text = " ".join(
-                part for part in (hit.title or "", " ".join(hit.applicants)) if part
+                part
+                for part in (
+                    hit.title or "",
+                    hit.abstract or "",
+                    " ".join(hit.applicants),
+                )
+                if part
             )
-            matches = self.technology_classifier.classify(text=classification_text)
+            matches = self.technology_classifier.classify(
+                text=classification_text,
+                classifications=hit.classifications,
+            )
             self._search_technology_evidence[hit.publication_number] = matches
             tag_text = " / ".join(match.name for match in matches[:3])
             self.search_tree.insert(

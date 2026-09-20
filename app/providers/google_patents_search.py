@@ -48,6 +48,9 @@ class _PatentPageParser(HTMLParser):
         "publicationDate",
         "filingDate",
         "grantDate",
+        "abstract",
+        "classificationCpc",
+        "classificationIpc",
     }
 
     def __init__(self) -> None:
@@ -224,12 +227,20 @@ def _page_hit(parser: _PatentPageParser, requested: PatentNumber) -> SearchHit:
             or parser.values.get("assigneeOriginal", [])
         )
     )
+    classifications = tuple(
+        dict.fromkeys(
+            parser.values.get("classificationCpc", [])
+            + parser.values.get("classificationIpc", [])
+        )
+    )
     return SearchHit(
         publication_number=canonical,
         jurisdiction=jurisdiction,
         kind_code=kind,
         title=_first(parser.values, "title"),
+        abstract=_first(parser.values, "abstract"),
         applicants=applicants,
+        classifications=classifications,
         publication_date=_parse_date(_first(parser.values, "publicationDate")),
         source="GOOGLE_PATENTS",
     )
