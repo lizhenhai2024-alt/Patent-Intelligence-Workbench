@@ -23,6 +23,21 @@ def test_company_technology_query_compiles_to_boolean_cql():
     assert "(pn=JP or pn=US)" in cql
 
 
+def test_distinct_technology_concepts_are_anded_and_synonyms_are_ored():
+    expression = SearchExpression(
+        text_groups=(
+            ("pilot valve", "solenoid valve"),
+            ("back pressure", "back pressure chamber"),
+        ),
+    )
+
+    cql = compile_epo_cql(expression)
+
+    pilot_group = '(ta all "pilot valve" or ta all "solenoid valve")'
+    pressure_group = '(ta all "back pressure" or ta all "back pressure chamber")'
+    assert f"{pilot_group} and {pressure_group}" == cql
+
+
 def test_publication_date_range_uses_ops_within_syntax():
     expression = SearchExpression(
         text_terms=("active suspension",),

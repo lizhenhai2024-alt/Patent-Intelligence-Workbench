@@ -1,11 +1,9 @@
 import asyncio
 
 from app.core.company_registry import CompanyRegistry
+from app.core.technology_dictionary import TechnologyDictionary
 from app.domain.search import SearchHit, SearchPage
-from app.providers.base import (
-    ProviderCapability,
-    ProviderInfo,
-)
+from app.providers.base import ProviderCapability, ProviderInfo
 from app.services.search_service import SearchService
 
 
@@ -40,6 +38,13 @@ class FakeProvider:
     async def search_publications(self, expression, *, page_size=25, page_start=1):
         self.search_calls.append((expression, page_size, page_start))
         return SearchPage(hits=(), total_result_count=0)
+
+
+class FakeEpoProvider(FakeProvider):
+    info = ProviderInfo(
+        name="EPO_OPS",
+        capabilities=FakeProvider.info.capabilities,
+    )
 
 
 def _registry():
@@ -109,3 +114,29 @@ def test_company_technology_query_includes_scoped_portfolio():
         "Bose Corporation",
     )
     assert expression.text_terms == ("active suspension",)
+
+
+def test_multilingual_dictionary_expands_chinese_company_technology_query():
+    provider = FakeEpoProvider()
+    service = SearchService(
+        provider=provider,
+        company_registry=_registry(),
+        technology_dictionary=TechnologyDictionary.default(),
+    )
+
+    asyncio.run(
+        service.search(
+            "背压控制",
+            company="ClearMotion",
+            technology_terms=("先导阀", "背压控制"),
+        )
+    )
+
+    expression = provider.search_calls[0][0]
+    assert expression.text_terms == ()
+    assert (
+        "pilot valve",
+        "solenoid valve",
+        "external control valve",
+    ) in expression.text_groups
+    assert ("back pressure", "back pressure chamber") in expression.text_groups

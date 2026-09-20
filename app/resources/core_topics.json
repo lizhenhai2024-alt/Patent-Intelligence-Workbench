@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "topics": [
+    {
+      "topic_id": "damper",
+      "display_name": "减振器",
+      "aliases": {
+        "zh": ["减振器", "减震器", "缓冲器"],
+        "en": ["damper", "shock absorber"],
+        "ja": ["緩衝器", "ショックアブソーバ"]
+      },
+      "provider_terms": {
+        "EPO_OPS": ["shock absorber", "damper"],
+        "DEFAULT": ["shock absorber", "damper", "緩衝器"]
+      }
+    },
+    {
+      "topic_id": "continuous_damping_control",
+      "display_name": "电控/连续可变阻尼",
+      "aliases": {
+        "zh": ["电控减振器", "可变阻尼减振器", "连续可变阻尼", "CDC"],
+        "en": [
+          "electronically controlled damper",
+          "variable damping force damper",
+          "continuous damping control",
+          "semi-active damper",
+          "CVSA"
+        ],
+        "ja": ["減衰力調整式緩衝器", "減衰力可変ダンパ", "電子制御緩衝器"]
+      },
+      "provider_terms": {
+        "EPO_OPS": [
+          "electronically controlled damper",
+          "variable damping force",
+          "continuous damping control",
+          "semi active damper"
+        ],
+        "DEFAULT": [
+          "electronically controlled damper",
+          "variable damping force",
+          "減衰力調整式緩衝器"
+        ]
+      }
+    },
+    {
+      "topic_id": "pilot_control_valve",
+      "display_name": "先导/外置电磁控制阀",
+      "aliases": {
+        "zh": ["先导阀", "先导比例电磁阀", "外置电磁阀", "外置先导阀", "电磁阀"],
+        "en": [
+          "pilot valve",
+          "pilot operated solenoid valve",
+          "external solenoid valve",
+          "external control valve",
+          "solenoid valve"
+        ],
+        "ja": ["パイロット弁", "電磁弁", "ソレノイドバルブ"]
+      },
+      "provider_terms": {
+        "EPO_OPS": [
+          "pilot valve",
+          "solenoid valve",
+          "external control valve"
+        ],
+        "DEFAULT": [
+          "pilot valve",
+          "solenoid valve",
+          "パイロット弁",
+          "電磁弁"
+        ]
+      }
+    },
+    {
+      "topic_id": "back_pressure_control",
+      "display_name": "背压控制",
+      "aliases": {
+        "zh": ["背压", "背压腔", "背压室", "背压控制"],
+        "en": ["back pressure", "back pressure chamber", "back pressure control"],
+        "ja": ["背圧", "背圧室", "背圧制御"]
+      },
+      "provider_terms": {
+        "EPO_OPS": ["back pressure", "back pressure chamber"],
+        "DEFAULT": ["back pressure", "back pressure chamber", "背圧室"]
+      }
+    },
+    {
+      "topic_id": "floating_piston",
+      "display_name": "浮动活塞",
+      "aliases": {
+        "zh": ["浮动活塞", "浮置活塞"],
+        "en": ["floating piston", "free piston"],
+        "ja": ["フリーピストン", "浮動ピストン"]
+      },
+      "provider_terms": {
+        "EPO_OPS": ["floating piston", "free piston"],
+        "DEFAULT": ["floating piston", "free piston", "フリーピストン"]
+      }
+    },
+    {
+      "topic_id": "active_suspension",
+      "display_name": "主动悬架/主动减振器",
+      "aliases": {
+        "zh": ["主动悬架", "全主动悬架", "主动减振器"],
+        "en": ["active suspension", "fully active suspension", "active damper"],
+        "ja": ["アクティブサスペンション", "能動サスペンション"]
+      },
+      "provider_terms": {
+        "EPO_OPS": ["active suspension", "fully active suspension", "active damper"],
+        "DEFAULT": ["active suspension", "アクティブサスペンション"]
+      }
+    },
+    {
+      "topic_id": "hydraulic_rebound_stop",
+      "display_name": "液压复原缓冲/HRS",
+      "aliases": {
+        "zh": ["液压复原缓冲", "液压回弹缓冲", "HRS"],
+        "en": ["hydraulic rebound stop", "hydraulic rebound spring", "HRS"],
+        "ja": ["油圧リバウンドストップ"]
+      },
+      "provider_terms": {
+        "EPO_OPS": ["hydraulic rebound stop", "hydraulic rebound spring"],
+        "DEFAULT": ["hydraulic rebound stop", "hydraulic rebound spring"]
+      }
+    },
+    {
+      "topic_id": "frequency_selective_damping",
+      "display_name": "频率选择阻尼/FSD",
+      "aliases": {
+        "zh": ["频率选择阻尼", "频率选择减振", "FSD"],
+        "en": ["frequency selective damping", "frequency selective damper", "FSD"],
+        "ja": ["周波数選択減衰"]
+      },
+      "provider_terms": {
+        "EPO_OPS": ["frequency selective damping", "frequency selective damper"],
+        "DEFAULT": ["frequency selective damping", "frequency selective damper"]
+      }
+    },
+    {
+      "topic_id": "active_anti_roll",
+      "display_name": "主动稳定杆/主动侧倾控制",
+      "aliases": {
+        "zh": ["主动稳定杆", "主动防倾杆", "主动侧倾控制"],
+        "en": ["active anti-roll bar", "active stabilizer", "active roll control"],
+        "ja": ["アクティブスタビライザ", "車体ロール制御"]
+      },
+      "provider_terms": {
+        "EPO_OPS": ["active anti roll bar", "active stabilizer", "active roll control"],
+        "DEFAULT": ["active anti roll bar", "active stabilizer"]
+      }
+    }
+  ]
+}

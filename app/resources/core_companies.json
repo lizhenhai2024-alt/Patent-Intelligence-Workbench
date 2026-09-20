@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "note": "Packaged runtime seed. Legal-entity relationships require source verification.",
+  "companies": [
+    {
+      "group_id": "astemo",
+      "display_name": "Hitachi Astemo",
+      "core_watch": true,
+      "entities": [
+        {"name": "Hitachi Astemo, Ltd.", "relation": "SAME_ENTITY"},
+        {"name": "Hitachi Automotive Systems, Ltd.", "relation": "PREDECESSOR"},
+        {"name": "Showa Corporation", "relation": "TECHNOLOGY_PREDECESSOR"},
+        {"name": "Tokico Ltd.", "relation": "TECHNOLOGY_PREDECESSOR"}
+      ]
+    },
+    {"group_id": "kyb", "display_name": "KYB", "core_watch": true, "entities": []},
+    {
+      "group_id": "tenneco",
+      "display_name": "Tenneco / Monroe",
+      "core_watch": true,
+      "entities": [
+        {"name": "Tenneco Automotive Operating Company Inc.", "relation": "SAME_ENTITY"},
+        {"name": "Tenneco Automotive Inc.", "relation": "PREVIOUS_NAME"},
+        {"name": "Monroe Auto Equipment Company", "relation": "TECHNOLOGY_PREDECESSOR"},
+        {"name": "Advanced Suspension Technology LLC", "relation": "IP_HOLDING_ENTITY"}
+      ]
+    },
+    {
+      "group_id": "zf",
+      "display_name": "ZF / Sachs",
+      "core_watch": true,
+      "entities": [
+        {"name": "ZF Friedrichshafen AG", "relation": "SAME_ENTITY"},
+        {"name": "ZF Sachs AG", "relation": "PREDECESSOR"},
+        {"name": "Mannesmann Sachs AG", "relation": "TECHNOLOGY_PREDECESSOR"}
+      ]
+    },
+    {"group_id": "bwi", "display_name": "BWI", "core_watch": true, "entities": []},
+    {"group_id": "hl_mando", "display_name": "HL Mando", "core_watch": true, "entities": []},
+    {"group_id": "bilstein", "display_name": "thyssenkrupp BILSTEIN", "core_watch": true, "entities": []},
+    {"group_id": "multimatic", "display_name": "Multimatic", "core_watch": true, "entities": []},
+    {"group_id": "ohlins", "display_name": "Öhlins", "core_watch": true, "entities": []},
+    {
+      "group_id": "clearmotion",
+      "display_name": "ClearMotion",
+      "core_watch": true,
+      "entities": [
+        {"name": "ClearMotion, Inc.", "relation": "SAME_ENTITY"},
+        {"name": "Levant Power Corporation", "relation": "PREVIOUS_NAME"},
+        {"name": "ClearMotion Acquisition I LLC", "relation": "IP_HOLDING_ENTITY"},
+        {
+          "name": "Bose Corporation",
+          "relation": "ACQUIRED_PATENT_PORTFOLIO",
+          "scope": "suspension portfolio only"
+        }
+      ]
+    }
+  ]
+}
