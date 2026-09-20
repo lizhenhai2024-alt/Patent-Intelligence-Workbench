@@ -263,12 +263,14 @@ class PatentWorkbenchApp(tk.Tk):
         self.family_tab = ttk.Frame(content, padding=14)
         self.watch_tab = ttk.Frame(content, padding=14)
         self.library_tab = ttk.Frame(content, padding=14)
+        self.evidence_tab = ttk.Frame(content, padding=14)
         self.settings_tab = ttk.Frame(content, padding=14)
         self._pages = {
             "search": self.search_tab,
             "family": self.family_tab,
             "watch": self.watch_tab,
             "library": self.library_tab,
+            "evidence": self.evidence_tab,
             "settings": self.settings_tab,
         }
         self._nav_buttons = {}
@@ -277,6 +279,7 @@ class PatentWorkbenchApp(tk.Tk):
             ("family", "◫   Patent Family"),
             ("watch", "◉   Patent Watch"),
             ("library", "▤   Local Library"),
+            ("evidence", "◇   Evidence"),
             ("settings", "⚙   Settings"),
         ):
             button = ttk.Button(
@@ -292,6 +295,7 @@ class PatentWorkbenchApp(tk.Tk):
         self._build_family_tab()
         self._build_watch_tab()
         self._build_library_tab()
+        self._build_evidence_tab()
         self._build_settings_tab()
         self._show_page("search")
 
@@ -309,6 +313,8 @@ class PatentWorkbenchApp(tk.Tk):
             self._nav_buttons[key].configure(style="Nav.TButton")
         self._pages[page].pack(fill="both", expand=True)
         self._nav_buttons[page].configure(style="NavActive.TButton")
+        if page == "evidence" and hasattr(self, "evidence_tree"):
+            self.refresh_evidence()
 
     def _build_search_tab(self) -> None:
         ttk.Label(self.search_tab, text="Patent Search", style="PageTitle.TLabel").pack(anchor="w")
@@ -329,7 +335,7 @@ class PatentWorkbenchApp(tk.Tk):
                 ("Local patents", self.dashboard_patents_var, "library"),
                 ("Patent families", self.dashboard_families_var, "family"),
                 ("Watch rules", self.dashboard_watch_var, "watch"),
-                ("Evidence", self.dashboard_evidence_var, "library"),
+                ("Evidence", self.dashboard_evidence_var, "evidence"),
             )
         ):
             card = ttk.Frame(metrics, style="Surface.TFrame", padding=(14, 10))
@@ -864,6 +870,122 @@ class PatentWorkbenchApp(tk.Tk):
         detail.columnconfigure(1, weight=2)
         detail.columnconfigure(2, weight=1)
         detail.columnconfigure(4, weight=2)
+
+    def _build_evidence_tab(self) -> None:
+        ttk.Label(self.evidence_tab, text="Evidence Center", style="PageTitle.TLabel").pack(
+            anchor="w"
+        )
+        ttk.Label(
+            self.evidence_tab,
+            text="集中检索、浏览并追溯网页、PDF 与 Office 文档采集证据",
+            style="Subtle.TLabel",
+        ).pack(anchor="w", pady=(2, 10))
+
+        toolbar_card = ttk.LabelFrame(self.evidence_tab, text="Evidence 检索", padding=10)
+        toolbar_card.pack(fill="x", pady=(0, 10))
+        toolbar = ttk.Frame(toolbar_card, style="Surface.TFrame")
+        toolbar.pack(fill="x")
+        self.evidence_query_var = tk.StringVar()
+        entry = ttk.Entry(toolbar, textvariable=self.evidence_query_var, width=55)
+        entry.pack(side="left", fill="x", expand=True)
+        entry.bind("<Return>", lambda _event: self.refresh_evidence())
+        ttk.Button(toolbar, text="搜索", command=self.refresh_evidence).pack(
+            side="left", padx=(8, 0)
+        )
+
+        pane = ttk.Panedwindow(self.evidence_tab, orient="horizontal")
+        pane.pack(fill="both", expand=True)
+        left = ttk.Frame(pane, style="Surface.TFrame", padding=8)
+        right = ttk.Frame(pane, style="Surface.TFrame", padding=10)
+        pane.add(left, weight=3)
+        pane.add(right, weight=2)
+
+        columns = ("type", "title", "patent", "company", "topic", "captured")
+        self.evidence_tree = ttk.Treeview(left, columns=columns, show="headings")
+        for column, title, width in (
+            ("type", "类型", 80),
+            ("title", "标题 / 来源", 300),
+            ("patent", "关联专利", 130),
+            ("company", "公司", 110),
+            ("topic", "技术主题", 130),
+            ("captured", "采集时间", 150),
+        ):
+            self.evidence_tree.heading(column, text=title)
+            self.evidence_tree.column(column, width=width, anchor="w")
+        self.evidence_tree.pack(fill="both", expand=True)
+        self.evidence_tree.bind("<<TreeviewSelect>>", self._load_evidence_center_preview)
+
+        self.evidence_preview = tk.Text(
+            right,
+            wrap="word",
+            borderwidth=0,
+            highlightthickness=1,
+            highlightbackground="#E5E7EB",
+            background="#F9FAFB",
+            foreground="#374151",
+            font=("Segoe UI", 9),
+            padx=12,
+            pady=10,
+        )
+        self.evidence_preview.pack(fill="both", expand=True)
+        self.evidence_preview.configure(state="disabled")
+        self._evidence_center_records = ()
+
+    def refresh_evidence(self) -> None:
+        query = self.evidence_query_var.get().strip() or None
+        self._evidence_center_records = self.runtime.library_store.list_evidence(
+            text=query, limit=1000
+        )
+        self.evidence_tree.delete(*self.evidence_tree.get_children())
+        for record in self._evidence_center_records:
+            self.evidence_tree.insert(
+                "",
+                "end",
+                iid=record.evidence_id,
+                values=(
+                    record.source_type,
+                    record.title or record.source,
+                    record.publication_number or "—",
+                    record.company_group or "—",
+                    record.technology_topic or "—",
+                    record.captured_at.strftime("%Y-%m-%d %H:%M"),
+                ),
+            )
+        self.evidence_preview.configure(state="normal")
+        self.evidence_preview.delete("1.0", "end")
+        if not self._evidence_center_records:
+            self.evidence_preview.insert(
+                "1.0",
+                "No evidence found.\n\n从 Search 页面使用“采集 URL / 文件”创建第一条 Evidence。",
+            )
+        self.evidence_preview.configure(state="disabled")
+        self._set_status(f"Evidence：{len(self._evidence_center_records)} 条")
+
+    def _load_evidence_center_preview(self, _event=None) -> None:
+        selection = self.evidence_tree.selection()
+        if not selection:
+            return
+        evidence_id = selection[0]
+        record = next(
+            (item for item in self._evidence_center_records if item.evidence_id == evidence_id),
+            None,
+        )
+        if record is None:
+            return
+        preview = (
+            f"{record.title or 'Untitled Evidence'}\n\n"
+            f"Source: {record.source}\n"
+            f"Type: {record.source_type}\n"
+            f"Patent: {record.publication_number or '—'}\n"
+            f"Company: {record.company_group or '—'}\n"
+            f"Topic: {record.technology_topic or '—'}\n"
+            f"Captured: {record.captured_at.isoformat()}\n\n"
+            f"{record.markdown[:12000]}"
+        )
+        self.evidence_preview.configure(state="normal")
+        self.evidence_preview.delete("1.0", "end")
+        self.evidence_preview.insert("1.0", preview)
+        self.evidence_preview.configure(state="disabled")
 
     def _build_settings_tab(self) -> None:
         credentials = self.runtime.current_epo_credentials()
