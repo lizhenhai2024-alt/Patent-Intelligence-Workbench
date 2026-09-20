@@ -40,6 +40,7 @@ class LibraryDocument:
 
 @dataclass(frozen=True, slots=True)
 class LibraryPatent:
+    # Keep the original constructor fields stable for desktop/UI compatibility.
     publication_number: str
     jurisdiction: str
     kind_code: str | None
@@ -50,32 +51,54 @@ class LibraryPatent:
     title: str | None
     application_number: str | None
     grant_number: str | None
-    filing_date: date | None
     publication_date: date | None
-    grant_date: date | None
-    language: str | None
     earliest_priority_number: str | None
     earliest_priority_date: date | None
     original_assignees: tuple[str, ...]
     current_assignees: tuple[str, ...]
-    classifications: tuple[LibraryClassification, ...]
-    priorities: tuple[LibraryPriority, ...]
     company_groups: tuple[str, ...]
     technology_topics: tuple[str, ...]
     projects: tuple[str, ...]
     tags: tuple[str, ...]
-    documents: tuple[LibraryDocument, ...]
+    pdf_paths: tuple[Path, ...]
     watch_rule_ids: tuple[str, ...]
-    provenance: tuple[LibrarySource, ...]
     first_seen_at: datetime
     last_seen_at: datetime
     source: str | None
     favorite: bool = False
     note: str | None = None
 
-    @property
-    def pdf_paths(self) -> tuple[Path, ...]:
-        return tuple(document.path for document in self.documents)
+    # P6 enrichment fields are additive and defaulted so older UI/test code
+    # can keep constructing LibraryPatent with the V1 pre-P6 signature.
+    filing_date: date | None = None
+    grant_date: date | None = None
+    language: str | None = None
+    classifications: tuple[LibraryClassification, ...] = ()
+    priorities: tuple[LibraryPriority, ...] = ()
+    documents: tuple[LibraryDocument, ...] = ()
+    provenance: tuple[LibrarySource, ...] = ()
+
+    def __post_init__(self) -> None:
+        if self.documents and not self.pdf_paths:
+            object.__setattr__(
+                self,
+                "pdf_paths",
+                tuple(document.path for document in self.documents),
+            )
+        elif self.pdf_paths and not self.documents:
+            object.__setattr__(
+                self,
+                "documents",
+                tuple(
+                    LibraryDocument(
+                        path=path,
+                        provider=None,
+                        source_url=None,
+                        added_at=self.first_seen_at,
+                    )
+                    for path in self.pdf_paths
+                ),
+            )
 
 
 @dataclass(frozen=True, slots=True)
