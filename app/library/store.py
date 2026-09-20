@@ -699,16 +699,11 @@ class SQLitePatentLibrary:
             title=row["title"],
             application_number=row["application_number"],
             grant_number=row["grant_number"],
-            filing_date=_parse_date(row["filing_date"]),
             publication_date=_parse_date(row["publication_date"]),
-            grant_date=_parse_date(row["grant_date"]),
-            language=row["language"],
             earliest_priority_number=row["earliest_priority_number"],
             earliest_priority_date=_parse_date(row["earliest_priority_date"]),
             original_assignees=tuple(json.loads(row["original_assignees_json"])),
             current_assignees=tuple(json.loads(row["current_assignees_json"])),
-            classifications=self._classifications(publication_number),
-            priorities=self._priorities(publication_number),
             company_groups=self._relation_values(
                 "library_company_group",
                 "company_group",
@@ -729,18 +724,26 @@ class SQLitePatentLibrary:
                 "tag",
                 publication_number,
             ),
-            documents=self._documents(publication_number),
+            pdf_paths=tuple(
+                document.path for document in self._documents(publication_number)
+            ),
             watch_rule_ids=self._relation_values(
                 "library_watch_source",
                 "rule_id",
                 publication_number,
             ),
-            provenance=self._provenance(publication_number),
             first_seen_at=datetime.fromisoformat(row["first_seen_at"]),
             last_seen_at=datetime.fromisoformat(row["last_seen_at"]),
             source=row["source"],
             favorite=bool(row["favorite"]),
             note=row["note"],
+            filing_date=_parse_date(row["filing_date"]),
+            grant_date=_parse_date(row["grant_date"]),
+            language=row["language"],
+            classifications=self._classifications(publication_number),
+            priorities=self._priorities(publication_number),
+            documents=self._documents(publication_number),
+            provenance=self._provenance(publication_number),
         )
 
     def _classifications(
