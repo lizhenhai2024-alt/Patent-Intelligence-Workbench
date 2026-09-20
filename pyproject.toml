@@ -13,6 +13,7 @@ authors = [
   { name = "Zhenhai Li/Bruce" }
 ]
 dependencies = [
+  "httpx>=0.27,<1",
   "pydantic>=2.8,<3",
 ]
 
