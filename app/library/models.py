@@ -8,6 +8,37 @@ from pathlib import Path
 
 
 @dataclass(frozen=True, slots=True)
+class LibraryClassification:
+    system: str
+    code: str
+    is_main: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class LibraryPriority:
+    number: str
+    country: str
+    priority_date: date | None = None
+    priority_type: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class LibrarySource:
+    source_type: str
+    source_ref: str
+    first_seen_at: datetime
+    last_seen_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class LibraryDocument:
+    path: Path
+    provider: str | None
+    source_url: str | None
+    added_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
 class LibraryPatent:
     publication_number: str
     jurisdiction: str
@@ -19,22 +50,32 @@ class LibraryPatent:
     title: str | None
     application_number: str | None
     grant_number: str | None
+    filing_date: date | None
     publication_date: date | None
+    grant_date: date | None
+    language: str | None
     earliest_priority_number: str | None
     earliest_priority_date: date | None
     original_assignees: tuple[str, ...]
     current_assignees: tuple[str, ...]
+    classifications: tuple[LibraryClassification, ...]
+    priorities: tuple[LibraryPriority, ...]
     company_groups: tuple[str, ...]
     technology_topics: tuple[str, ...]
     projects: tuple[str, ...]
     tags: tuple[str, ...]
-    pdf_paths: tuple[Path, ...]
+    documents: tuple[LibraryDocument, ...]
     watch_rule_ids: tuple[str, ...]
+    provenance: tuple[LibrarySource, ...]
     first_seen_at: datetime
     last_seen_at: datetime
     source: str | None
     favorite: bool = False
     note: str | None = None
+
+    @property
+    def pdf_paths(self) -> tuple[Path, ...]:
+        return tuple(document.path for document in self.documents)
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,5 +100,7 @@ class LibraryQuery:
     projects: tuple[str, ...] = ()
     tags: tuple[str, ...] = ()
     watch_rule_ids: tuple[str, ...] = ()
+    source_types: tuple[str, ...] = ()
     favorite_only: bool = False
+    has_pdf: bool | None = None
     limit: int = 500
