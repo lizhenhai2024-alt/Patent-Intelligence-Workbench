@@ -7,6 +7,7 @@ from datetime import date
 
 from app.core.company_registry import CompanyRegistry
 from app.core.patent_number import PatentNumberError, normalize_patent_number
+from app.core.technology_dictionary import TechnologyDictionary
 from app.domain.search import SearchExpression, SearchMode, SearchResponse
 from app.providers.base import SearchProvider
 
@@ -15,10 +16,33 @@ from app.providers.base import SearchProvider
 class SearchService:
     provider: SearchProvider
     company_registry: CompanyRegistry
+    technology_dictionary: TechnologyDictionary | None = None
 
     @classmethod
     def with_default_registry(cls, provider: SearchProvider) -> SearchService:
-        return cls(provider=provider, company_registry=CompanyRegistry.default())
+        return cls(
+            provider=provider,
+            company_registry=CompanyRegistry.default(),
+            technology_dictionary=TechnologyDictionary.default(),
+        )
+
+    def _expand_text(
+        self,
+        values: tuple[str, ...],
+    ) -> tuple[tuple[str, ...], ...]:
+        if self.technology_dictionary is None:
+            return ()
+        groups: list[tuple[str, ...]] = []
+        for value in values:
+            expanded = self.technology_dictionary.expand(
+                value,
+                provider_name=self.provider.info.name,
+            )
+            if expanded:
+                groups.extend(expanded)
+            elif value.strip():
+                groups.append((value.strip(),))
+        return tuple(groups)
 
     async def search(
         self,
@@ -52,9 +76,11 @@ class SearchService:
             terms = technology_terms or ((raw,) if raw else ())
             technology_context = bool(terms)
             applicants = group.applicant_names(technology_context=technology_context)
+            expanded_groups = self._expand_text(terms)
             expression = SearchExpression(
                 applicants=applicants,
-                text_terms=terms,
+                text_terms=terms if not expanded_groups else (),
+                text_groups=expanded_groups,
                 jurisdictions=jurisdictions,
                 published_from=published_from,
                 published_to=published_to,
@@ -72,8 +98,11 @@ class SearchService:
                 company_group_id=group.group_id,
             )
 
+        raw_terms = (raw,) if raw else ()
+        expanded_groups = self._expand_text(raw_terms)
         expression = SearchExpression(
-            text_terms=(raw,) if raw else (),
+            text_terms=raw_terms if not expanded_groups else (),
+            text_groups=expanded_groups,
             jurisdictions=jurisdictions,
             published_from=published_from,
             published_to=published_to,
