@@ -26,8 +26,9 @@ class PatentWorkbenchApp(tk.Tk):
         self._current_acquisition = None
 
         self.title("Patent Intelligence Workbench")
-        self.geometry("1280x820")
-        self.minsize(1000, 650)
+        self.geometry("1460x900")
+        self.minsize(1180, 720)
+        self.configure(bg="#F6F7F9")
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
         self._configure_style()
@@ -39,19 +40,138 @@ class PatentWorkbenchApp(tk.Tk):
         style = ttk.Style(self)
         if "clam" in style.theme_names():
             style.theme_use("clam")
-        style.configure("Title.TLabel", font=("Segoe UI", 16, "bold"))
-        style.configure("Subtle.TLabel", foreground="#555555")
-        style.configure("Treeview", rowheight=26)
-        style.configure("Treeview.Heading", font=("Segoe UI", 9, "bold"))
+
+        bg = "#F6F7F9"
+        surface = "#FFFFFF"
+        border = "#E5E7EB"
+        text = "#111827"
+        muted = "#6B7280"
+        accent = "#111827"
+        accent_hover = "#1F2937"
+        selected = "#EEF2FF"
+
+        style.configure("TFrame", background=bg)
+        style.configure("Surface.TFrame", background=surface)
+        style.configure("Card.TFrame", background=surface, relief="flat")
+        style.configure("TLabel", background=bg, foreground=text, font=("Segoe UI", 10))
+        style.configure("Surface.TLabel", background=surface, foreground=text)
+        style.configure(
+            "Title.TLabel", background=bg, foreground=text, font=("Segoe UI Semibold", 18)
+        )
+        style.configure(
+            "PageTitle.TLabel", background=bg, foreground=text, font=("Segoe UI Semibold", 15)
+        )
+        style.configure("Subtle.TLabel", background=bg, foreground=muted, font=("Segoe UI", 9))
+        style.configure(
+            "SurfaceSubtle.TLabel", background=surface, foreground=muted, font=("Segoe UI", 9)
+        )
+        style.configure(
+            "Status.TLabel",
+            background="#111827",
+            foreground="#F9FAFB",
+            padding=(12, 7),
+            font=("Segoe UI", 9),
+        )
+        style.configure("TButton", font=("Segoe UI Semibold", 9), padding=(12, 7), relief="flat")
+        style.map("TButton", background=[("active", "#E5E7EB")])
+        style.configure(
+            "Accent.TButton",
+            background=accent,
+            foreground="#FFFFFF",
+            borderwidth=0,
+            padding=(14, 8),
+        )
+        style.map(
+            "Accent.TButton",
+            background=[("active", accent_hover), ("disabled", "#9CA3AF")],
+            foreground=[("disabled", "#F3F4F6")],
+        )
+        style.configure(
+            "Ghost.TButton",
+            background=surface,
+            foreground=text,
+            borderwidth=1,
+            relief="solid",
+            padding=(12, 7),
+        )
+        style.map("Ghost.TButton", background=[("active", "#F3F4F6")])
+        style.configure(
+            "TEntry",
+            padding=7,
+            fieldbackground=surface,
+            foreground=text,
+            bordercolor=border,
+            lightcolor=border,
+            darkcolor=border,
+        )
+        style.configure(
+            "TCombobox", padding=6, fieldbackground=surface, foreground=text, bordercolor=border
+        )
+        style.configure(
+            "TSpinbox", padding=6, fieldbackground=surface, foreground=text, bordercolor=border
+        )
+        style.configure("TCheckbutton", background=surface, foreground=text)
+        style.configure("TLabelframe", background=surface, bordercolor=border, relief="solid")
+        style.configure(
+            "TLabelframe.Label", background=surface, foreground=text, font=("Segoe UI Semibold", 10)
+        )
+        style.configure(
+            "Treeview",
+            background=surface,
+            fieldbackground=surface,
+            foreground=text,
+            rowheight=31,
+            borderwidth=0,
+            relief="flat",
+        )
+        style.configure(
+            "Treeview.Heading",
+            background="#F9FAFB",
+            foreground="#374151",
+            font=("Segoe UI Semibold", 9),
+            padding=(8, 8),
+            relief="flat",
+        )
+        style.map("Treeview", background=[("selected", selected)], foreground=[("selected", text)])
+        style.map("Treeview.Heading", background=[("active", "#F3F4F6")])
+        style.configure("TNotebook", background=bg, borderwidth=0, tabmargins=(0, 0, 0, 0))
+        style.configure(
+            "TNotebook.Tab",
+            background=bg,
+            foreground=muted,
+            padding=(14, 9),
+            font=("Segoe UI Semibold", 9),
+            borderwidth=0,
+        )
+        style.map(
+            "TNotebook.Tab",
+            background=[("selected", surface), ("active", "#EEF0F3")],
+            foreground=[("selected", text), ("active", text)],
+        )
+        style.configure(
+            "Horizontal.TProgressbar",
+            troughcolor="#E5E7EB",
+            background="#111827",
+            bordercolor="#E5E7EB",
+            lightcolor="#111827",
+            darkcolor="#111827",
+        )
 
     def _build_shell(self) -> None:
-        header = ttk.Frame(self, padding=(14, 10))
+        header = ttk.Frame(self, padding=(18, 14))
         header.pack(fill="x")
+        title_wrap = ttk.Frame(header)
+        title_wrap.pack(side="left")
         ttk.Label(
-            header,
+            title_wrap,
             text="Patent Intelligence Workbench",
             style="Title.TLabel",
-        ).pack(side="left")
+        ).pack(anchor="w")
+        ttk.Label(
+            title_wrap,
+            text="专利检索 · 专利族 · 监控 · 本地知识库",
+            style="Subtle.TLabel",
+        ).pack(anchor="w", pady=(2, 0))
         self.network_status_var = tk.StringVar(value=self.runtime.search_status)
         ttk.Label(
             header,
@@ -60,13 +180,13 @@ class PatentWorkbenchApp(tk.Tk):
         ).pack(side="right")
 
         self.notebook = ttk.Notebook(self)
-        self.notebook.pack(fill="both", expand=True, padx=10, pady=(0, 8))
+        self.notebook.pack(fill="both", expand=True, padx=18, pady=(0, 12))
 
-        self.search_tab = ttk.Frame(self.notebook, padding=10)
-        self.family_tab = ttk.Frame(self.notebook, padding=10)
-        self.watch_tab = ttk.Frame(self.notebook, padding=10)
-        self.library_tab = ttk.Frame(self.notebook, padding=10)
-        self.settings_tab = ttk.Frame(self.notebook, padding=10)
+        self.search_tab = ttk.Frame(self.notebook, padding=14)
+        self.family_tab = ttk.Frame(self.notebook, padding=14)
+        self.watch_tab = ttk.Frame(self.notebook, padding=14)
+        self.library_tab = ttk.Frame(self.notebook, padding=14)
+        self.settings_tab = ttk.Frame(self.notebook, padding=14)
 
         self.notebook.add(self.search_tab, text="Search")
         self.notebook.add(self.family_tab, text="Family")
@@ -85,12 +205,20 @@ class PatentWorkbenchApp(tk.Tk):
             self,
             textvariable=self.status_var,
             anchor="w",
-            padding=(10, 4),
+            style="Status.TLabel",
         ).pack(fill="x")
 
     def _build_search_tab(self) -> None:
-        form = ttk.Frame(self.search_tab)
-        form.pack(fill="x", pady=(0, 8))
+        ttk.Label(self.search_tab, text="Patent Search", style="PageTitle.TLabel").pack(anchor="w")
+        ttk.Label(
+            self.search_tab,
+            text="按专利号、公司、技术主题或公开网页进行检索与采集",
+            style="Subtle.TLabel",
+        ).pack(anchor="w", pady=(2, 10))
+        search_card = ttk.LabelFrame(self.search_tab, text="检索条件", padding=12)
+        search_card.pack(fill="x", pady=(0, 10))
+        form = ttk.Frame(search_card, style="Surface.TFrame")
+        form.pack(fill="x")
 
         ttk.Label(form, text="检索").grid(row=0, column=0, sticky="w")
         self.search_query_var = tk.StringVar()
@@ -133,9 +261,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.search_scope_box.grid(row=1, column=2, padx=(0, 8), sticky="ew")
 
         ttk.Label(form, text="国家").grid(row=0, column=3, sticky="w")
-        self.search_jurisdiction_var = tk.StringVar(
-            value="CN,JP,EP,US,WO,KR"
-        )
+        self.search_jurisdiction_var = tk.StringVar(value="CN,JP,EP,US,WO,KR")
         ttk.Entry(
             form,
             textvariable=self.search_jurisdiction_var,
@@ -146,6 +272,7 @@ class PatentWorkbenchApp(tk.Tk):
             form,
             text="搜索",
             command=self.run_search,
+            style="Accent.TButton",
         )
         self.search_button.grid(row=1, column=4, sticky="e")
 
@@ -178,7 +305,10 @@ class PatentWorkbenchApp(tk.Tk):
         for column in columns:
             self.search_tree.heading(column, text=headings[column])
             self.search_tree.column(column, width=widths[column], anchor="w")
-        self.search_tree.pack(fill="both", expand=True)
+        results_card = ttk.LabelFrame(self.search_tab, text="检索结果", padding=8)
+        results_card.pack(fill="both", expand=True, pady=(0, 8))
+        self.search_tree.master = results_card
+        self.search_tree.pack(in_=results_card, fill="both", expand=True)
         self.search_tree.bind("<Double-1>", self._search_to_family)
 
         actions = ttk.Frame(self.search_tab)
@@ -218,8 +348,16 @@ class PatentWorkbenchApp(tk.Tk):
         self.acquisition_preview.configure(state="disabled")
 
     def _build_family_tab(self) -> None:
-        form = ttk.Frame(self.family_tab)
-        form.pack(fill="x", pady=(0, 8))
+        ttk.Label(self.family_tab, text="Patent Family", style="PageTitle.TLabel").pack(anchor="w")
+        ttk.Label(
+            self.family_tab,
+            text="解析 DOCDB / INPADOC 专利族，并批量归档与下载",
+            style="Subtle.TLabel",
+        ).pack(anchor="w", pady=(2, 10))
+        family_card = ttk.LabelFrame(self.family_tab, text="专利族分析", padding=12)
+        family_card.pack(fill="x", pady=(0, 10))
+        form = ttk.Frame(family_card, style="Surface.TFrame")
+        form.pack(fill="x")
 
         self.family_number_var = tk.StringVar()
         ttk.Label(form, text="公开号").grid(row=0, column=0, sticky="w")
@@ -246,6 +384,7 @@ class PatentWorkbenchApp(tk.Tk):
             form,
             text="分析专利族",
             command=self.run_family_analysis,
+            style="Accent.TButton",
         )
         self.family_analyze_button.grid(row=1, column=2, padx=(0, 8))
 
@@ -291,9 +430,7 @@ class PatentWorkbenchApp(tk.Tk):
             maximum=1,
         )
         self.family_download_progress.pack(fill="x", pady=(8, 2))
-        self.family_download_progress_var = tk.StringVar(
-            value="下载状态：等待开始"
-        )
+        self.family_download_progress_var = tk.StringVar(value="下载状态：等待开始")
         ttk.Label(
             self.family_tab,
             textvariable=self.family_download_progress_var,
@@ -386,8 +523,16 @@ class PatentWorkbenchApp(tk.Tk):
         self.watch_history_tree.pack(fill="both", expand=True)
 
     def _build_library_tab(self) -> None:
-        toolbar = ttk.Frame(self.library_tab)
-        toolbar.pack(fill="x", pady=(0, 8))
+        ttk.Label(self.library_tab, text="Local Library", style="PageTitle.TLabel").pack(anchor="w")
+        ttk.Label(
+            self.library_tab,
+            text="本地专利、PDF、标签、项目与 Evidence 的统一研究工作区",
+            style="Subtle.TLabel",
+        ).pack(anchor="w", pady=(2, 10))
+        library_toolbar_card = ttk.LabelFrame(self.library_tab, text="筛选与导出", padding=10)
+        library_toolbar_card.pack(fill="x", pady=(0, 10))
+        toolbar = ttk.Frame(library_toolbar_card, style="Surface.TFrame")
+        toolbar.pack(fill="x")
 
         self.library_query_var = tk.StringVar()
         entry = ttk.Entry(
@@ -511,20 +656,12 @@ class PatentWorkbenchApp(tk.Tk):
 
         ttk.Label(detail, text="关联证据").grid(row=5, column=0, sticky="nw")
         evidence_panel = ttk.Frame(detail)
-        evidence_panel.grid(
-            row=5, column=1, columnspan=4, sticky="ew", padx=(6, 0), pady=(5, 0)
-        )
+        evidence_panel.grid(row=5, column=1, columnspan=4, sticky="ew", padx=(6, 0), pady=(5, 0))
         self.library_evidence_list = tk.Listbox(evidence_panel, height=4)
         self.library_evidence_list.pack(side="left", fill="both", expand=True)
-        self.library_evidence_list.bind(
-            "<<ListboxSelect>>", self._load_selected_evidence
-        )
-        self.library_evidence_preview = tk.Text(
-            evidence_panel, height=4, width=58, wrap="word"
-        )
-        self.library_evidence_preview.pack(
-            side="left", fill="both", expand=True, padx=(8, 0)
-        )
+        self.library_evidence_list.bind("<<ListboxSelect>>", self._load_selected_evidence)
+        self.library_evidence_preview = tk.Text(evidence_panel, height=4, width=58, wrap="word")
+        self.library_evidence_preview.pack(side="left", fill="both", expand=True, padx=(8, 0))
         self.library_evidence_preview.configure(state="disabled")
         self._library_evidence_records = ()
 
@@ -560,12 +697,8 @@ class PatentWorkbenchApp(tk.Tk):
         )
         frame.pack(fill="x")
 
-        self.epo_key_var = tk.StringVar(
-            value=credentials.consumer_key if credentials else ""
-        )
-        self.epo_secret_var = tk.StringVar(
-            value=credentials.consumer_secret if credentials else ""
-        )
+        self.epo_key_var = tk.StringVar(value=credentials.consumer_key if credentials else "")
+        self.epo_secret_var = tk.StringVar(value=credentials.consumer_secret if credentials else "")
         self.settings_status_var = tk.StringVar(value=self.runtime.search_status)
 
         ttk.Label(frame, text="Consumer Key").grid(
@@ -632,8 +765,7 @@ class PatentWorkbenchApp(tk.Tk):
         ).pack(side="right")
 
         note = (
-            "Windows：凭据保存在系统 Credential Manager；"
-            "不会写入 SQLite、JSON 或 Git 仓库。"
+            "Windows：凭据保存在系统 Credential Manager；不会写入 SQLite、JSON 或 Git 仓库。"
             if self.runtime.credential_store.persistent_available
             else "当前平台不提供桌面持久化凭据；可通过环境变量 "
             "EPO_OPS_KEY / EPO_OPS_SECRET 使用网络功能。"
@@ -670,9 +802,7 @@ class PatentWorkbenchApp(tk.Tk):
             return
         credentials = self.runtime.current_epo_credentials()
         self.epo_key_var.set(credentials.consumer_key if credentials else "")
-        self.epo_secret_var.set(
-            credentials.consumer_secret if credentials else ""
-        )
+        self.epo_secret_var.set(credentials.consumer_secret if credentials else "")
         self._refresh_network_controls()
         self._set_status("已删除 Windows Credential Manager 中的 EPO 凭据")
 
@@ -681,16 +811,13 @@ class PatentWorkbenchApp(tk.Tk):
         self.family_analyze_button.state(
             ["!disabled"] if self.runtime.family_resolver else ["disabled"]
         )
-        self.run_watch_button.state(
-            ["!disabled"] if self.runtime.watch_scheduler else ["disabled"]
-        )
+        self.run_watch_button.state(["!disabled"] if self.runtime.watch_scheduler else ["disabled"])
         self.network_status_var.set(self.runtime.search_status)
         self.settings_status_var.set(self.runtime.search_status)
 
         if self.runtime.search_service:
             companies = [
-                group.display_name
-                for group in self.runtime.search_service.company_registry.groups
+                group.display_name for group in self.runtime.search_service.company_registry.groups
             ]
             self.search_company_box.configure(values=companies)
         else:
@@ -724,9 +851,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.library_evidence_list.delete(0, "end")
         for record in self._library_evidence_records:
             label = record.title or record.source
-            self.library_evidence_list.insert(
-                "end", f"[{record.source_type}] {label}"
-            )
+            self.library_evidence_list.insert("end", f"[{record.source_type}] {label}")
         self.library_evidence_preview.configure(state="normal")
         self.library_evidence_preview.delete("1.0", "end")
         if self._library_evidence_records:
@@ -993,9 +1118,7 @@ class PatentWorkbenchApp(tk.Tk):
                     member.jurisdiction,
                     member.title or "",
                     member.application_number or "",
-                    member.publication_date.isoformat()
-                    if member.publication_date
-                    else "",
+                    member.publication_date.isoformat() if member.publication_date else "",
                 ),
             )
         priority = family.earliest_priority
@@ -1024,9 +1147,7 @@ class PatentWorkbenchApp(tk.Tk):
         total = len(family.members)
         self.family_download_button.state(["disabled"])
         self.family_download_progress.configure(maximum=max(total, 1), value=0)
-        self.family_download_progress_var.set(
-            f"下载状态：准备开始，共 {total} 个专利成员"
-        )
+        self.family_download_progress_var.set(f"下载状态：准备开始，共 {total} 个专利成员")
         self._set_status(f"正在下载整族 PDF：0 / {total}")
 
         def progress_callback(progress) -> None:
@@ -1054,9 +1175,7 @@ class PatentWorkbenchApp(tk.Tk):
                 f"下载完成：成功 {summary.succeeded}，失败 {summary.failed} · "
                 f"{summary.family_folder}"
             )
-            self._set_status(
-                f"下载完成：成功 {summary.succeeded}，失败 {summary.failed}"
-            )
+            self._set_status(f"下载完成：成功 {summary.succeeded}，失败 {summary.failed}")
 
             if summary.failed:
                 failed = [
@@ -1075,8 +1194,7 @@ class PatentWorkbenchApp(tk.Tk):
             else:
                 messagebox.showinfo(
                     "整族 PDF 下载完成",
-                    f"成功下载 {summary.succeeded} 个专利 PDF。\n\n"
-                    f"目录：{summary.family_folder}",
+                    f"成功下载 {summary.succeeded} 个专利 PDF。\n\n目录：{summary.family_folder}",
                 )
 
         def failed(exc: Exception) -> None:
@@ -1133,9 +1251,7 @@ class PatentWorkbenchApp(tk.Tk):
         rule = self.runtime.watch_store.get_rule(rule_id)
         if rule is None:
             return
-        self.runtime.watch_store.upsert_rule(
-            replace(rule, enabled=not rule.enabled)
-        )
+        self.runtime.watch_store.upsert_rule(replace(rule, enabled=not rule.enabled))
         self.refresh_watch()
 
     def _load_selected_watch_cadence(self, _event=None) -> None:
@@ -1164,17 +1280,13 @@ class PatentWorkbenchApp(tk.Tk):
         rule = self.runtime.watch_store.get_rule(selection[0])
         if rule is None:
             return
-        self.runtime.watch_store.upsert_rule(
-            replace(rule, cadence_hours=cadence_hours)
-        )
+        self.runtime.watch_store.upsert_rule(replace(rule, cadence_hours=cadence_hours))
         self.refresh_watch()
         if self.watch_rule_tree.exists(rule.rule_id):
             self.watch_rule_tree.selection_set(rule.rule_id)
             self.watch_rule_tree.focus(rule.rule_id)
         self.watch_cadence_var.set(str(cadence_hours))
-        self._set_status(
-            f"Patent Watch 间隔已更新：{rule.name} → {cadence_hours} 小时"
-        )
+        self._set_status(f"Patent Watch 间隔已更新：{rule.name} → {cadence_hours} 小时")
 
     def run_due_watch_rules(self) -> None:
         scheduler = self.runtime.watch_scheduler
@@ -1265,13 +1377,7 @@ class PatentWorkbenchApp(tk.Tk):
 
 def _split_values(value: str) -> tuple[str, ...]:
     normalized = value.replace("，", ",").replace(";", ",").replace("；", ",")
-    return tuple(
-        dict.fromkeys(
-            item.strip()
-            for item in normalized.split(",")
-            if item.strip()
-        )
-    )
+    return tuple(dict.fromkeys(item.strip() for item in normalized.split(",") if item.strip()))
 
 
 def run_desktop(runtime: DesktopRuntime | None = None) -> None:
