@@ -51,6 +51,20 @@ pytest
 ruff check .
 ```
 
+### Optional acquisition engine
+
+For public web pages and local files:
+
+```bash
+python -m pip install -e ".[dev,acquisition]"
+python -m playwright install chromium
+```
+
+Routing is intentionally explicit: local files use MarkItDown, normal public web pages use
+Crawl4AI, and Browser Use is an optional separate enhancement for interactive pages. Browser
+automation is not intended to bypass authentication, CAPTCHA, robots policies, or other access
+controls.
+
 ## Current status
 
 Core V1 implementation is now end-to-end:

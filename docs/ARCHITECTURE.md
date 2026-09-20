@@ -100,6 +100,25 @@ primary source -> fallback source -> official source -> recorded failure
 
 A failed member can be retried without redownloading the entire family.
 
+## Acquisition Engine
+
+The acquisition layer is separate from patent-source providers. It converts public web pages and
+local documents into normalized Markdown/metadata that later search, evidence and knowledge-base
+features can consume.
+
+Routing:
+
+1. local file / file URL -> MarkItDown
+2. normal HTTP(S) page -> Crawl4AI
+3. interactive browser workflow -> optional Browser Use adapter, only when explicitly requested
+
+Browser Use is kept optional because it brings a much larger dependency tree and may require a
+configured model/provider for agent actions. The acquisition layer does not attempt to bypass
+authentication, CAPTCHA, robots policies, or other access controls.
+
+The engine exposes adapters behind one `AcquisitionEngine` so Crawlee/Scrapy or other collectors
+can be added later without changing higher-level patent workflows.
+
 ## Release rule
 
 No release build is accepted unless lint and automated tests pass on Windows and Linux.
