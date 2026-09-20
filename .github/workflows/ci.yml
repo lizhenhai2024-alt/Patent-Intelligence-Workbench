@@ -36,3 +36,7 @@ jobs:
 
       - name: Pytest
         run: pytest
+
+      - name: Desktop backend smoke
+        shell: bash
+        run: python -m app.desktop.main --smoke --data-dir "${{ runner.temp }}/piw-smoke"
