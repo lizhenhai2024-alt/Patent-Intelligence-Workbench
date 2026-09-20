@@ -455,8 +455,27 @@ class PatentWorkbenchApp(tk.Tk):
             pady=(5, 0),
         )
 
+        ttk.Label(detail, text="关联证据").grid(row=5, column=0, sticky="nw")
+        evidence_panel = ttk.Frame(detail)
+        evidence_panel.grid(
+            row=5, column=1, columnspan=4, sticky="ew", padx=(6, 0), pady=(5, 0)
+        )
+        self.library_evidence_list = tk.Listbox(evidence_panel, height=4)
+        self.library_evidence_list.pack(side="left", fill="both", expand=True)
+        self.library_evidence_list.bind(
+            "<<ListboxSelect>>", self._load_selected_evidence
+        )
+        self.library_evidence_preview = tk.Text(
+            evidence_panel, height=4, width=58, wrap="word"
+        )
+        self.library_evidence_preview.pack(
+            side="left", fill="both", expand=True, padx=(8, 0)
+        )
+        self.library_evidence_preview.configure(state="disabled")
+        self._library_evidence_records = ()
+
         actions = ttk.Frame(detail)
-        actions.grid(row=5, column=1, columnspan=4, sticky="w", pady=(8, 0))
+        actions.grid(row=6, column=1, columnspan=4, sticky="w", pady=(8, 0))
         ttk.Button(
             actions,
             text="保存详情",
@@ -643,6 +662,38 @@ class PatentWorkbenchApp(tk.Tk):
         self.library_pdf_list.delete(0, "end")
         for path in patent.pdf_paths:
             self.library_pdf_list.insert("end", str(path))
+
+        self._library_evidence_records = self.runtime.library_store.list_evidence(
+            publication_number=patent.publication_number,
+            limit=100,
+        )
+        self.library_evidence_list.delete(0, "end")
+        for record in self._library_evidence_records:
+            label = record.title or record.source
+            self.library_evidence_list.insert(
+                "end", f"[{record.source_type}] {label}"
+            )
+        self.library_evidence_preview.configure(state="normal")
+        self.library_evidence_preview.delete("1.0", "end")
+        if self._library_evidence_records:
+            self.library_evidence_list.selection_set(0)
+            self._load_selected_evidence()
+        self.library_evidence_preview.configure(state="disabled")
+
+    def _load_selected_evidence(self, _event=None) -> None:
+        selection = self.library_evidence_list.curselection()
+        if not selection:
+            return
+        record = self._library_evidence_records[selection[0]]
+        preview = (
+            f"来源：{record.source}\n"
+            f"采集时间：{record.captured_at.isoformat()}\n\n"
+            f"{record.markdown[:8000]}"
+        )
+        self.library_evidence_preview.configure(state="normal")
+        self.library_evidence_preview.delete("1.0", "end")
+        self.library_evidence_preview.insert("1.0", preview)
+        self.library_evidence_preview.configure(state="disabled")
 
     def save_library_detail(self) -> None:
         number = self.library_detail_number_var.get().strip()
