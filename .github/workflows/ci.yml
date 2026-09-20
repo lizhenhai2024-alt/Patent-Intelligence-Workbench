@@ -40,3 +40,7 @@ jobs:
       - name: Desktop backend smoke
         shell: bash
         run: python -m app.desktop.main --smoke --data-dir "${{ runner.temp }}/piw-smoke"
+
+      - name: Offline V1 release acceptance
+        shell: bash
+        run: python scripts/release_acceptance.py --data-dir "${{ runner.temp }}/piw-acceptance"
