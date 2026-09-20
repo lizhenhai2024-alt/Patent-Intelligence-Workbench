@@ -62,7 +62,7 @@ class FamilyDownloader:
             representative_publication=representative,
         )
         manifest_path = folder / "family.json"
-        previous = _load_manifest_status(manifest_path) if retry_failed_only else {}
+        previous = _load_manifest(manifest_path) if retry_failed_only else {}
 
         results: list[FamilyMemberDownload] = []
         allowed = {value.upper() for value in jurisdictions}
@@ -71,12 +71,17 @@ class FamilyDownloader:
             if allowed and member.jurisdiction.upper() not in allowed:
                 continue
 
-            if retry_failed_only and previous.get(member.publication_number) == "success":
+            previous_item = previous.get(member.publication_number)
+            if previous_item and previous_item.get("status") == "success":
                 results.append(
                     FamilyMemberDownload(
                         publication_number=member.publication_number,
                         jurisdiction=member.jurisdiction,
-                        status="skipped",
+                        status="success",
+                        path=previous_item.get("path"),
+                        provider=previous_item.get("provider") or "LOCAL_CACHE",
+                        source_url=previous_item.get("source_url"),
+                        from_cache=True,
                     )
                 )
                 continue
@@ -134,7 +139,7 @@ class FamilyDownloader:
         return summary
 
 
-def _load_manifest_status(path: Path) -> dict[str, str]:
+def _load_manifest(path: Path) -> dict[str, dict]:
     if not path.is_file():
         return {}
     try:
@@ -142,9 +147,9 @@ def _load_manifest_status(path: Path) -> dict[str, str]:
     except (OSError, json.JSONDecodeError):
         return {}
     return {
-        item["publication_number"]: item["status"]
+        item["publication_number"]: item
         for item in payload.get("downloads", [])
-        if item.get("publication_number") and item.get("status")
+        if item.get("publication_number")
     }
 
 
