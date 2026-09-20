@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
-from pathlib import Path
 import tkinter as tk
+from dataclasses import replace
 from tkinter import filedialog, messagebox, ttk
 
 from app.core.patent_number import PatentNumberError, normalize_patent_number
