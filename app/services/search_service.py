@@ -7,11 +7,7 @@ from datetime import date
 
 from app.core.company_registry import CompanyRegistry
 from app.core.patent_number import PatentNumberError, normalize_patent_number
-from app.domain.search import (
-    SearchExpression,
-    SearchMode,
-    SearchResponse,
-)
+from app.domain.search import SearchExpression, SearchMode, SearchResponse
 from app.providers.base import SearchProvider
 
 
@@ -21,7 +17,7 @@ class SearchService:
     company_registry: CompanyRegistry
 
     @classmethod
-    def with_default_registry(cls, provider: SearchProvider) -> "SearchService":
+    def with_default_registry(cls, provider: SearchProvider) -> SearchService:
         return cls(provider=provider, company_registry=CompanyRegistry.default())
 
     async def search(
@@ -43,11 +39,11 @@ class SearchService:
             except PatentNumberError:
                 publication = None
             if publication is not None:
-                hit = await self.provider.lookup_publication(publication)
+                page = await self.provider.lookup_publication(publication)
                 return SearchResponse(
                     mode=SearchMode.PATENT_NUMBER,
                     provider=self.provider.info.name,
-                    page=hit,
+                    page=page,
                     normalized_query=publication.canonical,
                 )
 
@@ -55,9 +51,7 @@ class SearchService:
             group = self.company_registry.get(company)
             terms = technology_terms or ((raw,) if raw else ())
             technology_context = bool(terms)
-            applicants = group.applicant_names(
-                technology_context=technology_context,
-            )
+            applicants = group.applicant_names(technology_context=technology_context)
             expression = SearchExpression(
                 applicants=applicants,
                 text_terms=terms,
@@ -65,11 +59,7 @@ class SearchService:
                 published_from=published_from,
                 published_to=published_to,
             )
-            mode = (
-                SearchMode.COMPANY_TECHNOLOGY
-                if technology_context
-                else SearchMode.COMPANY
-            )
+            mode = SearchMode.COMPANY_TECHNOLOGY if technology_context else SearchMode.COMPANY
             page = await self.provider.search_publications(
                 expression,
                 page_size=page_size,
