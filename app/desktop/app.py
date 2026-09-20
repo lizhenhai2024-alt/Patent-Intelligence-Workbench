@@ -417,12 +417,14 @@ class PatentWorkbenchApp(tk.Tk):
             self.family_tree.column(column, width=width, anchor="w")
         self.family_tree.pack(fill="both", expand=True)
 
+        family_summary_card = ttk.Frame(self.family_tab, style="Surface.TFrame", padding=(12, 9))
+        family_summary_card.pack(fill="x", pady=(8, 0))
         self.family_summary_var = tk.StringVar(value="尚未加载专利族")
         ttk.Label(
-            self.family_tab,
+            family_summary_card,
             textvariable=self.family_summary_var,
-            style="Subtle.TLabel",
-        ).pack(fill="x", pady=(8, 0))
+            style="SurfaceSubtle.TLabel",
+        ).pack(fill="x")
 
         self.family_download_progress = ttk.Progressbar(
             self.family_tab,
@@ -438,8 +440,16 @@ class PatentWorkbenchApp(tk.Tk):
         ).pack(fill="x")
 
     def _build_watch_tab(self) -> None:
-        toolbar = ttk.Frame(self.watch_tab)
-        toolbar.pack(fill="x", pady=(0, 8))
+        ttk.Label(self.watch_tab, text="Patent Watch", style="PageTitle.TLabel").pack(anchor="w")
+        ttk.Label(
+            self.watch_tab,
+            text="持续监控重点公司与技术主题，识别新专利族和新增成员",
+            style="Subtle.TLabel",
+        ).pack(anchor="w", pady=(2, 10))
+        watch_toolbar_card = ttk.LabelFrame(self.watch_tab, text="监控控制", padding=10)
+        watch_toolbar_card.pack(fill="x", pady=(0, 10))
+        toolbar = ttk.Frame(watch_toolbar_card, style="Surface.TFrame")
+        toolbar.pack(fill="x")
         ttk.Button(
             toolbar,
             text="刷新",
@@ -454,6 +464,7 @@ class PatentWorkbenchApp(tk.Tk):
             toolbar,
             text="运行到期规则",
             command=self.run_due_watch_rules,
+            style="Accent.TButton",
         )
         self.run_watch_button.pack(side="left", padx=(8, 0))
 
@@ -657,10 +668,32 @@ class PatentWorkbenchApp(tk.Tk):
         ttk.Label(detail, text="关联证据").grid(row=5, column=0, sticky="nw")
         evidence_panel = ttk.Frame(detail)
         evidence_panel.grid(row=5, column=1, columnspan=4, sticky="ew", padx=(6, 0), pady=(5, 0))
-        self.library_evidence_list = tk.Listbox(evidence_panel, height=4)
+        self.library_evidence_list = tk.Listbox(
+            evidence_panel,
+            height=6,
+            borderwidth=0,
+            highlightthickness=1,
+            highlightbackground="#E5E7EB",
+            selectbackground="#EEF2FF",
+            selectforeground="#111827",
+            font=("Segoe UI", 9),
+        )
         self.library_evidence_list.pack(side="left", fill="both", expand=True)
         self.library_evidence_list.bind("<<ListboxSelect>>", self._load_selected_evidence)
-        self.library_evidence_preview = tk.Text(evidence_panel, height=4, width=58, wrap="word")
+        self.library_evidence_preview = tk.Text(
+            evidence_panel,
+            height=6,
+            width=58,
+            wrap="word",
+            borderwidth=0,
+            highlightthickness=1,
+            highlightbackground="#E5E7EB",
+            background="#F9FAFB",
+            foreground="#374151",
+            font=("Segoe UI", 9),
+            padx=10,
+            pady=8,
+        )
         self.library_evidence_preview.pack(side="left", fill="both", expand=True, padx=(8, 0))
         self.library_evidence_preview.configure(state="disabled")
         self._library_evidence_records = ()
@@ -671,6 +704,7 @@ class PatentWorkbenchApp(tk.Tk):
             actions,
             text="保存详情",
             command=self.save_library_detail,
+            style="Accent.TButton",
         ).pack(side="left")
         ttk.Button(
             actions,
