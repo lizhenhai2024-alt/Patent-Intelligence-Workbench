@@ -548,6 +548,12 @@ class PatentWorkbenchApp(tk.Tk):
             textvariable=self.family_summary_var,
             style="SurfaceSubtle.TLabel",
         ).pack(fill="x")
+        self.family_country_var = tk.StringVar(value="Jurisdictions  —")
+        ttk.Label(
+            family_summary_card,
+            textvariable=self.family_country_var,
+            style="Surface.TLabel",
+        ).pack(fill="x", pady=(5, 0))
 
         self.family_download_progress = ttk.Progressbar(
             self.family_tab,
@@ -1284,6 +1290,18 @@ class PatentWorkbenchApp(tk.Tk):
             f"Family ID: {family.source_family_id or '-'} · "
             f"最早优先权: {priority.number if priority else '-'}"
         )
+        jurisdiction_counts: dict[str, int] = {}
+        for member in family.members:
+            jurisdiction_counts[member.jurisdiction] = (
+                jurisdiction_counts.get(member.jurisdiction, 0) + 1
+            )
+        distribution = "   ".join(
+            f"{code} {count}"
+            for code, count in sorted(
+                jurisdiction_counts.items(), key=lambda item: (-item[1], item[0])
+            )
+        )
+        self.family_country_var.set(f"Jurisdictions  {distribution or '—'}")
         self._set_status(f"专利族解析完成：{len(family.members)} 个成员")
 
     def add_current_family_to_library(self) -> None:
@@ -1385,12 +1403,16 @@ class PatentWorkbenchApp(tk.Tk):
         self.watch_rule_tree.delete(*self.watch_rule_tree.get_children())
         for rule in self.runtime.watch_store.list_rules():
             state = self.runtime.watch_store.get_state(rule.rule_id)
+            tag = "enabled" if rule.enabled else "disabled"
             self.watch_rule_tree.insert(
                 "",
                 "end",
                 iid=rule.rule_id,
                 values=watch_rule_row(rule, state),
+                tags=(tag,),
             )
+        self.watch_rule_tree.tag_configure("enabled", foreground="#166534")
+        self.watch_rule_tree.tag_configure("disabled", foreground="#6B7280")
 
         self.watch_history_tree.delete(*self.watch_history_tree.get_children())
         for history in self.runtime.watch_store.recent_runs(limit=30):
