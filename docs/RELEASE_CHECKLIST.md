@@ -77,13 +77,16 @@ On a Windows desktop:
 
 RC:
 
-- [ ] version is `1.0.0rc2`;
+- [ ] version is `1.0.0rc3`;
 - [ ] changelog is current;
 - [ ] Quick Start is current;
 - [ ] zero-credential patent-number and keyword search are validated;
+- [ ] cross-thread SQLite search/watch access is validated;
+- [ ] complete-family PDF download progress and completion feedback are validated;
+- [ ] Patent Watch cadence can be edited in the desktop UI;
 - [ ] CI and Windows Build are green;
 - [ ] artifact checksum is available;
-- [ ] tag convention: `v1.0.0-rc.2`;
+- [ ] tag convention: `v1.0.0-rc.3`;
 - [ ] successful main-branch Windows build triggers the idempotent RC publisher;
 - [ ] prerelease contains EXE, `BUILD_INFO.txt` and `SHA256SUMS.txt`.
 

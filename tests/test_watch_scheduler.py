@@ -90,3 +90,29 @@ def test_scheduler_isolates_rule_failure_and_records_history(tmp_path):
     assert ("first", "failure") in statuses
     assert ("second", "success") in statuses
     store.close()
+
+
+def test_watch_rule_cadence_can_be_updated_and_persisted(tmp_path):
+    store = SQLiteWatchStateStore(tmp_path / "watch.db")
+    try:
+        original = WatchRule(
+            rule_id="adjustable",
+            name="Adjustable",
+            company_group="a",
+            cadence_hours=24,
+        )
+        store.upsert_rule(original)
+        store.upsert_rule(
+            WatchRule(
+                rule_id="adjustable",
+                name="Adjustable",
+                company_group="a",
+                cadence_hours=6,
+            )
+        )
+
+        updated = store.get_rule("adjustable")
+        assert updated is not None
+        assert updated.cadence_hours == 6
+    finally:
+        store.close()

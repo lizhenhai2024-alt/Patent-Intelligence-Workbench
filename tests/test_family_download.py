@@ -100,3 +100,25 @@ def test_retry_failed_only_does_not_redownload_prior_success(tmp_path):
         item for item in second.members if item.publication_number == "JP2024000123A"
     )
     assert jp_record.from_cache is True
+
+
+def test_family_downloader_reports_member_progress(tmp_path):
+    provider = StatefulProvider(failing={"US20240123456A1"})
+    downloader = FamilyDownloader(DownloadManager([provider]))
+    updates = []
+
+    summary = asyncio.run(
+        downloader.download_family(
+            _family(),
+            tmp_path,
+            on_progress=updates.append,
+        )
+    )
+
+    assert summary.succeeded == 1
+    assert summary.failed == 1
+    assert [(item.completed, item.total) for item in updates] == [(1, 2), (2, 2)]
+    assert updates[0].publication_number == "JP2024000123A"
+    assert updates[0].status == "success"
+    assert updates[1].publication_number == "US20240123456A1"
+    assert updates[1].status == "failed"

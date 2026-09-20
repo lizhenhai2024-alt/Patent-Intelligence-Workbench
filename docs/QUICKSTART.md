@@ -31,7 +31,7 @@ If an earlier build already contains `patent_library.db` or `patent_watch.db`, t
 
 ## 3. Optional EPO OPS enhancement
 
-Search does **not** require EPO OPS credentials in RC2. The default chain is:
+Search does **not** require EPO OPS credentials. The default chain is:
 
 1. Local Library;
 2. zero-credential public search;
@@ -80,9 +80,9 @@ V1 distinguishes:
 Use:
 
 - **加入本地库** to archive the family;
-- **下载整族 PDF** to download available family documents.
+- **下载全部专利 PDF** to download available family documents.
 
-Downloaded members are stored by jurisdiction and accompanied by a `family.json` manifest.
+The Family tab shows per-member download progress, the current publication number and a final success/failure summary. Downloaded members are stored by jurisdiction and accompanied by a `family.json` manifest.
 
 ## 6. Patent Watch
 
@@ -92,8 +92,9 @@ Recommended first use:
 
 1. Open **Patent Watch**.
 2. Enable only the companies/topics you want.
-3. Run due rules once to establish the baseline.
-4. Subsequent runs distinguish:
+3. Select a rule, adjust **监控间隔(h)** as needed, then choose **应用到选中规则**.
+4. Run due rules once to establish the baseline.
+5. Subsequent runs distinguish:
    - new patent family;
    - new member of an existing family;
    - temporarily unresolved family.

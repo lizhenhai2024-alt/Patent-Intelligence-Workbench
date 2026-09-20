@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -24,6 +25,15 @@ class FamilyMemberDownload:
     error: str | None = None
     official_fallbacks: tuple[OfficialSourceHint, ...] = ()
     from_cache: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class FamilyDownloadProgress:
+    completed: int
+    total: int
+    publication_number: str
+    status: str
+    error: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,6 +62,7 @@ class FamilyDownloader:
         *,
         jurisdictions: tuple[str, ...] = (),
         retry_failed_only: bool = False,
+        on_progress: Callable[[FamilyDownloadProgress], None] | None = None,
     ) -> FamilyDownloadSummary:
         earliest = family.earliest_priority
         representative = family.members[0].publication_number if family.members else None
@@ -65,14 +76,33 @@ class FamilyDownloader:
 
         results: list[FamilyMemberDownload] = []
         allowed = {value.upper() for value in jurisdictions}
+        members = tuple(
+            member
+            for member in family.members
+            if not allowed or member.jurisdiction.upper() in allowed
+        )
+        total = len(members)
 
-        for member in family.members:
-            if allowed and member.jurisdiction.upper() not in allowed:
-                continue
+        def record(
+            item: FamilyMemberDownload,
+            completed: int,
+        ) -> None:
+            results.append(item)
+            if on_progress is not None:
+                on_progress(
+                    FamilyDownloadProgress(
+                        completed=completed,
+                        total=total,
+                        publication_number=item.publication_number,
+                        status=item.status,
+                        error=item.error,
+                    )
+                )
 
+        for completed, member in enumerate(members, start=1):
             previous_item = previous.get(member.publication_number)
             if previous_item and previous_item.get("status") == "success":
-                results.append(
+                record(
                     FamilyMemberDownload(
                         publication_number=member.publication_number,
                         jurisdiction=member.jurisdiction,
@@ -81,20 +111,22 @@ class FamilyDownloader:
                         provider=previous_item.get("provider") or "LOCAL_CACHE",
                         source_url=previous_item.get("source_url"),
                         from_cache=True,
-                    )
+                    ),
+                    completed,
                 )
                 continue
 
             try:
                 publication = normalize_patent_number(member.publication_number)
             except PatentNumberError as exc:
-                results.append(
+                record(
                     FamilyMemberDownload(
                         publication_number=member.publication_number,
                         jurisdiction=member.jurisdiction,
                         status="failed",
                         error=str(exc),
-                    )
+                    ),
+                    completed,
                 )
                 continue
 
@@ -107,28 +139,30 @@ class FamilyDownloader:
             try:
                 result = await self.manager.download(publication, destination)
             except DownloadExhaustedError as exc:
-                results.append(
+                record(
                     FamilyMemberDownload(
                         publication_number=member.publication_number,
                         jurisdiction=member.jurisdiction,
                         status="failed",
                         error=str(exc),
                         official_fallbacks=exc.official_sources,
-                    )
+                    ),
+                    completed,
                 )
                 continue
             except DownloadError as exc:
-                results.append(
+                record(
                     FamilyMemberDownload(
                         publication_number=member.publication_number,
                         jurisdiction=member.jurisdiction,
                         status="failed",
                         error=str(exc),
-                    )
+                    ),
+                    completed,
                 )
                 continue
 
-            results.append(
+            record(
                 FamilyMemberDownload(
                     publication_number=member.publication_number,
                     jurisdiction=member.jurisdiction,
@@ -137,7 +171,8 @@ class FamilyDownloader:
                     provider=result.provider,
                     source_url=result.source_url,
                     from_cache=result.from_cache,
-                )
+                ),
+                completed,
             )
 
         summary = FamilyDownloadSummary(
