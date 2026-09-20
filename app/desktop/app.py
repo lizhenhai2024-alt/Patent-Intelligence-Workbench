@@ -134,19 +134,33 @@ class PatentWorkbenchApp(tk.Tk):
         )
         style.map("Treeview", background=[("selected", selected)], foreground=[("selected", text)])
         style.map("Treeview.Heading", background=[("active", "#F3F4F6")])
-        style.configure("TNotebook", background=bg, borderwidth=0, tabmargins=(0, 0, 0, 0))
         style.configure(
-            "TNotebook.Tab",
-            background=bg,
-            foreground=muted,
-            padding=(14, 9),
-            font=("Segoe UI Semibold", 9),
+            "Nav.TButton",
+            background="#111827",
+            foreground="#9CA3AF",
             borderwidth=0,
+            anchor="w",
+            padding=(14, 11),
+            font=("Segoe UI Semibold", 9),
         )
         style.map(
-            "TNotebook.Tab",
-            background=[("selected", surface), ("active", "#EEF0F3")],
-            foreground=[("selected", text), ("active", text)],
+            "Nav.TButton",
+            background=[("active", "#1F2937")],
+            foreground=[("active", "#FFFFFF")],
+        )
+        style.configure(
+            "NavActive.TButton",
+            background="#FFFFFF",
+            foreground="#111827",
+            borderwidth=0,
+            anchor="w",
+            padding=(14, 11),
+            font=("Segoe UI Semibold", 9),
+        )
+        style.map(
+            "NavActive.TButton",
+            background=[("active", "#F3F4F6")],
+            foreground=[("active", "#111827")],
         )
         style.configure(
             "Horizontal.TProgressbar",
@@ -179,26 +193,61 @@ class PatentWorkbenchApp(tk.Tk):
             style="Subtle.TLabel",
         ).pack(side="right")
 
-        self.notebook = ttk.Notebook(self)
-        self.notebook.pack(fill="both", expand=True, padx=18, pady=(0, 12))
+        workspace = tk.Frame(self, bg="#F6F7F9")
+        workspace.pack(fill="both", expand=True, padx=(18, 18), pady=(0, 12))
 
-        self.search_tab = ttk.Frame(self.notebook, padding=14)
-        self.family_tab = ttk.Frame(self.notebook, padding=14)
-        self.watch_tab = ttk.Frame(self.notebook, padding=14)
-        self.library_tab = ttk.Frame(self.notebook, padding=14)
-        self.settings_tab = ttk.Frame(self.notebook, padding=14)
+        sidebar = tk.Frame(workspace, bg="#111827", width=190)
+        sidebar.pack(side="left", fill="y")
+        sidebar.pack_propagate(False)
+        tk.Label(
+            sidebar,
+            text="WORKSPACE",
+            bg="#111827",
+            fg="#6B7280",
+            font=("Segoe UI Semibold", 8),
+            anchor="w",
+            padx=14,
+            pady=12,
+        ).pack(fill="x")
 
-        self.notebook.add(self.search_tab, text="Search")
-        self.notebook.add(self.family_tab, text="Family")
-        self.notebook.add(self.watch_tab, text="Patent Watch")
-        self.notebook.add(self.library_tab, text="Local Library")
-        self.notebook.add(self.settings_tab, text="Settings")
+        content = ttk.Frame(workspace)
+        content.pack(side="left", fill="both", expand=True, padx=(12, 0))
+
+        self.search_tab = ttk.Frame(content, padding=14)
+        self.family_tab = ttk.Frame(content, padding=14)
+        self.watch_tab = ttk.Frame(content, padding=14)
+        self.library_tab = ttk.Frame(content, padding=14)
+        self.settings_tab = ttk.Frame(content, padding=14)
+        self._pages = {
+            "search": self.search_tab,
+            "family": self.family_tab,
+            "watch": self.watch_tab,
+            "library": self.library_tab,
+            "settings": self.settings_tab,
+        }
+        self._nav_buttons = {}
+        for key, label in (
+            ("search", "⌕   Search"),
+            ("family", "◫   Patent Family"),
+            ("watch", "◉   Patent Watch"),
+            ("library", "▤   Local Library"),
+            ("settings", "⚙   Settings"),
+        ):
+            button = ttk.Button(
+                sidebar,
+                text=label,
+                style="Nav.TButton",
+                command=lambda page=key: self._show_page(page),
+            )
+            button.pack(fill="x", padx=8, pady=2)
+            self._nav_buttons[key] = button
 
         self._build_search_tab()
         self._build_family_tab()
         self._build_watch_tab()
         self._build_library_tab()
         self._build_settings_tab()
+        self._show_page("search")
 
         self.status_var = tk.StringVar(value="就绪")
         ttk.Label(
@@ -207,6 +256,13 @@ class PatentWorkbenchApp(tk.Tk):
             anchor="w",
             style="Status.TLabel",
         ).pack(fill="x")
+
+    def _show_page(self, page: str) -> None:
+        for key, frame in self._pages.items():
+            frame.pack_forget()
+            self._nav_buttons[key].configure(style="Nav.TButton")
+        self._pages[page].pack(fill="both", expand=True)
+        self._nav_buttons[page].configure(style="NavActive.TButton")
 
     def _build_search_tab(self) -> None:
         ttk.Label(self.search_tab, text="Patent Search", style="PageTitle.TLabel").pack(anchor="w")
