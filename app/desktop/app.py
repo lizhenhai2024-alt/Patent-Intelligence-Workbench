@@ -8,6 +8,7 @@ from tkinter import filedialog, messagebox, ttk
 
 from app.acquisition import AcquisitionRequest
 from app.core.patent_number import PatentNumberError, normalize_patent_number
+from app.core.technology_taxonomy import TechnologyTaxonomy
 from app.desktop.async_runner import TkCallbackQueue, run_async_in_thread
 from app.desktop.opening import open_local_path
 from app.desktop.presenters import patent_row, watch_history_row, watch_rule_row
@@ -305,6 +306,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.family_tab = ttk.Frame(content, padding=14)
         self.watch_tab = ttk.Frame(content, padding=14)
         self.library_tab = ttk.Frame(content, padding=14)
+        self.technology_tab = ttk.Frame(content, padding=14)
         self.evidence_tab = ttk.Frame(content, padding=14)
         self.settings_tab = ttk.Frame(content, padding=14)
         self._pages = {
@@ -312,6 +314,7 @@ class PatentWorkbenchApp(tk.Tk):
             "family": self.family_tab,
             "watch": self.watch_tab,
             "library": self.library_tab,
+            "technology": self.technology_tab,
             "evidence": self.evidence_tab,
             "settings": self.settings_tab,
         }
@@ -321,6 +324,7 @@ class PatentWorkbenchApp(tk.Tk):
             ("family", "◫   Patent Family"),
             ("watch", "◉   Patent Watch"),
             ("library", "▤   Local Library"),
+            ("technology", "⌘   Technology"),
             ("evidence", "◇   Evidence"),
             ("settings", "⚙   Settings"),
         ):
@@ -337,6 +341,7 @@ class PatentWorkbenchApp(tk.Tk):
         self._build_family_tab()
         self._build_watch_tab()
         self._build_library_tab()
+        self._build_technology_tab()
         self._build_evidence_tab()
         self._build_settings_tab()
         self._show_page("search")
@@ -604,17 +609,21 @@ class PatentWorkbenchApp(tk.Tk):
             form,
             text="加入本地库",
             command=self.add_current_family_to_library,
+            style="Ghost.TButton",
         ).grid(row=1, column=3, padx=(0, 8))
         self.family_download_button = ttk.Button(
             form,
             text="下载全部专利 PDF",
             command=self.download_current_family,
+            style="Ghost.TButton",
         )
         self.family_download_button.grid(row=1, column=4)
 
         columns = ("number", "country", "title", "application", "date")
+        family_results = ttk.LabelFrame(self.family_tab, text="Family 成员", padding=8)
+        family_results.pack(fill="both", expand=True, pady=(0, 8))
         self.family_tree = ttk.Treeview(
-            self.family_tab,
+            family_results,
             columns=columns,
             show="headings",
         )
@@ -682,12 +691,14 @@ class PatentWorkbenchApp(tk.Tk):
             toolbar,
             text="刷新",
             command=self.refresh_watch,
+            style="Quiet.TButton",
         ).pack(side="left")
         ttk.Button(
             toolbar,
             text="切换启用状态",
             command=self.toggle_selected_watch_rule,
-        ).pack(side="left", padx=(8, 0))
+            style="Ghost.TButton",
+        ).pack(side="left", padx=(6, 0))
         self.run_watch_button = ttk.Button(
             toolbar,
             text="运行到期规则",
@@ -714,10 +725,13 @@ class PatentWorkbenchApp(tk.Tk):
             toolbar,
             text="应用到选中规则",
             command=self.apply_selected_watch_cadence,
+            style="Ghost.TButton",
         ).pack(side="left", padx=(6, 0))
 
+        rules_card = ttk.LabelFrame(self.watch_tab, text="监控规则", padding=8)
+        rules_card.pack(fill="both", expand=True, pady=(0, 8))
         self.watch_rule_tree = ttk.Treeview(
-            self.watch_tab,
+            rules_card,
             columns=("name", "enabled", "cadence", "last_run", "company"),
             show="headings",
             height=13,
@@ -738,14 +752,10 @@ class PatentWorkbenchApp(tk.Tk):
             self._load_selected_watch_cadence,
         )
 
-        ttk.Label(
-            self.watch_tab,
-            text="最近运行",
-            style="Subtle.TLabel",
-        ).pack(anchor="w", pady=(10, 4))
-
+        history_card = ttk.LabelFrame(self.watch_tab, text="最近运行", padding=8)
+        history_card.pack(fill="both", expand=True)
         self.watch_history_tree = ttk.Treeview(
-            self.watch_tab,
+            history_card,
             columns=("rule", "status", "time", "events", "error"),
             show="headings",
             height=8,
@@ -948,6 +958,47 @@ class PatentWorkbenchApp(tk.Tk):
         detail.columnconfigure(1, weight=2)
         detail.columnconfigure(2, weight=1)
         detail.columnconfigure(4, weight=2)
+
+    def _build_technology_tab(self) -> None:
+        ttk.Label(
+            self.technology_tab,
+            text="Technology Taxonomy",
+            style="PageTitle.TLabel",
+        ).pack(anchor="w")
+        ttk.Label(
+            self.technology_tab,
+            text="悬架与减振器工程专利分类树",
+            style="Subtle.TLabel",
+        ).pack(anchor="w", pady=(2, 10))
+
+        card = ttk.Frame(self.technology_tab, style="Surface.TFrame", padding=12)
+        card.pack(fill="both", expand=True)
+        self.technology_tree = ttk.Treeview(card, show="tree", selectmode="browse")
+        self.technology_tree.pack(fill="both", expand=True)
+
+        taxonomy = TechnologyTaxonomy.default()
+
+        def insert_nodes(parent: str, nodes) -> None:
+            for node in nodes:
+                item = self.technology_tree.insert(parent, "end", iid=node.node_id, text=node.name)
+                insert_nodes(item, node.children)
+
+        insert_nodes("", taxonomy.roots)
+        for node_id in ("suspension", "passive_damper"):
+            if self.technology_tree.exists(node_id):
+                self.technology_tree.item(node_id, open=True)
+        self.technology_tree.bind("<<TreeviewSelect>>", self._on_technology_selected)
+
+    def _on_technology_selected(self, _event=None) -> None:
+        selection = self.technology_tree.selection()
+        if not selection:
+            return
+        current = selection[0]
+        path = []
+        while current:
+            path.append(self.technology_tree.item(current, "text"))
+            current = self.technology_tree.parent(current)
+        self._set_status("Technology: " + " > ".join(reversed(path)))
 
     def _build_evidence_tab(self) -> None:
         ttk.Label(self.evidence_tab, text="Evidence Center", style="PageTitle.TLabel").pack(

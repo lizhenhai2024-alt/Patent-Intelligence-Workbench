@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "nodes": [
+    {
+      "id": "suspension",
+      "name": "Suspension",
+      "children": [
+        {
+          "id": "passive_damper",
+          "name": "Passive Damper",
+          "children": [
+            {"id": "valving", "name": "Valving", "children": []},
+            {"id": "fsd", "name": "FSD", "children": []},
+            {"id": "hrs_hcs", "name": "HRS / HCS", "children": []}
+          ]
+        },
+        {"id": "semi_active", "name": "Semi-active", "children": []},
+        {"id": "active_suspension", "name": "Active Suspension", "children": []},
+        {"id": "air_suspension", "name": "Air Suspension", "children": []},
+        {"id": "active_anti_roll", "name": "Active Anti-roll", "children": []}
+      ]
+    }
+  ]
+}
