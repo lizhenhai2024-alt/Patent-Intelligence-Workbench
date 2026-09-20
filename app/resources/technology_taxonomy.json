@@ -74,7 +74,22 @@
             {"id": "air_fail_safe", "name": "Fail-safe", "search_terms": ["air suspension fail safe", "air suspension emergency mode", "air suspension fallback mode"], "children": []}
           ]
         },
-        {"id": "active_anti_roll", "name": "Active Anti-roll", "search_terms": ["active anti roll", "active stabilizer"], "children": []}
+        {
+          "id": "active_anti_roll",
+          "name": "Active Anti-roll",
+          "search_terms": ["active anti roll", "active stabilizer", "active stabilizer bar", "active roll control"],
+          "children": [
+            {"id": "aar_hydraulic_actuator", "name": "Hydraulic Actuator", "search_terms": ["active stabilizer hydraulic actuator", "hydraulic anti roll actuator", "hydraulic roll control actuator"], "children": []},
+            {"id": "aar_electromechanical_actuator", "name": "Electromechanical Actuator", "search_terms": ["active stabilizer electromechanical actuator", "electric anti roll actuator", "electromechanical roll control actuator"], "children": []},
+            {"id": "aar_rotary_actuator", "name": "Rotary Actuator", "search_terms": ["active stabilizer rotary actuator", "rotary anti roll actuator", "rotary roll control actuator"], "children": []},
+            {"id": "aar_decoupling", "name": "Decoupling / Disconnect", "search_terms": ["stabilizer decoupling", "anti roll bar disconnect", "active stabilizer clutch"], "children": []},
+            {"id": "aar_roll_control", "name": "Roll Control", "search_terms": ["active roll control", "vehicle roll control", "active stabilizer control"], "children": []},
+            {"id": "aar_pressure_control", "name": "Pressure Control", "search_terms": ["active stabilizer pressure control", "hydraulic roll pressure control", "anti roll hydraulic pressure control"], "children": []},
+            {"id": "aar_transmission", "name": "Gear / Transmission", "search_terms": ["active stabilizer gearbox", "anti roll gear transmission", "stabilizer actuator transmission"], "children": []},
+            {"id": "aar_sensor_control", "name": "Sensor / Control", "search_terms": ["active stabilizer sensor", "roll control sensor", "active anti roll control unit"], "children": []},
+            {"id": "aar_fail_safe", "name": "Fail-safe", "search_terms": ["active stabilizer fail safe", "active anti roll fail safe", "roll control fallback mode"], "children": []}
+          ]
+        }
       ]
     }
   ]

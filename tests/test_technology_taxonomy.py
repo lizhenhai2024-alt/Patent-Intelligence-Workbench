@@ -107,3 +107,27 @@ def test_air_suspension_contains_core_system_nodes():
         "pneumatic valve manifold suspension",
         "air distribution valve suspension",
     )
+
+
+def test_active_anti_roll_contains_core_architecture_nodes():
+    taxonomy = TechnologyTaxonomy.default()
+    active_anti_roll = taxonomy.find("active_anti_roll")
+
+    expected = {
+        "aar_hydraulic_actuator",
+        "aar_electromechanical_actuator",
+        "aar_rotary_actuator",
+        "aar_decoupling",
+        "aar_roll_control",
+        "aar_pressure_control",
+        "aar_transmission",
+        "aar_sensor_control",
+        "aar_fail_safe",
+    }
+    assert {child.node_id for child in active_anti_roll.children} == expected
+    assert all(child.search_terms for child in active_anti_roll.children)
+    assert taxonomy.find("aar_decoupling").search_terms == (
+        "stabilizer decoupling",
+        "anti roll bar disconnect",
+        "active stabilizer clutch",
+    )
