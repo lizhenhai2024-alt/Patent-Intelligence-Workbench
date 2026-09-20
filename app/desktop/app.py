@@ -72,6 +72,32 @@ class PatentWorkbenchApp(tk.Tk):
             padding=(12, 7),
             font=("Segoe UI", 9),
         )
+        style.configure(
+            "MetricValue.TLabel",
+            background=surface,
+            foreground=text,
+            font=("Segoe UI Semibold", 20),
+        )
+        style.configure(
+            "MetricLabel.TLabel",
+            background=surface,
+            foreground=muted,
+            font=("Segoe UI", 9),
+        )
+        style.configure(
+            "BadgeOn.TLabel",
+            background="#DCFCE7",
+            foreground="#166534",
+            padding=(7, 3),
+            font=("Segoe UI Semibold", 8),
+        )
+        style.configure(
+            "BadgeOff.TLabel",
+            background="#F3F4F6",
+            foreground="#6B7280",
+            padding=(7, 3),
+            font=("Segoe UI Semibold", 8),
+        )
         style.configure("TButton", font=("Segoe UI Semibold", 9), padding=(12, 7), relief="flat")
         style.map("TButton", background=[("active", "#E5E7EB")])
         style.configure(
@@ -201,14 +227,34 @@ class PatentWorkbenchApp(tk.Tk):
         sidebar.pack_propagate(False)
         tk.Label(
             sidebar,
+            text="PIW",
+            bg="#111827",
+            fg="#FFFFFF",
+            font=("Segoe UI Semibold", 20),
+            anchor="w",
+            padx=14,
+            pady=0,
+        ).pack(fill="x", pady=(16, 0))
+        tk.Label(
+            sidebar,
+            text="Patent Intelligence",
+            bg="#111827",
+            fg="#9CA3AF",
+            font=("Segoe UI", 8),
+            anchor="w",
+            padx=14,
+            pady=0,
+        ).pack(fill="x", pady=(0, 16))
+        tk.Label(
+            sidebar,
             text="WORKSPACE",
             bg="#111827",
             fg="#6B7280",
             font=("Segoe UI Semibold", 8),
             anchor="w",
             padx=14,
-            pady=12,
-        ).pack(fill="x")
+            pady=0,
+        ).pack(fill="x", pady=(0, 8))
 
         content = ttk.Frame(workspace)
         content.pack(side="left", fill="both", expand=True, padx=(12, 0))
@@ -271,6 +317,27 @@ class PatentWorkbenchApp(tk.Tk):
             text="按专利号、公司、技术主题或公开网页进行检索与采集",
             style="Subtle.TLabel",
         ).pack(anchor="w", pady=(2, 10))
+
+        metrics = ttk.Frame(self.search_tab)
+        metrics.pack(fill="x", pady=(0, 10))
+        self.dashboard_patents_var = tk.StringVar(value="0")
+        self.dashboard_families_var = tk.StringVar(value="0")
+        self.dashboard_watch_var = tk.StringVar(value="0")
+        self.dashboard_evidence_var = tk.StringVar(value="0")
+        for index, (label, variable) in enumerate(
+            (
+                ("Local patents", self.dashboard_patents_var),
+                ("Patent families", self.dashboard_families_var),
+                ("Watch rules", self.dashboard_watch_var),
+                ("Evidence", self.dashboard_evidence_var),
+            )
+        ):
+            card = ttk.Frame(metrics, style="Surface.TFrame", padding=(14, 10))
+            card.grid(row=0, column=index, sticky="ew", padx=(0, 8 if index < 3 else 0))
+            ttk.Label(card, textvariable=variable, style="MetricValue.TLabel").pack(anchor="w")
+            ttk.Label(card, text=label, style="MetricLabel.TLabel").pack(anchor="w")
+            metrics.columnconfigure(index, weight=1)
+
         search_card = ttk.LabelFrame(self.search_tab, text="检索条件", padding=12)
         search_card.pack(fill="x", pady=(0, 10))
         form = ttk.Frame(search_card, style="Surface.TFrame")
@@ -1405,7 +1472,17 @@ class PatentWorkbenchApp(tk.Tk):
             schedule_ui=self._ui_callbacks.submit,
         )
 
+    def _refresh_dashboard_metrics(self) -> None:
+        if not hasattr(self, "dashboard_patents_var"):
+            return
+        store = self.runtime.library_store
+        self.dashboard_patents_var.set(str(store.count_patents()))
+        self.dashboard_families_var.set(str(len(store.list_families(limit=500))))
+        self.dashboard_watch_var.set(str(len(self.runtime.watch_store.list_rules())))
+        self.dashboard_evidence_var.set(str(len(store.list_evidence(limit=1000))))
+
     def refresh_library(self) -> None:
+        self._refresh_dashboard_metrics()
         query = LibraryQuery(
             text=self.library_query_var.get().strip()
             if hasattr(self, "library_query_var")
