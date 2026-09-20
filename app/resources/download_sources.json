@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "jurisdictions": {
+    "EP": [
+      {
+        "name": "EPO Publication Server",
+        "url": "https://data.epo.org/publication-server/",
+        "access_mode": "AUTOMATED",
+        "document_type": "PUBLICATION_PDF",
+        "note": "Primary automated source for EP publication documents."
+      }
+    ],
+    "JP": [
+      {
+        "name": "J-PlatPat",
+        "url": "https://www.j-platpat.inpit.go.jp/",
+        "access_mode": "MANUAL",
+        "document_type": "PUBLICATION_PDF",
+        "note": "Official service supports document-unit PDF download; no stable public PDF API is assumed by V1."
+      },
+      {
+        "name": "JPO Patent Information Retrieval API",
+        "url": "https://ip-data.jpo.go.jp/pages/top.html",
+        "access_mode": "REGISTERED",
+        "document_type": "APPLICATION_DOCUMENTS_XML_ZIP",
+        "note": "Registered API can retrieve Japanese application documents and metadata; this is not treated as a gazette-PDF endpoint."
+      }
+    ],
+    "CN": [
+      {
+        "name": "CNIPA Patent Publication System",
+        "url": "http://epub.cnipa.gov.cn/",
+        "access_mode": "MANUAL",
+        "document_type": "PUBLICATION_PDF",
+        "note": "Official publication system can download published claims/specification and granted patent documents."
+      },
+      {
+        "name": "CNIPA IP Data Public Service System",
+        "url": "https://ipdps.cnipa.gov.cn/",
+        "access_mode": "REGISTERED",
+        "document_type": "BULK_DATA",
+        "note": "Registered data-resource service is the official route for larger-scale data acquisition."
+      }
+    ],
+    "WO": [
+      {
+        "name": "WIPO PATENTSCOPE",
+        "url": "https://patentscope.wipo.int/",
+        "access_mode": "MANUAL",
+        "document_type": "PUBLICATION_PDF",
+        "note": "Official PCT PDF access. V1 does not robot-scrape PATENTSCOPE."
+      },
+      {
+        "name": "WIPO PCT Data Services",
+        "url": "https://www.wipo.int/en/web/patentscope/data/index",
+        "access_mode": "LICENSED",
+        "document_type": "PROGRAMMATIC_DOCUMENT_ACCESS",
+        "note": "Programmatic batch document access is available under WIPO data-product/API terms."
+      }
+    ],
+    "US": [
+      {
+        "name": "USPTO",
+        "url": "https://ppubs.uspto.gov/pubwebapp/",
+        "access_mode": "MANUAL",
+        "document_type": "PUBLICATION_PDF",
+        "note": "Official publication search/download source; dedicated automated adapter is deferred."
+      }
+    ],
+    "KR": [
+      {
+        "name": "KIPRIS",
+        "url": "https://www.kipris.or.kr/",
+        "access_mode": "MANUAL",
+        "document_type": "PUBLICATION_PDF",
+        "note": "Official Korean patent information service; dedicated automated adapter is deferred."
+      }
+    ]
+  }
+}

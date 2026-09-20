@@ -8,7 +8,7 @@ from pathlib import Path
 
 from app.core.patent_number import PatentNumberError, normalize_patent_number
 from app.domain.family import PatentFamily
-from app.downloads.base import DownloadError
+from app.downloads.base import DownloadError, DownloadExhaustedError, OfficialSourceHint
 from app.downloads.manager import DownloadManager
 from app.downloads.naming import family_folder_name, patent_pdf_filename
 
@@ -22,6 +22,7 @@ class FamilyMemberDownload:
     provider: str | None = None
     source_url: str | None = None
     error: str | None = None
+    official_fallbacks: tuple[OfficialSourceHint, ...] = ()
     from_cache: bool = False
 
 
@@ -53,9 +54,7 @@ class FamilyDownloader:
         retry_failed_only: bool = False,
     ) -> FamilyDownloadSummary:
         earliest = family.earliest_priority
-        representative = (
-            family.members[0].publication_number if family.members else None
-        )
+        representative = family.members[0].publication_number if family.members else None
         folder = Path(root) / family_folder_name(
             source_family_id=family.source_family_id,
             earliest_priority_number=earliest.number if earliest else None,
@@ -107,6 +106,17 @@ class FamilyDownloader:
 
             try:
                 result = await self.manager.download(publication, destination)
+            except DownloadExhaustedError as exc:
+                results.append(
+                    FamilyMemberDownload(
+                        publication_number=member.publication_number,
+                        jurisdiction=member.jurisdiction,
+                        status="failed",
+                        error=str(exc),
+                        official_fallbacks=exc.official_sources,
+                    )
+                )
+                continue
             except DownloadError as exc:
                 results.append(
                     FamilyMemberDownload(

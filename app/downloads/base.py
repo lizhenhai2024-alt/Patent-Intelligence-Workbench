@@ -18,6 +18,43 @@ class DownloadValidationError(DownloadError):
 
 
 @dataclass(frozen=True, slots=True)
+class OfficialSourceHint:
+    name: str
+    url: str
+    access_mode: str
+    document_type: str
+    note: str | None = None
+
+
+class DownloadExhaustedError(DownloadError):
+    """All automated providers failed; structured official fallbacks remain."""
+
+    def __init__(
+        self,
+        publication_number: str,
+        attempts: tuple[DownloadAttempt, ...],
+        official_sources: tuple[OfficialSourceHint, ...] = (),
+    ) -> None:
+        self.publication_number = publication_number
+        self.attempts = attempts
+        self.official_sources = official_sources
+        details = "; ".join(
+            f"{attempt.provider}: {attempt.error or 'failed'}"
+            for attempt in attempts
+        )
+        hint_text = ""
+        if official_sources:
+            names = ", ".join(
+                f"{hint.name} [{hint.access_mode}]" for hint in official_sources
+            )
+            hint_text = f" Official alternatives: {names}."
+        super().__init__(
+            f"No automated PDF provider succeeded for {publication_number}. "
+            f"{details}.{hint_text}"
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class PdfPayload:
     provider: str
     source_url: str
