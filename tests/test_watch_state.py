@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.watch.models import WatchRule
 from app.watch.state import SQLiteWatchStateStore
@@ -12,7 +12,7 @@ def test_watch_state_survives_reopen(tmp_path):
         company_group="tenneco",
         technology_terms=("pilot valve",),
     )
-    stamp = datetime(2026, 9, 20, 8, 0, tzinfo=timezone.utc)
+    stamp = datetime(2026, 9, 20, 8, 0, tzinfo=UTC)
 
     store = SQLiteWatchStateStore(path)
     store.upsert_rule(rule)
