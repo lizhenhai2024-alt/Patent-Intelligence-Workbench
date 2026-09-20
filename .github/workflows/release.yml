@@ -1,0 +1,99 @@
+name: Release Candidate
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "app/version.py"
+
+permissions:
+  contents: write
+
+jobs:
+  release-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Read release metadata
+        id: meta
+        shell: pwsh
+        run: |
+          $tag = python -c "from app.version import RELEASE_TAG; print(RELEASE_TAG)"
+          $name = python -c "from app.version import RELEASE_NAME; print(RELEASE_NAME)"
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "name=$name" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Check whether release already exists
+        id: check
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          gh release view "$env:RELEASE_TAG" --repo "$env:GITHUB_REPOSITORY" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            "exists=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          } else {
+            "exists=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          }
+          exit 0
+
+      - name: Install build dependencies
+        if: steps.check.outputs.exists == 'false'
+        run: python -m pip install -e ".[build]"
+
+      - name: Run tests
+        if: steps.check.outputs.exists == 'false'
+        run: python -m pip install -e ".[dev]" && pytest
+
+      - name: Build Windows executable
+        if: steps.check.outputs.exists == 'false'
+        shell: pwsh
+        run: pyinstaller --noconfirm --clean --onefile --windowed --name PatentIntelligenceWorkbench --collect-data app.resources app/desktop/main.py
+
+      - name: Smoke test packaged executable
+        if: steps.check.outputs.exists == 'false'
+        shell: pwsh
+        run: |
+          & ".\dist\PatentIntelligenceWorkbench.exe" --smoke --data-dir "${{ runner.temp }}\piw-release-smoke"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Write build information and checksum
+        if: steps.check.outputs.exists == 'false'
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          "Patent Intelligence Workbench" | Out-File -Encoding utf8 ".\dist\BUILD_INFO.txt"
+          "Release: $env:RELEASE_TAG" | Out-File -Append -Encoding utf8 ".\dist\BUILD_INFO.txt"
+          "Commit: ${{ github.sha }}" | Out-File -Append -Encoding utf8 ".\dist\BUILD_INFO.txt"
+          "Python: 3.12" | Out-File -Append -Encoding utf8 ".\dist\BUILD_INFO.txt"
+          $hash = (Get-FileHash ".\dist\PatentIntelligenceWorkbench.exe" -Algorithm SHA256).Hash.ToLower()
+          "$hash  PatentIntelligenceWorkbench.exe" | Out-File -Encoding ascii ".\dist\SHA256SUMS.txt"
+
+      - name: Create GitHub prerelease
+        if: steps.check.outputs.exists == 'false'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
+          RELEASE_NAME: ${{ steps.meta.outputs.name }}
+        run: |
+          gh release create "$env:RELEASE_TAG" `
+            ".\dist\PatentIntelligenceWorkbench.exe" `
+            ".\dist\BUILD_INFO.txt" `
+            ".\dist\SHA256SUMS.txt" `
+            --repo "$env:GITHUB_REPOSITORY" `
+            --target "${{ github.sha }}" `
+            --title "$env:RELEASE_NAME" `
+            --notes-file "RELEASE_NOTES.md" `
+            --prerelease
