@@ -1,1 +1,72 @@
-from datetime import UTC, datetime\nfrom pathlib import Path\n\nfrom app.desktop.presenters import patent_row, watch_history_row, watch_rule_row\nfrom app.library.models import LibraryPatent\nfrom app.watch.models import WatchRule\nfrom app.watch.state import WatchRuleState, WatchRunHistory\n\n\ndef test_patent_row_formats_library_record():\n    stamp = datetime(2026, 9, 20, 8, 0, tzinfo=UTC)\n    patent = LibraryPatent(\n        publication_number="JP2024000123A",\n        jurisdiction="JP",\n        kind_code="A",\n        family_key="F1",\n        family_type="DOCDB_SIMPLE",\n        family_source="TEST",\n        source_family_id="F1",\n        title="Damper",\n        application_number=None,\n        grant_number=None,\n        publication_date=None,\n        earliest_priority_number=None,\n        earliest_priority_date=None,\n        original_assignees=(),\n        current_assignees=(),\n        company_groups=("astemo",),\n        technology_topics=("pilot_control_valve",),\n        projects=(),\n        tags=(),\n        pdf_paths=(Path("JP2024000123A.pdf"),),\n        watch_rule_ids=(),\n        first_seen_at=stamp,\n        last_seen_at=stamp,\n        source="TEST",\n        favorite=True,\n    )\n\n    row = patent_row(patent)\n    assert row[0] == "JP2024000123A"\n    assert row[3] == "astemo"\n    assert row[4] == "pilot_control_valve"\n    assert row[5] == "★"\n\n\ndef test_watch_presenters_format_rule_and_history():\n    stamp = datetime(2026, 9, 20, 8, 0, tzinfo=UTC)\n    rule = WatchRule(\n        rule_id="r1",\n        name="Astemo · 减振器",\n        company_group="astemo",\n        cadence_hours=24,\n    )\n    state = WatchRuleState("r1", stamp, stamp)\n    history = WatchRunHistory(\n        run_id=1,\n        rule_id="r1",\n        status="success",\n        started_at=stamp,\n        completed_at=stamp,\n        baseline_created=False,\n        searched_hits=3,\n        resolved_families=2,\n        event_count=1,\n        error_count=0,\n        fatal_error=None,\n    )\n\n    assert watch_rule_row(rule, state)[1] == "启用"\n    assert watch_rule_row(rule, state)[2] == "24h"\n    assert watch_history_row(history)[3] == "1"\n
+from datetime import UTC, datetime
+from pathlib import Path
+
+from app.desktop.presenters import patent_row, watch_history_row, watch_rule_row
+from app.library.models import LibraryPatent
+from app.watch.models import WatchRule
+from app.watch.state import WatchRuleState, WatchRunHistory
+
+
+def test_patent_row_formats_library_record():
+    stamp = datetime(2026, 9, 20, 8, 0, tzinfo=UTC)
+    patent = LibraryPatent(
+        publication_number="JP2024000123A",
+        jurisdiction="JP",
+        kind_code="A",
+        family_key="F1",
+        family_type="DOCDB_SIMPLE",
+        family_source="TEST",
+        source_family_id="F1",
+        title="Damper",
+        application_number=None,
+        grant_number=None,
+        publication_date=None,
+        earliest_priority_number=None,
+        earliest_priority_date=None,
+        original_assignees=(),
+        current_assignees=(),
+        company_groups=("astemo",),
+        technology_topics=("pilot_control_valve",),
+        projects=(),
+        tags=(),
+        pdf_paths=(Path("JP2024000123A.pdf"),),
+        watch_rule_ids=(),
+        first_seen_at=stamp,
+        last_seen_at=stamp,
+        source="TEST",
+        favorite=True,
+    )
+
+    row = patent_row(patent)
+    assert row[0] == "JP2024000123A"
+    assert row[3] == "astemo"
+    assert row[4] == "pilot_control_valve"
+    assert row[5] == "★"
+
+
+def test_watch_presenters_format_rule_and_history():
+    stamp = datetime(2026, 9, 20, 8, 0, tzinfo=UTC)
+    rule = WatchRule(
+        rule_id="r1",
+        name="Astemo · 减振器",
+        company_group="astemo",
+        cadence_hours=24,
+    )
+    state = WatchRuleState("r1", stamp, stamp)
+    history = WatchRunHistory(
+        run_id=1,
+        rule_id="r1",
+        status="success",
+        started_at=stamp,
+        completed_at=stamp,
+        baseline_created=False,
+        searched_hits=3,
+        resolved_families=2,
+        event_count=1,
+        error_count=0,
+        fatal_error=None,
+    )
+
+    assert watch_rule_row(rule, state)[1] == "启用"
+    assert watch_rule_row(rule, state)[2] == "24h"
+    assert watch_history_row(history)[3] == "1"
