@@ -1,1 +1,15 @@
-from pathlib import Path\n\nfrom app.desktop.paths import AppPaths\n\n\ndef test_data_dir_override_uses_requested_root(monkeypatch, tmp_path):\n    monkeypatch.setenv("PIW_DATA_DIR", str(tmp_path))\n\n    paths = AppPaths.default().ensure()\n\n    assert paths.root == Path(tmp_path)\n    assert paths.library_db == Path(tmp_path) / "patent_library.db"\n    assert paths.watch_db == Path(tmp_path) / "patent_watch.db"\n    assert paths.downloads.is_dir()\n    assert paths.exports.is_dir()\n
+from pathlib import Path
+
+from app.desktop.paths import AppPaths
+
+
+def test_data_dir_override_uses_requested_root(monkeypatch, tmp_path):
+    monkeypatch.setenv("PIW_DATA_DIR", str(tmp_path))
+
+    paths = AppPaths.default().ensure()
+
+    assert paths.root == Path(tmp_path)
+    assert paths.library_db == Path(tmp_path) / "patent_library.db"
+    assert paths.watch_db == Path(tmp_path) / "patent_watch.db"
+    assert paths.downloads.is_dir()
+    assert paths.exports.is_dir()
