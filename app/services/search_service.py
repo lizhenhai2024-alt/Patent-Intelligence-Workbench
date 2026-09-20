@@ -54,6 +54,7 @@ class SearchService:
         published_from: date | None = None,
         published_to: date | None = None,
         page_size: int = 25,
+        page_start: int = 1,
     ) -> SearchResponse:
         raw = query.strip()
 
@@ -89,6 +90,7 @@ class SearchService:
             page = await self.provider.search_publications(
                 expression,
                 page_size=page_size,
+                page_start=page_start,
             )
             return SearchResponse(
                 mode=mode,
@@ -110,6 +112,7 @@ class SearchService:
         page = await self.provider.search_publications(
             expression,
             page_size=page_size,
+            page_start=page_start,
         )
         return SearchResponse(
             mode=SearchMode.TEXT,
