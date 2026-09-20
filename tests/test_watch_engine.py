@@ -1,5 +1,5 @@
 import asyncio
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from app.core.company_registry import CompanyRegistry
 from app.domain.family import FamilyType, PatentFamily, PatentPublication, PriorityClaim
@@ -134,7 +134,7 @@ def test_first_run_builds_baseline_then_detects_new_family_member(tmp_path):
     first = asyncio.run(
         engine.run_rule(
             rule,
-            now=datetime(2026, 9, 20, 8, 0, tzinfo=timezone.utc),
+            now=datetime(2026, 9, 20, 8, 0, tzinfo=UTC),
         )
     )
 
@@ -155,7 +155,7 @@ def test_first_run_builds_baseline_then_detects_new_family_member(tmp_path):
     second = asyncio.run(
         engine.run_rule(
             rule,
-            now=datetime(2026, 9, 21, 8, 0, tzinfo=timezone.utc),
+            now=datetime(2026, 9, 21, 8, 0, tzinfo=UTC),
         )
     )
 
@@ -182,7 +182,7 @@ def test_after_baseline_new_family_emits_one_family_event(tmp_path):
     asyncio.run(
         engine.run_rule(
             rule,
-            now=datetime(2026, 9, 20, 8, 0, tzinfo=timezone.utc),
+            now=datetime(2026, 9, 20, 8, 0, tzinfo=UTC),
         )
     )
 
@@ -195,7 +195,7 @@ def test_after_baseline_new_family_emits_one_family_event(tmp_path):
     result = asyncio.run(
         engine.run_rule(
             rule,
-            now=datetime(2026, 9, 21, 8, 0, tzinfo=timezone.utc),
+            now=datetime(2026, 9, 21, 8, 0, tzinfo=UTC),
         )
     )
 
@@ -221,7 +221,7 @@ def test_unresolved_publication_is_retried_on_later_run(tmp_path):
     first = asyncio.run(
         engine.run_rule(
             rule,
-            now=datetime(2026, 9, 20, 8, 0, tzinfo=timezone.utc),
+            now=datetime(2026, 9, 20, 8, 0, tzinfo=UTC),
         )
     )
 
@@ -235,7 +235,7 @@ def test_unresolved_publication_is_retried_on_later_run(tmp_path):
     second = asyncio.run(
         engine.run_rule(
             rule,
-            now=datetime(2026, 9, 21, 8, 0, tzinfo=timezone.utc),
+            now=datetime(2026, 9, 21, 8, 0, tzinfo=UTC),
         )
     )
 
