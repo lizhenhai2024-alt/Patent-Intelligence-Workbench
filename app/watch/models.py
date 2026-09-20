@@ -23,6 +23,7 @@ class WatchRule:
     enabled: bool = True
     lookback_days: int = 14
     notify_on_first_run: bool = False
+    cadence_hours: int = 24
 
     def __post_init__(self) -> None:
         if not self.rule_id.strip():
@@ -31,6 +32,8 @@ class WatchRule:
             raise ValueError("company_group must not be empty")
         if self.lookback_days < 1:
             raise ValueError("lookback_days must be >= 1")
+        if self.cadence_hours < 1:
+            raise ValueError("cadence_hours must be >= 1")
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,5 +58,20 @@ class WatchRunResult:
     resolved_families: int
     events: tuple[WatchEvent, ...]
     errors: tuple[str, ...]
+    started_at: datetime
+    completed_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class WatchRunFailure:
+    rule_id: str
+    error: str
+
+
+@dataclass(frozen=True, slots=True)
+class WatchSchedulerResult:
+    due_rule_ids: tuple[str, ...]
+    runs: tuple[WatchRunResult, ...]
+    failures: tuple[WatchRunFailure, ...]
     started_at: datetime
     completed_at: datetime
