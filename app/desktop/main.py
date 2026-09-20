@@ -10,14 +10,7 @@ from app.desktop.runtime import DesktopRuntime
 
 
 def paths_from_root(root: str | Path) -> AppPaths:
-    base = Path(root).expanduser()
-    return AppPaths(
-        root=base,
-        library_db=base / "patent_library.db",
-        watch_db=base / "patent_watch.db",
-        downloads=base / "downloads",
-        exports=base / "exports",
-    )
+    return AppPaths.for_root(root)
 
 
 def smoke_test(paths: AppPaths | None = None) -> int:
