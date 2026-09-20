@@ -324,18 +324,23 @@ class PatentWorkbenchApp(tk.Tk):
         self.dashboard_families_var = tk.StringVar(value="0")
         self.dashboard_watch_var = tk.StringVar(value="0")
         self.dashboard_evidence_var = tk.StringVar(value="0")
-        for index, (label, variable) in enumerate(
+        for index, (label, variable, target) in enumerate(
             (
-                ("Local patents", self.dashboard_patents_var),
-                ("Patent families", self.dashboard_families_var),
-                ("Watch rules", self.dashboard_watch_var),
-                ("Evidence", self.dashboard_evidence_var),
+                ("Local patents", self.dashboard_patents_var, "library"),
+                ("Patent families", self.dashboard_families_var, "family"),
+                ("Watch rules", self.dashboard_watch_var, "watch"),
+                ("Evidence", self.dashboard_evidence_var, "library"),
             )
         ):
             card = ttk.Frame(metrics, style="Surface.TFrame", padding=(14, 10))
             card.grid(row=0, column=index, sticky="ew", padx=(0, 8 if index < 3 else 0))
-            ttk.Label(card, textvariable=variable, style="MetricValue.TLabel").pack(anchor="w")
-            ttk.Label(card, text=label, style="MetricLabel.TLabel").pack(anchor="w")
+            value_label = ttk.Label(card, textvariable=variable, style="MetricValue.TLabel")
+            value_label.pack(anchor="w")
+            caption = ttk.Label(card, text=f"{label}  →", style="MetricLabel.TLabel")
+            caption.pack(anchor="w")
+            for widget in (card, value_label, caption):
+                widget.bind("<Button-1>", lambda _event, page=target: self._show_page(page))
+                widget.configure(cursor="hand2")
             metrics.columnconfigure(index, weight=1)
 
         search_card = ttk.LabelFrame(self.search_tab, text="检索条件", padding=12)
@@ -575,6 +580,16 @@ class PatentWorkbenchApp(tk.Tk):
             text="持续监控重点公司与技术主题，识别新专利族和新增成员",
             style="Subtle.TLabel",
         ).pack(anchor="w", pady=(2, 10))
+        watch_summary = ttk.Frame(self.watch_tab, style="Surface.TFrame", padding=(12, 8))
+        watch_summary.pack(fill="x", pady=(0, 10))
+        self.watch_summary_var = tk.StringVar(
+            value="Enabled 0   ·   Disabled 0   ·   Recent runs 0"
+        )
+        ttk.Label(
+            watch_summary,
+            textvariable=self.watch_summary_var,
+            style="SurfaceSubtle.TLabel",
+        ).pack(anchor="w")
         watch_toolbar_card = ttk.LabelFrame(self.watch_tab, text="监控控制", padding=10)
         watch_toolbar_card.pack(fill="x", pady=(0, 10))
         toolbar = ttk.Frame(watch_toolbar_card, style="Surface.TFrame")
@@ -1020,6 +1035,13 @@ class PatentWorkbenchApp(tk.Tk):
         if self._library_evidence_records:
             self.library_evidence_list.selection_set(0)
             self._load_selected_evidence()
+        else:
+            self.library_evidence_preview.insert(
+                "1.0",
+                "No linked evidence yet.\n\n"
+                "Use Search → 采集 URL / 文件，将网页、PDF 或 Office 文档"
+                "采集为 Markdown Evidence，并关联到当前专利。",
+            )
         self.library_evidence_preview.configure(state="disabled")
 
     def _load_selected_evidence(self, _event=None) -> None:
@@ -1401,7 +1423,14 @@ class PatentWorkbenchApp(tk.Tk):
 
     def refresh_watch(self) -> None:
         self.watch_rule_tree.delete(*self.watch_rule_tree.get_children())
-        for rule in self.runtime.watch_store.list_rules():
+        rules = self.runtime.watch_store.list_rules()
+        recent_runs = self.runtime.watch_store.recent_runs(limit=30)
+        enabled_count = sum(1 for rule in rules if rule.enabled)
+        self.watch_summary_var.set(
+            f"Enabled {enabled_count}   ·   Disabled {len(rules) - enabled_count}"
+            f"   ·   Recent runs {len(recent_runs)}"
+        )
+        for rule in rules:
             state = self.runtime.watch_store.get_state(rule.rule_id)
             tag = "enabled" if rule.enabled else "disabled"
             self.watch_rule_tree.insert(
@@ -1415,7 +1444,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.watch_rule_tree.tag_configure("disabled", foreground="#6B7280")
 
         self.watch_history_tree.delete(*self.watch_history_tree.get_children())
-        for history in self.runtime.watch_store.recent_runs(limit=30):
+        for history in recent_runs:
             self.watch_history_tree.insert(
                 "",
                 "end",
