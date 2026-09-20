@@ -1,11 +1,10 @@
 """EPO Open Patent Services adapter.
 
 Supports:
-- INPADOC extended-family retrieval via the dedicated OPS family service.
-- DOCDB simple-family retrieval via Published Data "equivalents" + biblio.
-
-The adapter deliberately converts all provider output to the internal family
-domain model before any UI or persistence layer sees it.
+- bibliographic search using documented OPS CQL indexes,
+- direct publication lookup,
+- INPADOC extended-family retrieval,
+- DOCDB simple-family retrieval through Published Data equivalents.
 """
 
 from __future__ import annotations
@@ -19,7 +18,9 @@ from datetime import date
 import httpx
 
 from app.core.patent_number import PatentNumber
+from app.core.search_query import compile_epo_cql
 from app.domain.family import FamilyType, PatentFamily, PatentPublication, PriorityClaim
+from app.domain.search import SearchExpression, SearchHit, SearchPage
 from app.providers.base import (
     ProviderCapability,
     ProviderConfigurationError,
@@ -129,6 +130,131 @@ def _publication_from_docdb_container(container: ET.Element) -> PatentPublicatio
     )
 
 
+def _extract_title(container: ET.Element) -> str | None:
+    english: str | None = None
+    fallback: str | None = None
+    for node in container.iter():
+        if _local_name(node.tag) != "invention-title" or not node.text:
+            continue
+        value = " ".join(node.text.split())
+        if not value:
+            continue
+        language = (
+            node.attrib.get("lang")
+            or node.attrib.get("{http://www.w3.org/XML/1998/namespace}lang")
+            or ""
+        ).lower()
+        if language == "en":
+            english = value
+            break
+        if fallback is None:
+            fallback = value
+    return english or fallback
+
+
+def _extract_applicants(container: ET.Element) -> tuple[str, ...]:
+    names: list[str] = []
+    for applicant in container.iter():
+        if _local_name(applicant.tag) != "applicant":
+            continue
+        name = _first_child_text(applicant, "name")
+        if name and name not in names:
+            names.append(name)
+    return tuple(names)
+
+
+def _search_hit_from_exchange_document(container: ET.Element) -> SearchHit | None:
+    publication = _publication_from_docdb_container(container)
+    if publication is None:
+        return None
+    return SearchHit(
+        publication_number=publication.publication_number,
+        jurisdiction=publication.jurisdiction,
+        kind_code=publication.kind_code,
+        title=_extract_title(container),
+        applicants=_extract_applicants(container),
+        publication_date=publication.publication_date,
+        source="EPO_OPS",
+    )
+
+
+def parse_biblio_search_xml(xml_text: str) -> SearchPage:
+    """Parse OPS Published Data bibliographic-search XML."""
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError as exc:
+        raise ProviderResponseError("Invalid XML from EPO OPS search service.") from exc
+
+    search = next(
+        (node for node in root.iter() if _local_name(node.tag) == "biblio-search"),
+        None,
+    )
+    if search is None:
+        raise ProviderResponseError("EPO OPS response did not contain biblio-search.")
+
+    total_text = search.attrib.get("total-result-count")
+    total = int(total_text) if total_text and total_text.isdigit() else None
+
+    range_element = next(
+        (node for node in search.iter() if _local_name(node.tag) == "range"),
+        None,
+    )
+    range_begin = None
+    range_end = None
+    if range_element is not None:
+        begin = range_element.attrib.get("begin")
+        end = range_element.attrib.get("end")
+        range_begin = int(begin) if begin and begin.isdigit() else None
+        range_end = int(end) if end and end.isdigit() else None
+
+    hits: list[SearchHit] = []
+    seen: set[str] = set()
+    for node in search.iter():
+        if _local_name(node.tag) != "exchange-document":
+            continue
+        hit = _search_hit_from_exchange_document(node)
+        if hit is None or hit.publication_number in seen:
+            continue
+        seen.add(hit.publication_number)
+        hits.append(hit)
+
+    return SearchPage(
+        hits=tuple(hits),
+        total_result_count=total,
+        range_begin=range_begin,
+        range_end=range_end,
+    )
+
+
+def parse_publication_biblio_xml(xml_text: str) -> SearchPage:
+    """Parse direct publication bibliographic retrieval XML."""
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError as exc:
+        raise ProviderResponseError("Invalid XML from EPO OPS biblio service.") from exc
+
+    hits: list[SearchHit] = []
+    seen: set[str] = set()
+    for node in root.iter():
+        if _local_name(node.tag) != "exchange-document":
+            continue
+        hit = _search_hit_from_exchange_document(node)
+        if hit is None or hit.publication_number in seen:
+            continue
+        seen.add(hit.publication_number)
+        hits.append(hit)
+
+    if not hits:
+        raise ProviderResponseError("EPO OPS biblio response contained no usable publication.")
+
+    return SearchPage(
+        hits=tuple(hits),
+        total_result_count=len(hits),
+        range_begin=1,
+        range_end=len(hits),
+    )
+
+
 def parse_extended_family_xml(xml_text: str) -> PatentFamily:
     """Parse an OPS family-service XML response into an INPADOC family."""
     try:
@@ -220,6 +346,8 @@ class EpoOpsProvider:
         name="EPO_OPS",
         capabilities=frozenset(
             {
+                ProviderCapability.SEARCH,
+                ProviderCapability.PUBLICATION_LOOKUP,
                 ProviderCapability.FAMILY_SIMPLE,
                 ProviderCapability.FAMILY_EXTENDED,
                 ProviderCapability.BIBLIOGRAPHY,
@@ -260,6 +388,70 @@ class EpoOpsProvider:
             raise ProviderResponseError("EPO OPS token response did not include access_token.")
         return token
 
+    async def _authorized_get(
+        self,
+        client: httpx.AsyncClient,
+        url: str,
+        *,
+        token: str,
+        params: dict[str, str] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> httpx.Response:
+        request_headers = {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/ops+xml",
+        }
+        if headers:
+            request_headers.update(headers)
+        try:
+            response = await client.get(
+                url,
+                headers=request_headers,
+                params=params,
+            )
+            response.raise_for_status()
+            return response
+        except httpx.HTTPError as exc:
+            raise ProviderError(f"EPO OPS request failed: {url}") from exc
+
+    async def lookup_publication(self, publication: PatentNumber) -> SearchPage:
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+            token = await self._access_token(client)
+            docdb = to_docdb_publication(publication)
+            url = (
+                f"{OPS_BASE_URL}/published-data/publication/docdb/"
+                f"{docdb}/biblio"
+            )
+            response = await self._authorized_get(client, url, token=token)
+            return parse_publication_biblio_xml(response.text)
+
+    async def search_publications(
+        self,
+        expression: SearchExpression,
+        *,
+        page_size: int = 25,
+        page_start: int = 1,
+    ) -> SearchPage:
+        if page_size < 1 or page_size > 100:
+            raise ValueError("EPO OPS page_size must be between 1 and 100.")
+        if page_start < 1:
+            raise ValueError("page_start must be >= 1.")
+
+        cql = compile_epo_cql(expression)
+        page_end = page_start + page_size - 1
+
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+            token = await self._access_token(client)
+            url = f"{OPS_BASE_URL}/published-data/search/biblio"
+            response = await self._authorized_get(
+                client,
+                url,
+                token=token,
+                params={"q": cql},
+                headers={"X-OPS-Range": f"{page_start}-{page_end}"},
+            )
+            return parse_biblio_search_xml(response.text)
+
     async def get_family(
         self,
         publication: PatentNumber,
@@ -281,18 +473,5 @@ class EpoOpsProvider:
             else:
                 raise ValueError(f"Unsupported family type: {family_type}")
 
-            try:
-                response = await client.get(
-                    url,
-                    headers={
-                        "Authorization": f"Bearer {token}",
-                        "Accept": "application/ops+xml",
-                    },
-                )
-                response.raise_for_status()
-            except httpx.HTTPError as exc:
-                raise ProviderError(
-                    f"EPO OPS {family_type.value} request failed for {publication.canonical}."
-                ) from exc
-
+            response = await self._authorized_get(client, url, token=token)
             return parser(response.text)
