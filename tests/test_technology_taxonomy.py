@@ -38,3 +38,25 @@ def test_valving_contains_engineering_leaf_nodes_with_search_terms():
         "foot valve",
         "bottom valve",
     )
+
+
+def test_semi_active_contains_control_architecture_nodes():
+    taxonomy = TechnologyTaxonomy.default()
+    semi_active = taxonomy.find("semi_active")
+
+    expected = {
+        "cdc_cvsa",
+        "pilot_valve",
+        "external_solenoid_valve",
+        "internal_solenoid_valve",
+        "back_pressure_control",
+        "floating_piston",
+        "fail_safe_valve",
+    }
+    assert {child.node_id for child in semi_active.children} == expected
+    assert all(child.search_terms for child in semi_active.children)
+    assert taxonomy.find("pilot_valve").search_terms == (
+        "pilot valve",
+        "pilot operated valve",
+        "pilot controlled damper valve",
+    )

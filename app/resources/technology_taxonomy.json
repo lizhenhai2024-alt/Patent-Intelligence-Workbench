@@ -29,7 +29,20 @@
             {"id": "hrs_hcs", "name": "HRS / HCS", "search_terms": ["hydraulic rebound stop", "hydraulic compression stop"], "children": []}
           ]
         },
-        {"id": "semi_active", "name": "Semi-active", "search_terms": ["semi active suspension", "electronically controlled damper"], "children": []},
+        {
+          "id": "semi_active",
+          "name": "Semi-active",
+          "search_terms": ["semi active suspension", "electronically controlled damper"],
+          "children": [
+            {"id": "cdc_cvsa", "name": "CDC / CVSA", "search_terms": ["continuous damping control", "continuously variable semi active", "electronically controlled damper"], "children": []},
+            {"id": "pilot_valve", "name": "Pilot Valve", "search_terms": ["pilot valve", "pilot operated valve", "pilot controlled damper valve"], "children": []},
+            {"id": "external_solenoid_valve", "name": "External Solenoid Valve", "search_terms": ["external solenoid valve", "external control valve", "externally mounted damper valve"], "children": []},
+            {"id": "internal_solenoid_valve", "name": "Internal Solenoid Valve", "search_terms": ["internal solenoid valve", "internal control valve", "built in damper valve"], "children": []},
+            {"id": "back_pressure_control", "name": "Back-pressure Control", "search_terms": ["back pressure control", "back pressure chamber", "pilot pressure chamber"], "children": []},
+            {"id": "floating_piston", "name": "Floating Piston", "search_terms": ["floating piston", "free piston", "floating valve piston"], "children": []},
+            {"id": "fail_safe_valve", "name": "Fail-safe Valve", "search_terms": ["fail safe valve", "failsafe valve", "emergency damping valve"], "children": []}
+          ]
+        },
         {"id": "active_suspension", "name": "Active Suspension", "search_terms": ["active suspension", "active damper"], "children": []},
         {"id": "air_suspension", "name": "Air Suspension", "search_terms": ["air suspension", "air spring"], "children": []},
         {"id": "active_anti_roll", "name": "Active Anti-roll", "search_terms": ["active anti roll", "active stabilizer"], "children": []}
