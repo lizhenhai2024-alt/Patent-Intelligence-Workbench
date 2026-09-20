@@ -12,6 +12,11 @@ class TechnologyNode:
     node_id: str
     name: str
     search_terms: tuple[str, ...] = ()
+    level: str = ""
+    aliases: tuple[str, ...] = ()
+    classifications: tuple[str, ...] = ()
+    include_terms: tuple[str, ...] = ()
+    exclude_terms: tuple[str, ...] = ()
     children: tuple[TechnologyNode, ...] = ()
 
 
@@ -26,6 +31,11 @@ class TechnologyTaxonomy:
                 node_id=item["id"],
                 name=item["name"],
                 search_terms=tuple(item.get("search_terms", ())),
+                level=item.get("level", ""),
+                aliases=tuple(item.get("aliases", ())),
+                classifications=tuple(item.get("classifications", ())),
+                include_terms=tuple(item.get("include_terms", ())),
+                exclude_terms=tuple(item.get("exclude_terms", ())),
                 children=tuple(build(child) for child in item.get("children", [])),
             )
         return cls(tuple(build(item) for item in payload.get("nodes", [])))

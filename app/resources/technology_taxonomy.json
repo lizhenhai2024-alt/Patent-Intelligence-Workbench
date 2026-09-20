@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "nodes": [
     {
       "id": "suspension",
@@ -183,6 +183,20 @@
                   ],
                   "children": []
                 }
+              ],
+              "level": "technology",
+              "aliases": [
+                "FSD"
+              ],
+              "classifications": [
+                "F16F9/46"
+              ],
+              "include_terms": [
+                "frequency dependent damping",
+                "frequency sensitive damper"
+              ],
+              "exclude_terms": [
+                "frequency selective filter"
               ]
             }
           ]
@@ -213,7 +227,22 @@
                 "pilot operated valve",
                 "pilot controlled damper valve"
               ],
-              "children": []
+              "children": [],
+              "level": "component",
+              "aliases": [
+                "pilot operated valve"
+              ],
+              "classifications": [
+                "F16F9/46"
+              ],
+              "include_terms": [
+                "pilot pressure chamber",
+                "pilot controlled damper valve"
+              ],
+              "exclude_terms": [
+                "fuel pilot valve",
+                "steam pilot valve"
+              ]
             },
             {
               "id": "external_solenoid_valve",
@@ -253,7 +282,22 @@
                 "free piston",
                 "floating valve piston"
               ],
-              "children": []
+              "children": [],
+              "level": "component",
+              "aliases": [
+                "floating valve piston"
+              ],
+              "classifications": [
+                "F16F9/46"
+              ],
+              "include_terms": [
+                "control floating piston",
+                "pilot floating piston"
+              ],
+              "exclude_terms": [
+                "gas separating piston",
+                "oil gas separating piston"
+              ]
             },
             {
               "id": "fail_safe_valve",
@@ -615,7 +659,21 @@
                 "lower spring seat",
                 "spring perch"
               ],
-              "children": []
+              "children": [],
+              "level": "component",
+              "aliases": [
+                "spring perch"
+              ],
+              "classifications": [
+                "B60G11"
+              ],
+              "include_terms": [
+                "upper spring seat",
+                "lower spring seat"
+              ],
+              "exclude_terms": [
+                "valve spring seat"
+              ]
             },
             {
               "id": "spring_isolator",
@@ -656,7 +714,21 @@
                 "hydraulic rebound buffer",
                 "hydraulic extension stop damper"
               ],
-              "children": []
+              "children": [],
+              "level": "technology",
+              "aliases": [
+                "HRS"
+              ],
+              "classifications": [
+                "F16F9/32"
+              ],
+              "include_terms": [
+                "hydraulic rebound buffer",
+                "hydraulic extension stop"
+              ],
+              "exclude_terms": [
+                "hydraulic compression stop"
+              ]
             },
             {
               "id": "hcs",
@@ -666,7 +738,21 @@
                 "hydraulic bump stop",
                 "hydraulic jounce stop damper"
               ],
-              "children": []
+              "children": [],
+              "level": "technology",
+              "aliases": [
+                "HCS"
+              ],
+              "classifications": [
+                "F16F9/32"
+              ],
+              "include_terms": [
+                "hydraulic compression buffer",
+                "hydraulic jounce stop"
+              ],
+              "exclude_terms": [
+                "hydraulic rebound stop"
+              ]
             },
             {
               "id": "rebound_spring",
@@ -679,7 +765,21 @@
                 "tension stop spring",
                 "damper rebound spring"
               ],
-              "children": []
+              "children": [],
+              "level": "component",
+              "aliases": [
+                "extension stop spring"
+              ],
+              "classifications": [
+                "B60G13"
+              ],
+              "include_terms": [
+                "rebound stop spring",
+                "rebound buffer spring"
+              ],
+              "exclude_terms": [
+                "rebound valve spring"
+              ]
             },
             {
               "id": "mechanical_rebound_stop",
@@ -1077,7 +1177,22 @@
                 "separating piston damper",
                 "gas oil separating piston shock absorber"
               ],
-              "children": []
+              "children": [],
+              "level": "component",
+              "aliases": [
+                "gas separating piston"
+              ],
+              "classifications": [
+                "F16F9/32"
+              ],
+              "include_terms": [
+                "oil gas separating piston",
+                "separator piston damper"
+              ],
+              "exclude_terms": [
+                "pilot valve",
+                "control floating piston"
+              ]
             },
             {
               "id": "external_reservoir",
@@ -1169,7 +1284,19 @@
                     "damper valve buzz",
                     "solenoid damper buzz"
                   ],
-                  "children": []
+                  "children": [],
+                  "level": "failure_mode",
+                  "aliases": [
+                    "buzz noise"
+                  ],
+                  "classifications": [
+                    "F16F9/46"
+                  ],
+                  "include_terms": [
+                    "valve buzzing",
+                    "solenoid buzz"
+                  ],
+                  "exclude_terms": []
                 },
                 {
                   "id": "switching_impact_noise",
