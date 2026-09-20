@@ -6,6 +6,7 @@ import re
 
 from app.core.company_registry import CompanyRegistry
 from app.watch.models import WatchRule
+from app.watch.state import SQLiteWatchStateStore
 
 _ID_SAFE = re.compile(r"[^a-z0-9]+")
 
@@ -93,5 +94,3 @@ def _safe_id(value: str) -> str:
     normalized = _ID_SAFE.sub("-", value.casefold()).strip("-")
     return normalized or "topic"
 
-
-from app.watch.state import SQLiteWatchStateStore
