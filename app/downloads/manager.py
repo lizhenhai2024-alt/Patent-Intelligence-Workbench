@@ -8,6 +8,7 @@ from pathlib import Path
 from app.core.patent_number import PatentNumber
 from app.downloads.base import (
     DownloadAttempt,
+    DownloadError,
     DownloadExhaustedError,
     DownloadResult,
     DownloadValidationError,
@@ -74,9 +75,7 @@ class DownloadManager:
                         f"{provider.name} returned a non-PDF payload."
                     )
                 _atomic_write(destination_path, payload.data)
-            except Exception as exc:
-                if isinstance(exc, (KeyboardInterrupt, SystemExit)):
-                    raise
+            except DownloadError as exc:
                 attempts.append(
                     DownloadAttempt(
                         provider=provider.name,
