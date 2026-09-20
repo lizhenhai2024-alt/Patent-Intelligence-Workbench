@@ -8,6 +8,7 @@ from tkinter import filedialog, messagebox, ttk
 
 from app.acquisition import AcquisitionRequest
 from app.core.patent_number import PatentNumberError, normalize_patent_number
+from app.core.technology_classifier import TechnologyClassifier
 from app.core.technology_taxonomy import TechnologyTaxonomy
 from app.desktop.async_runner import TkCallbackQueue, run_async_in_thread
 from app.desktop.opening import open_local_path
@@ -25,6 +26,8 @@ class PatentWorkbenchApp(tk.Tk):
         self._ui_callbacks = TkCallbackQueue(self)
         self._current_family: PatentFamily | None = None
         self._current_acquisition = None
+        self.technology_classifier = TechnologyClassifier()
+        self._search_technology_evidence: dict[str, tuple] = {}
 
         self.title("Patent Intelligence Workbench")
         self.geometry("1460x900")
@@ -42,14 +45,14 @@ class PatentWorkbenchApp(tk.Tk):
         if "clam" in style.theme_names():
             style.theme_use("clam")
 
-        bg = "#F5F7FA"
+        bg = "#F7FAFD"
         surface = "#FFFFFF"
-        border = "#DDE3EA"
-        text = "#25364A"
-        muted = "#66788A"
-        accent = "#1769AA"
-        accent_hover = "#125A94"
-        selected = "#EAF3FB"
+        border = "#D9E2EC"
+        text = "#16324F"
+        muted = "#6B7F95"
+        accent = "#1261D6"
+        accent_hover = "#0D52BA"
+        selected = "#E8F2FF"
 
         style.configure("TFrame", background=bg)
         style.configure("Surface.TFrame", background=surface)
@@ -203,8 +206,8 @@ class PatentWorkbenchApp(tk.Tk):
         style.map("Treeview.Heading", background=[("active", "#F3F4F6")])
         style.configure(
             "Nav.TButton",
-            background="#F1F5F9",
-            foreground="#52677B",
+            background="#1261D6",
+            foreground="#EAF3FF",
             borderwidth=0,
             anchor="w",
             padding=(14, 11),
@@ -212,13 +215,13 @@ class PatentWorkbenchApp(tk.Tk):
         )
         style.map(
             "Nav.TButton",
-            background=[("active", "#E4EDF5")],
-            foreground=[("active", "#1769AA")],
+            background=[("active", "#2470D9")],
+            foreground=[("active", "#FFFFFF")],
         )
         style.configure(
             "NavActive.TButton",
-            background="#DCEAF7",
-            foreground="#125A94",
+            background="#0B56C4",
+            foreground="#FFFFFF",
             borderwidth=0,
             anchor="w",
             padding=(14, 11),
@@ -226,8 +229,8 @@ class PatentWorkbenchApp(tk.Tk):
         )
         style.map(
             "NavActive.TButton",
-            background=[("active", "#D2E4F3")],
-            foreground=[("active", "#125A94")],
+            background=[("active", "#0A4FAF")],
+            foreground=[("active", "#FFFFFF")],
         )
         style.configure(
             "Horizontal.TProgressbar",
@@ -260,20 +263,18 @@ class PatentWorkbenchApp(tk.Tk):
             style="Subtle.TLabel",
         ).pack(side="right")
 
-        workspace = tk.Frame(self, bg="#F5F7FA")
-        workspace.pack(fill="both", expand=True, padx=(18, 18), pady=(0, 12))
+        workspace = tk.Frame(self, bg="#F7FAFD")
+        workspace.pack(fill="both", expand=True, padx=(0, 18), pady=(0, 12))
 
-        sidebar = tk.Frame(
-            workspace, bg="#F1F5F9", width=190, highlightthickness=1, highlightbackground="#DDE3EA"
-        )
+        sidebar = tk.Frame(workspace, bg="#1261D6", width=220, highlightthickness=0)
         sidebar.pack(side="left", fill="y")
         sidebar.pack_propagate(False)
         tk.Label(
             sidebar,
             text="PIW",
-            bg="#F1F5F9",
-            fg="#25364A",
-            font=("Segoe UI Semibold", 20),
+            bg="#1261D6",
+            fg="#FFFFFF",
+            font=("Segoe UI Semibold", 18),
             anchor="w",
             padx=14,
             pady=0,
@@ -281,8 +282,8 @@ class PatentWorkbenchApp(tk.Tk):
         tk.Label(
             sidebar,
             text="Patent Intelligence",
-            bg="#F1F5F9",
-            fg="#66788A",
+            bg="#1261D6",
+            fg="#BFD8FF",
             font=("Segoe UI", 8),
             anchor="w",
             padx=14,
@@ -291,8 +292,8 @@ class PatentWorkbenchApp(tk.Tk):
         tk.Label(
             sidebar,
             text="WORKSPACE",
-            bg="#F1F5F9",
-            fg="#8494A5",
+            bg="#1261D6",
+            fg="#9FC5FA",
             font=("Segoe UI Semibold", 8),
             anchor="w",
             padx=14,
@@ -300,7 +301,7 @@ class PatentWorkbenchApp(tk.Tk):
         ).pack(fill="x", pady=(0, 8))
 
         content = ttk.Frame(workspace)
-        content.pack(side="left", fill="both", expand=True, padx=(12, 0))
+        content.pack(side="left", fill="both", expand=True, padx=(22, 0))
 
         self.search_tab = ttk.Frame(content, padding=14)
         self.family_tab = ttk.Frame(content, padding=14)
@@ -479,7 +480,7 @@ class PatentWorkbenchApp(tk.Tk):
             style="SurfaceSubtle.TLabel",
         ).pack(side="right")
 
-        columns = ("number", "country", "title", "applicant", "date")
+        columns = ("number", "country", "title", "technology", "applicant", "date")
         self.search_tree = ttk.Treeview(
             results_card,
             columns=columns,
@@ -490,14 +491,16 @@ class PatentWorkbenchApp(tk.Tk):
             "number": "公开号",
             "country": "国家",
             "title": "标题",
+            "technology": "技术标签",
             "applicant": "申请人",
             "date": "公开日",
         }
         widths = {
             "number": 170,
             "country": 70,
-            "title": 430,
-            "applicant": 300,
+            "title": 360,
+            "technology": 280,
+            "applicant": 250,
             "date": 100,
         }
         for column in columns:
@@ -505,6 +508,15 @@ class PatentWorkbenchApp(tk.Tk):
             self.search_tree.column(column, width=widths[column], anchor="w")
         self.search_tree.pack(fill="both", expand=True)
         self.search_tree.bind("<Double-1>", self._search_to_family)
+        self.search_tree.bind("<<TreeviewSelect>>", self._render_search_technology_evidence)
+        self.search_technology_var = tk.StringVar(
+            value="Technology evidence: 选择检索结果查看自动分类证据"
+        )
+        ttk.Label(
+            results_card,
+            textvariable=self.search_technology_var,
+            style="SurfaceSubtle.TLabel",
+        ).pack(fill="x", pady=(7, 0))
 
         evidence_card = ttk.LabelFrame(self.search_tab, text="Evidence 采集", padding=8)
         evidence_card.pack(fill="x", pady=(0, 2))
@@ -1550,7 +1562,14 @@ class PatentWorkbenchApp(tk.Tk):
     def _render_search_response(self, response) -> None:
         self.search_button.state(["!disabled"])
         self.search_tree.delete(*self.search_tree.get_children())
+        self._search_technology_evidence.clear()
         for hit in response.page.hits:
+            classification_text = " ".join(
+                part for part in (hit.title or "", " ".join(hit.applicants)) if part
+            )
+            matches = self.technology_classifier.classify(text=classification_text)
+            self._search_technology_evidence[hit.publication_number] = matches
+            tag_text = " / ".join(match.name for match in matches[:3])
             self.search_tree.insert(
                 "",
                 "end",
@@ -1559,6 +1578,7 @@ class PatentWorkbenchApp(tk.Tk):
                     hit.publication_number,
                     hit.jurisdiction,
                     hit.title or "",
+                    tag_text,
                     ", ".join(hit.applicants),
                     hit.publication_date.isoformat() if hit.publication_date else "",
                 ),
@@ -1573,6 +1593,24 @@ class PatentWorkbenchApp(tk.Tk):
             f"搜索完成：{response.provider} · 显示 {shown} 条"
             + (f" / 共 {total} 条" if total is not None else "")
         )
+
+    def _render_search_technology_evidence(self, _event=None) -> None:
+        selection = self.search_tree.selection()
+        if not selection:
+            self.search_technology_var.set(
+                "Technology evidence: 选择检索结果查看自动分类证据"
+            )
+            return
+        matches = self._search_technology_evidence.get(selection[0], ())
+        if not matches:
+            self.search_technology_var.set("Technology evidence: 暂无匹配标签")
+            return
+        parts = []
+        for match in matches[:3]:
+            evidence = list(match.matched_terms) + list(match.matched_classifications)
+            evidence_text = ", ".join(evidence) if evidence else "rule match"
+            parts.append(f"{match.name} [{evidence_text}]")
+        self.search_technology_var.set("Technology evidence: " + " | ".join(parts))
 
     def _search_to_family(self, _event=None) -> None:
         selection = self.search_tree.selection()
