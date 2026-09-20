@@ -338,12 +338,36 @@ class SQLitePatentLibrary:
             project,
         )
 
+    def replace_projects(
+        self,
+        publication_number: str,
+        projects: Iterable[str],
+    ) -> None:
+        self._replace_relations(
+            "library_project",
+            "project",
+            publication_number,
+            projects,
+        )
+
     def add_tag(self, publication_number: str, tag: str) -> None:
         self._add_relation(
             "library_tag",
             "tag",
             publication_number,
             tag,
+        )
+
+    def replace_tags(
+        self,
+        publication_number: str,
+        tags: Iterable[str],
+    ) -> None:
+        self._replace_relations(
+            "library_tag",
+            "tag",
+            publication_number,
+            tags,
         )
 
     def add_watch_source(
@@ -587,6 +611,37 @@ class SQLitePatentLibrary:
             (publication_number, normalized),
         )
         self.connection.commit()
+
+    def _replace_relations(
+        self,
+        table: str,
+        column: str,
+        publication_number: str,
+        values: Iterable[str],
+    ) -> None:
+        self._require_publication(publication_number)
+        normalized = tuple(
+            dict.fromkeys(
+                value.strip()
+                for value in values
+                if value.strip()
+            )
+        )
+        with self.connection:
+            self.connection.execute(
+                f"DELETE FROM {table} WHERE publication_number = ?",
+                (publication_number,),
+            )
+            self.connection.executemany(
+                f"""
+                INSERT INTO {table} (publication_number, {column})
+                VALUES (?, ?)
+                """,
+                (
+                    (publication_number, value)
+                    for value in normalized
+                ),
+            )
 
     def _require_publication(self, publication_number: str) -> None:
         row = self.connection.execute(
