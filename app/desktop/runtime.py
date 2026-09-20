@@ -98,7 +98,12 @@ class DesktopRuntime:
         credentials: EpoOpsCredentials | None,
     ) -> None:
         google = GooglePatentsSearchProvider()
+        watch_google = GooglePatentsSearchProvider(
+            max_attempts=1,
+            retry_delay_seconds=0,
+        )
         search_providers = [LocalLibrarySearchProvider(self.library_store)]
+        watch_search_providers = [LocalLibrarySearchProvider(self.library_store)]
         family_providers = []
 
         if credentials is not None:
@@ -107,15 +112,24 @@ class DesktopRuntime:
                 consumer_secret=credentials.consumer_secret,
             )
             search_providers.append(epo)
+            watch_search_providers.append(epo)
             family_providers.append(epo)
 
         search_providers.append(google)
+        watch_search_providers.append(watch_google)
         family_providers.append(google)
 
+        company_registry = CompanyRegistry.default()
+        technology_dictionary = TechnologyDictionary.default()
         self.search_service = SearchService(
             provider=FallbackSearchProvider(tuple(search_providers)),
-            company_registry=CompanyRegistry.default(),
-            technology_dictionary=TechnologyDictionary.default(),
+            company_registry=company_registry,
+            technology_dictionary=technology_dictionary,
+        )
+        watch_search_service = SearchService(
+            provider=FallbackSearchProvider(tuple(watch_search_providers)),
+            company_registry=company_registry,
+            technology_dictionary=technology_dictionary,
         )
         self.family_resolver = FamilyResolver(family_providers)
 
@@ -127,7 +141,7 @@ class DesktopRuntime:
             )
 
         watch_engine = PatentWatchEngine(
-            search_service=self.search_service,
+            search_service=watch_search_service,
             family_resolver=self.family_resolver,
             state_store=self.watch_store,
             event_sink=archive_watch_event,

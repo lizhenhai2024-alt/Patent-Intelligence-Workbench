@@ -148,3 +148,24 @@ def test_all_failed_providers_return_aggregated_attempts():
     assert [item.provider for item in attempts] == ["PUBLIC_A", "PUBLIC_B"]
     assert attempts[0].status is SearchAttemptStatus.UNAVAILABLE
     assert attempts[1].status is SearchAttemptStatus.RATE_LIMITED
+
+
+def test_remote_no_results_then_rate_limit_returns_empty_page():
+    no_results = FakeProvider(
+        "EPO_OPS",
+        search_page=SearchPage(hits=(), total_result_count=0),
+    )
+    rate_limited = FakeProvider(
+        "GOOGLE_PATENTS",
+        search_error=ProviderRateLimitError("HTTP 503"),
+    )
+    chain = FallbackSearchProvider((no_results, rate_limited))
+
+    page = asyncio.run(
+        chain.search_publications(SearchExpression(text_terms=("damper",)))
+    )
+
+    assert page.hits == ()
+    assert page.total_result_count == 0
+    assert no_results.search_calls == 1
+    assert rate_limited.search_calls == 1

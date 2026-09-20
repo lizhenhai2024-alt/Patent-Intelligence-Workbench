@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.0rc4 — Patent Watch provider reliability
+
+### Patent Watch
+
+- Fixed EPO OPS bibliographic search routing to use the Published Data search endpoint rather than the invalid `/search/biblio` path.
+- EPO OPS `404 / No results found` is now treated as a successful empty search result instead of a provider failure.
+- Patent Watch keeps the EPO → Google fallback chain so Google-only hits are still discoverable.
+- The Watch-specific Google provider now performs a single attempt per query, avoiding long repeated waits when Google returns explicit 429/503 throttling responses.
+- Manual Search keeps its existing retry behavior.
+
+### Validation
+
+- Added regression coverage for EPO no-result semantics and fallback behavior when a later provider is rate-limited.
+- Added runtime coverage that verifies Patent Watch uses the single-attempt Google provider while normal Search keeps three attempts.
+- Replayed the user's seven enabled Watch rules against a copied `workbench.db`: 7/7 success, zero fatal errors.
+- GUI-level Watch test passed with status `7 成功，0 失败，0 个事件` and no error/warning popups.
+
 ## 1.0.0rc3 — Desktop thread safety, download feedback and Watch cadence
 
 ### Desktop thread safety

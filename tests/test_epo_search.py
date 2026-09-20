@@ -1,6 +1,12 @@
+import asyncio
 from datetime import date
 
+import httpx
+
+from app.domain.search import SearchExpression
 from app.providers.epo_ops import (
+    OPS_BASE_URL,
+    EpoOpsProvider,
     parse_biblio_search_xml,
     parse_publication_biblio_xml,
 )
@@ -95,3 +101,51 @@ def test_parse_direct_publication_biblio_xml():
     assert page.total_result_count == 1
     assert page.hits[0].publication_number == "EP1000000A1"
     assert page.hits[0].title == "Example patent"
+
+
+def test_epo_search_404_no_results_is_empty_page(monkeypatch):
+    captured = {}
+
+    async def fake_token(self, client):
+        return "token"
+
+    async def fake_get(
+        self,
+        client,
+        url,
+        *,
+        token,
+        params=None,
+        headers=None,
+        allow_not_found=False,
+    ):
+        captured["url"] = url
+        captured["allow_not_found"] = allow_not_found
+        request = httpx.Request("GET", url)
+        return httpx.Response(
+            404,
+            text=(
+                '<?xml version="1.0" encoding="UTF-8"?>'
+                '<fault xmlns="http://ops.epo.org">'
+                '<code>SERVER.EntityNotFound</code>'
+                '<message>No results found</message>'
+                '</fault>'
+            ),
+            request=request,
+        )
+
+    monkeypatch.setattr(EpoOpsProvider, "_access_token", fake_token)
+    monkeypatch.setattr(EpoOpsProvider, "_authorized_get", fake_get)
+
+    provider = EpoOpsProvider("key", "secret")
+    page = asyncio.run(
+        provider.search_publications(
+            SearchExpression(applicants=("BWI",), text_terms=("damper",)),
+            page_size=10,
+        )
+    )
+
+    assert page.hits == ()
+    assert page.total_result_count == 0
+    assert captured["url"] == f"{OPS_BASE_URL}/published-data/search"
+    assert captured["allow_not_found"] is True
