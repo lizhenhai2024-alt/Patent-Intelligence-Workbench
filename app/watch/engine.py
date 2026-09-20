@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from app.core.patent_number import PatentNumberError, normalize_patent_number
 from app.domain.family import FamilyType, PatentFamily, PatentPublication
@@ -82,7 +82,14 @@ class PatentWatchEngine:
                 continue
 
             if self.state_store.publication_seen(rule.rule_id, normalized.canonical):
-                continue
+                existing_family_key = self.state_store.publication_family_key(
+                    rule.rule_id,
+                    normalized.canonical,
+                )
+                if existing_family_key is not None:
+                    continue
+                # Previously unresolved publications are retried so a temporary
+                # family-provider failure does not create a permanent orphan.
 
             try:
                 resolution = await self.family_resolver.resolve(
@@ -198,8 +205,8 @@ class PatentWatchEngine:
         self,
         rule: WatchRule,
         *,
-        published_from,
-        published_to,
+        published_from: date,
+        published_to: date,
         page_size: int,
         max_pages: int,
     ) -> tuple[SearchHit, ...]:
