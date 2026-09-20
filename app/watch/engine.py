@@ -190,7 +190,7 @@ class PatentWatchEngine:
             self.state_store.mark_baselined(rule.rule_id, completed_at)
         self.state_store.mark_run(rule.rule_id, completed_at)
 
-        return WatchRunResult(
+        result = WatchRunResult(
             rule_id=rule.rule_id,
             baseline_created=first_run,
             searched_hits=len(hits),
@@ -200,6 +200,8 @@ class PatentWatchEngine:
             started_at=started_at,
             completed_at=completed_at,
         )
+        self.state_store.record_run(result)
+        return result
 
     async def _collect_hits(
         self,
