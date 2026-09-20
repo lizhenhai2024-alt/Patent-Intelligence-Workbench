@@ -1,1 +1,30 @@
-"""Run async backend operations outside the Tk main thread."""\n\nfrom __future__ import annotations\n\nimport asyncio\nimport threading\nfrom collections.abc import Callable, Coroutine\nfrom typing import Any\n\n\ndef run_async_in_thread[T](\n    awaitable_factory: Callable[[], Coroutine[Any, Any, T]],\n    *,\n    on_success: Callable[[T], None],\n    on_error: Callable[[Exception], None],\n    schedule_ui: Callable[[Callable[[], None]], None],\n) -> threading.Thread:\n    """Run an async factory in a daemon thread and marshal callbacks to Tk."""\n\n    def worker() -> None:\n        try:\n            result = asyncio.run(awaitable_factory())\n        except Exception as exc:\n            schedule_ui(lambda error=exc: on_error(error))\n            return\n        schedule_ui(lambda value=result: on_success(value))\n\n    thread = threading.Thread(target=worker, daemon=True)\n    thread.start()\n    return thread\n
+"""Run async backend operations outside the Tk main thread."""
+
+from __future__ import annotations
+
+import asyncio
+import threading
+from collections.abc import Callable, Coroutine
+from typing import Any
+
+
+def run_async_in_thread[T](
+    awaitable_factory: Callable[[], Coroutine[Any, Any, T]],
+    *,
+    on_success: Callable[[T], None],
+    on_error: Callable[[Exception], None],
+    schedule_ui: Callable[[Callable[[], None]], None],
+) -> threading.Thread:
+    """Run an async factory in a daemon thread and marshal callbacks to Tk."""
+
+    def worker() -> None:
+        try:
+            result = asyncio.run(awaitable_factory())
+        except Exception as exc:
+            schedule_ui(lambda error=exc: on_error(error))
+            return
+        schedule_ui(lambda value=result: on_success(value))
+
+    thread = threading.Thread(target=worker, daemon=True)
+    thread.start()
+    return thread
