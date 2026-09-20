@@ -60,3 +60,26 @@ def test_semi_active_contains_control_architecture_nodes():
         "pilot operated valve",
         "pilot controlled damper valve",
     )
+
+
+def test_active_suspension_contains_core_architecture_nodes():
+    taxonomy = TechnologyTaxonomy.default()
+    active = taxonomy.find("active_suspension")
+
+    expected = {
+        "hydraulic_active",
+        "electromechanical_active",
+        "hydraulic_pump",
+        "accumulator",
+        "active_actuator",
+        "pressure_control",
+        "energy_recovery",
+        "active_fail_safe",
+    }
+    assert {child.node_id for child in active.children} == expected
+    assert all(child.search_terms for child in active.children)
+    assert taxonomy.find("accumulator").search_terms == (
+        "suspension accumulator",
+        "hydraulic accumulator suspension",
+        "active suspension accumulator",
+    )

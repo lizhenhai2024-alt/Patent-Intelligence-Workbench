@@ -43,7 +43,21 @@
             {"id": "fail_safe_valve", "name": "Fail-safe Valve", "search_terms": ["fail safe valve", "failsafe valve", "emergency damping valve"], "children": []}
           ]
         },
-        {"id": "active_suspension", "name": "Active Suspension", "search_terms": ["active suspension", "active damper"], "children": []},
+        {
+          "id": "active_suspension",
+          "name": "Active Suspension",
+          "search_terms": ["active suspension", "active damper"],
+          "children": [
+            {"id": "hydraulic_active", "name": "Hydraulic Active", "search_terms": ["hydraulic active suspension", "hydraulic active damper", "hydraulic suspension actuator"], "children": []},
+            {"id": "electromechanical_active", "name": "Electromechanical Active", "search_terms": ["electromechanical active suspension", "electromechanical damper", "electric suspension actuator"], "children": []},
+            {"id": "hydraulic_pump", "name": "Hydraulic Pump", "search_terms": ["suspension hydraulic pump", "active suspension pump", "hydraulic pump suspension"], "children": []},
+            {"id": "accumulator", "name": "Accumulator", "search_terms": ["suspension accumulator", "hydraulic accumulator suspension", "active suspension accumulator"], "children": []},
+            {"id": "active_actuator", "name": "Actuator", "search_terms": ["active suspension actuator", "active damper actuator", "suspension force actuator"], "children": []},
+            {"id": "pressure_control", "name": "Pressure Control", "search_terms": ["active suspension pressure control", "hydraulic pressure control suspension", "pressure regulating valve suspension"], "children": []},
+            {"id": "energy_recovery", "name": "Energy Recovery", "search_terms": ["regenerative suspension", "energy recovery damper", "energy harvesting suspension"], "children": []},
+            {"id": "active_fail_safe", "name": "Fail-safe", "search_terms": ["active suspension fail safe", "fail safe active damper", "fallback damping mode"], "children": []}
+          ]
+        },
         {"id": "air_suspension", "name": "Air Suspension", "search_terms": ["air suspension", "air spring"], "children": []},
         {"id": "active_anti_roll", "name": "Active Anti-roll", "search_terms": ["active anti roll", "active stabilizer"], "children": []}
       ]
