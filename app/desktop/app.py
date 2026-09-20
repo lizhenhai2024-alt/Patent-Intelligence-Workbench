@@ -121,7 +121,18 @@ class PatentWorkbenchApp(tk.Tk):
             sticky="ew",
         )
 
-        ttk.Label(form, text="国家").grid(row=0, column=2, sticky="w")
+        ttk.Label(form, text="检索层级").grid(row=0, column=2, sticky="w")
+        self.search_scope_var = tk.StringVar(value="悬架与减振器")
+        self.search_scope_box = ttk.Combobox(
+            form,
+            textvariable=self.search_scope_var,
+            values=("公司全量", "悬架与减振器", "具体技术主题"),
+            state="readonly",
+            width=16,
+        )
+        self.search_scope_box.grid(row=1, column=2, padx=(0, 8), sticky="ew")
+
+        ttk.Label(form, text="国家").grid(row=0, column=3, sticky="w")
         self.search_jurisdiction_var = tk.StringVar(
             value="CN,JP,EP,US,WO,KR"
         )
@@ -129,18 +140,19 @@ class PatentWorkbenchApp(tk.Tk):
             form,
             textvariable=self.search_jurisdiction_var,
             width=24,
-        ).grid(row=1, column=2, padx=(0, 8), sticky="ew")
+        ).grid(row=1, column=3, padx=(0, 8), sticky="ew")
 
         self.search_button = ttk.Button(
             form,
             text="搜索",
             command=self.run_search,
         )
-        self.search_button.grid(row=1, column=3, sticky="e")
+        self.search_button.grid(row=1, column=4, sticky="e")
 
         form.columnconfigure(0, weight=3)
         form.columnconfigure(1, weight=1)
         form.columnconfigure(2, weight=1)
+        form.columnconfigure(3, weight=1)
 
         columns = ("number", "country", "title", "applicant", "date")
         self.search_tree = ttk.Treeview(
@@ -863,6 +875,7 @@ class PatentWorkbenchApp(tk.Tk):
 
         query = self.search_query_var.get().strip()
         company = self.search_company_var.get().strip() or None
+        scope = self.search_scope_var.get().strip()
         jurisdictions = tuple(
             item.strip().upper()
             for item in self.search_jurisdiction_var.get().split(",")
@@ -876,10 +889,18 @@ class PatentWorkbenchApp(tk.Tk):
         self._set_status("正在搜索…")
 
         def task():
+            portfolio_scope = None
+            technology_terms = ()
+            if company:
+                if scope == "悬架与减振器":
+                    portfolio_scope = "suspension portfolio"
+                elif scope == "具体技术主题" and query:
+                    technology_terms = (query,)
             return service.search(
-                query,
+                query if not company or scope == "具体技术主题" else "",
                 company=company,
-                technology_terms=(query,) if company and query else (),
+                portfolio_scope=portfolio_scope,
+                technology_terms=technology_terms,
                 jurisdictions=jurisdictions,
                 page_size=100,
             )

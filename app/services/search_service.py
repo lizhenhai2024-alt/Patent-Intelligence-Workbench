@@ -49,6 +49,7 @@ class SearchService:
         query: str,
         *,
         company: str | None = None,
+        portfolio_scope: str | None = None,
         technology_terms: tuple[str, ...] = (),
         jurisdictions: tuple[str, ...] = (),
         published_from: date | None = None,
@@ -84,8 +85,18 @@ class SearchService:
             group = self.company_registry.get(company)
             terms = technology_terms or ((raw,) if raw else ())
             technology_context = bool(terms)
-            applicants = group.applicant_names(technology_context=technology_context)
+            portfolio_context = bool(portfolio_scope) and not technology_context
+            applicants = group.applicant_names(
+                portfolio_scope=portfolio_scope,
+                technology_context=technology_context,
+            )
             expanded_groups = self._expand_text(terms)
+            if portfolio_context:
+                portfolio_groups = self._expand_text((portfolio_scope,))
+                if portfolio_groups:
+                    expanded_groups = portfolio_groups
+                elif portfolio_scope:
+                    terms = (portfolio_scope,)
             expression = SearchExpression(
                 applicants=applicants,
                 text_terms=terms if not expanded_groups else (),
@@ -94,7 +105,12 @@ class SearchService:
                 published_from=published_from,
                 published_to=published_to,
             )
-            mode = SearchMode.COMPANY_TECHNOLOGY if technology_context else SearchMode.COMPANY
+            if technology_context:
+                mode = SearchMode.COMPANY_TECHNOLOGY
+            elif portfolio_context:
+                mode = SearchMode.COMPANY_PORTFOLIO
+            else:
+                mode = SearchMode.COMPANY
             page = await self.provider.search_publications(
                 expression,
                 page_size=page_size,

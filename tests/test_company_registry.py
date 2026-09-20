@@ -45,3 +45,13 @@ def test_registry_resolves_legal_entity_alias_to_group():
 
     assert registry.get("ClearMotion, Inc.").group_id == "clearmotion"
     assert registry.get("ClearMotion").group_id == "clearmotion"
+
+
+def test_company_portfolio_scope_includes_matching_scoped_entity():
+    registry = CompanyRegistry.from_dict(PAYLOAD)
+    group = registry.get("clearmotion")
+
+    assert group.applicant_names(portfolio_scope="suspension portfolio") == (
+        "ClearMotion, Inc.",
+        "Bose Corporation",
+    )

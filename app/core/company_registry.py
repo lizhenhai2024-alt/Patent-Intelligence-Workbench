@@ -24,13 +24,24 @@ class CompanyGroup:
     core_watch: bool
     entities: tuple[RegisteredEntity, ...]
 
-    def applicant_names(self, *, technology_context: bool) -> tuple[str, ...]:
+    def applicant_names(
+        self,
+        *,
+        portfolio_scope: str | None = None,
+        technology_context: bool = False,
+    ) -> tuple[str, ...]:
         names: list[str] = []
         for entity in self.entities:
             if not include_in_default_group_search(entity.relation):
                 continue
-            if entity.scope and not technology_context:
-                continue
+            if entity.scope:
+                normalized_scope = entity.scope.casefold()
+                include_scoped = technology_context or (
+                    portfolio_scope is not None
+                    and portfolio_scope.casefold() in normalized_scope
+                )
+                if not include_scoped:
+                    continue
             if entity.name not in names:
                 names.append(entity.name)
         if not names:
