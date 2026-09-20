@@ -13,6 +13,9 @@ from app.downloads.family import FamilyDownloader
 from app.library.service import PatentLibraryService
 from app.library.store import SQLitePatentLibrary
 from app.providers.epo_ops import EpoOpsProvider
+from app.providers.fallback_search import FallbackSearchProvider
+from app.providers.google_patents_search import GooglePatentsSearchProvider
+from app.providers.local_library import LocalLibrarySearchProvider
 from app.services.family_resolver import FamilyResolver
 from app.services.search_service import SearchService
 from app.watch.engine import PatentWatchEngine
@@ -32,7 +35,7 @@ class DesktopRuntime:
     search_service: SearchService | None = None
     family_resolver: FamilyResolver | None = None
     watch_scheduler: PatentWatchScheduler | None = None
-    search_status: str = "EPO OPS 未配置"
+    search_status: str = "公开搜索可用 · EPO OPS 未配置（可选增强）"
     credential_source: str | None = None
 
     @classmethod
@@ -64,17 +67,7 @@ class DesktopRuntime:
 
     def reload_network_services(self) -> None:
         credentials = self.credential_store.load_epo_ops()
-        if credentials is None:
-            self.search_service = None
-            self.family_resolver = None
-            self.watch_scheduler = None
-            self.credential_source = None
-            self.search_status = (
-                "EPO OPS 未配置：请在 Settings 中填写 Consumer Key / Secret"
-            )
-            return
-
-        self._configure_epo(credentials)
+        self._configure_services(credentials)
 
     def save_epo_credentials(
         self,
@@ -82,7 +75,7 @@ class DesktopRuntime:
         consumer_secret: str,
     ) -> None:
         self.credential_store.save_epo_ops(consumer_key, consumer_secret)
-        self._configure_epo(
+        self._configure_services(
             EpoOpsCredentials(
                 consumer_key=consumer_key.strip(),
                 consumer_secret=consumer_secret.strip(),
@@ -97,17 +90,32 @@ class DesktopRuntime:
     def current_epo_credentials(self) -> EpoOpsCredentials | None:
         return self.credential_store.load_epo_ops()
 
-    def _configure_epo(self, credentials: EpoOpsCredentials) -> None:
-        epo = EpoOpsProvider(
-            consumer_key=credentials.consumer_key,
-            consumer_secret=credentials.consumer_secret,
-        )
+    def _configure_services(
+        self,
+        credentials: EpoOpsCredentials | None,
+    ) -> None:
+        google = GooglePatentsSearchProvider()
+        search_providers = [LocalLibrarySearchProvider(self.library_store)]
+        family_providers = []
+
+        if credentials is not None:
+            epo = EpoOpsProvider(
+                consumer_key=credentials.consumer_key,
+                consumer_secret=credentials.consumer_secret,
+            )
+            search_providers.append(epo)
+            family_providers.append(epo)
+
+        search_providers.append(google)
+        family_providers.append(google)
+
         self.search_service = SearchService(
-            provider=epo,
+            provider=FallbackSearchProvider(tuple(search_providers)),
             company_registry=CompanyRegistry.default(),
             technology_dictionary=TechnologyDictionary.default(),
         )
-        self.family_resolver = FamilyResolver([epo])
+        self.family_resolver = FamilyResolver(family_providers)
+
         def archive_watch_event(rule, event) -> None:
             self.library_service.ingest_watch_event(
                 event,
@@ -125,12 +133,19 @@ class DesktopRuntime:
             engine=watch_engine,
             state_store=self.watch_store,
         )
-        self.credential_source = credentials.source
-        source_label = {
-            "windows-credential-manager": "Windows Credential Manager",
-            "environment": "环境变量",
-        }.get(credentials.source, credentials.source)
-        self.search_status = f"EPO OPS 已配置（{source_label}）"
+
+        if credentials is None:
+            self.credential_source = None
+            self.search_status = "公开搜索可用 · EPO OPS 未配置（可选增强）"
+        else:
+            self.credential_source = credentials.source
+            source_label = {
+                "windows-credential-manager": "Windows Credential Manager",
+                "environment": "环境变量",
+            }.get(credentials.source, credentials.source)
+            self.search_status = (
+                f"公开搜索可用 · EPO OPS 已配置（{source_label}）"
+            )
 
     def close(self) -> None:
         self.library_store.close()

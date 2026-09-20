@@ -22,11 +22,13 @@ from app.core.search_query import compile_epo_cql
 from app.domain.family import FamilyType, PatentFamily, PatentPublication, PriorityClaim
 from app.domain.search import SearchExpression, SearchHit, SearchPage
 from app.providers.base import (
+    ProviderAuthenticationError,
     ProviderCapability,
     ProviderConfigurationError,
-    ProviderError,
     ProviderInfo,
+    ProviderRateLimitError,
     ProviderResponseError,
+    ProviderUnavailableError,
 )
 
 TOKEN_URL = "https://ops.epo.org/3.2/auth/accesstoken"
@@ -379,9 +381,25 @@ class EpoOpsProvider:
                 },
                 content="grant_type=client_credentials",
             )
-            response.raise_for_status()
-        except httpx.HTTPError as exc:
-            raise ProviderError("EPO OPS OAuth token request failed.") from exc
+        except httpx.RequestError as exc:
+            raise ProviderUnavailableError(
+                f"EPO OPS OAuth network error: {exc}"
+            ) from exc
+
+        if response.status_code in {401, 403}:
+            raise ProviderAuthenticationError(
+                "EPO OPS rejected the configured credentials."
+            )
+        if response.status_code == 429:
+            raise ProviderRateLimitError("EPO OPS rate limit reached (HTTP 429).")
+        if response.status_code >= 500:
+            raise ProviderUnavailableError(
+                f"EPO OPS OAuth service unavailable (HTTP {response.status_code})."
+            )
+        if response.status_code >= 400:
+            raise ProviderResponseError(
+                f"EPO OPS OAuth request failed (HTTP {response.status_code})."
+            )
 
         token = response.json().get("access_token")
         if not token:
@@ -409,10 +427,28 @@ class EpoOpsProvider:
                 headers=request_headers,
                 params=params,
             )
-            response.raise_for_status()
-            return response
-        except httpx.HTTPError as exc:
-            raise ProviderError(f"EPO OPS request failed: {url}") from exc
+        except httpx.RequestError as exc:
+            raise ProviderUnavailableError(
+                f"EPO OPS network error for {url}: {exc}"
+            ) from exc
+
+        if response.status_code in {401, 403}:
+            raise ProviderAuthenticationError(
+                f"EPO OPS rejected authentication for {url}."
+            )
+        if response.status_code == 429:
+            raise ProviderRateLimitError(
+                f"EPO OPS rate limit reached for {url} (HTTP 429)."
+            )
+        if response.status_code >= 500:
+            raise ProviderUnavailableError(
+                f"EPO OPS unavailable for {url} (HTTP {response.status_code})."
+            )
+        if response.status_code >= 400:
+            raise ProviderResponseError(
+                f"EPO OPS request failed for {url} (HTTP {response.status_code})."
+            )
+        return response
 
     async def lookup_publication(self, publication: PatentNumber) -> SearchPage:
         async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:

@@ -19,6 +19,18 @@ class ProviderConfigurationError(ProviderError):
     """Raised when provider credentials or configuration are missing."""
 
 
+class ProviderUnavailableError(ProviderError):
+    """Raised when a provider is temporarily unavailable."""
+
+
+class ProviderAuthenticationError(ProviderError):
+    """Raised when a provider rejected authentication."""
+
+
+class ProviderRateLimitError(ProviderError):
+    """Raised when a provider rate limit was reached."""
+
+
 class ProviderResponseError(ProviderError):
     """Raised when a provider response cannot be interpreted safely."""
 
