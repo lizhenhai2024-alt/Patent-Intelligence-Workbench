@@ -983,18 +983,25 @@ class PatentWorkbenchApp(tk.Tk):
         self.technology_tree = ttk.Treeview(card, show="tree", selectmode="browse")
         self.technology_tree.pack(fill="both", expand=True)
 
-        taxonomy = TechnologyTaxonomy.default()
+        self.technology_taxonomy = TechnologyTaxonomy.default()
 
         def insert_nodes(parent: str, nodes) -> None:
             for node in nodes:
                 item = self.technology_tree.insert(parent, "end", iid=node.node_id, text=node.name)
                 insert_nodes(item, node.children)
 
-        insert_nodes("", taxonomy.roots)
+        insert_nodes("", self.technology_taxonomy.roots)
         for node_id in ("suspension", "passive_damper"):
             if self.technology_tree.exists(node_id):
                 self.technology_tree.item(node_id, open=True)
         self.technology_tree.bind("<<TreeviewSelect>>", self._on_technology_selected)
+        self.technology_tree.bind("<Double-1>", self._search_selected_technology)
+        ttk.Button(
+            self.technology_tab,
+            text="检索选中技术",
+            command=self._search_selected_technology,
+            style="Accent.TButton",
+        ).pack(anchor="e", pady=(10, 0))
 
     def _on_technology_selected(self, _event=None) -> None:
         selection = self.technology_tree.selection()
@@ -1006,6 +1013,19 @@ class PatentWorkbenchApp(tk.Tk):
             path.append(self.technology_tree.item(current, "text"))
             current = self.technology_tree.parent(current)
         self._set_status("Technology: " + " > ".join(reversed(path)))
+
+    def _search_selected_technology(self, _event=None) -> None:
+        selection = self.technology_tree.selection()
+        if not selection:
+            return
+        node = self.technology_taxonomy.find(selection[0])
+        if not node.search_terms:
+            self._set_status(f"Technology: {node.name} · 请选择可检索的叶节点")
+            return
+        self.search_query_var.set(" OR ".join(node.search_terms))
+        self.search_scope_var.set("具体技术主题")
+        self._show_page("search")
+        self._set_status(f"已载入技术检索：{node.name}")
 
     def _build_evidence_tab(self) -> None:
         ttk.Label(self.evidence_tab, text="Evidence Center", style="PageTitle.TLabel").pack(

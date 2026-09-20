@@ -11,6 +11,7 @@ from importlib import resources
 class TechnologyNode:
     node_id: str
     name: str
+    search_terms: tuple[str, ...] = ()
     children: tuple[TechnologyNode, ...] = ()
 
 
@@ -24,6 +25,7 @@ class TechnologyTaxonomy:
             return TechnologyNode(
                 node_id=item["id"],
                 name=item["name"],
+                search_terms=tuple(item.get("search_terms", ())),
                 children=tuple(build(child) for child in item.get("children", [])),
             )
         return cls(tuple(build(item) for item in payload.get("nodes", [])))

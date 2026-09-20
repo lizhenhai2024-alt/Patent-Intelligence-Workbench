@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "nodes": [
     {
       "id": "suspension",
@@ -9,15 +9,30 @@
           "id": "passive_damper",
           "name": "Passive Damper",
           "children": [
-            {"id": "valving", "name": "Valving", "children": []},
-            {"id": "fsd", "name": "FSD", "children": []},
-            {"id": "hrs_hcs", "name": "HRS / HCS", "children": []}
+            {
+              "id": "valving",
+              "name": "Valving",
+              "children": [
+                {"id": "piston_valve", "name": "Piston Valve", "search_terms": ["piston valve", "damper piston valve"], "children": []},
+                {"id": "base_valve", "name": "Base Valve", "search_terms": ["base valve", "foot valve", "bottom valve"], "children": []},
+                {"id": "disc_stack", "name": "Disc Stack", "search_terms": ["shim stack", "disc valve", "valve disc"], "children": []},
+                {"id": "rebound_valve", "name": "Rebound Valve", "search_terms": ["rebound valve", "extension valve"], "children": []},
+                {"id": "compression_valve", "name": "Compression Valve", "search_terms": ["compression valve", "bump valve"], "children": []},
+                {"id": "blowoff_relief", "name": "Blow-off / Relief Valve", "search_terms": ["blow off valve", "relief valve", "pressure relief valve"], "children": []},
+                {"id": "check_valve", "name": "Check Valve", "search_terms": ["check valve", "non return valve", "one way valve"], "children": []},
+                {"id": "orifice_bleed", "name": "Orifice / Bleed", "search_terms": ["orifice", "bleed passage", "bleed valve"], "children": []},
+                {"id": "preload_spring", "name": "Preload / Spring", "search_terms": ["valve spring", "spring preload", "preload valve"], "children": []},
+                {"id": "valve_seat_flow", "name": "Valve Seat / Flow Path", "search_terms": ["valve seat", "flow passage", "flow path"], "children": []}
+              ]
+            },
+            {"id": "fsd", "name": "FSD", "search_terms": ["frequency selective damping", "frequency selective damper"], "children": []},
+            {"id": "hrs_hcs", "name": "HRS / HCS", "search_terms": ["hydraulic rebound stop", "hydraulic compression stop"], "children": []}
           ]
         },
-        {"id": "semi_active", "name": "Semi-active", "children": []},
-        {"id": "active_suspension", "name": "Active Suspension", "children": []},
-        {"id": "air_suspension", "name": "Air Suspension", "children": []},
-        {"id": "active_anti_roll", "name": "Active Anti-roll", "children": []}
+        {"id": "semi_active", "name": "Semi-active", "search_terms": ["semi active suspension", "electronically controlled damper"], "children": []},
+        {"id": "active_suspension", "name": "Active Suspension", "search_terms": ["active suspension", "active damper"], "children": []},
+        {"id": "air_suspension", "name": "Air Suspension", "search_terms": ["air suspension", "air spring"], "children": []},
+        {"id": "active_anti_roll", "name": "Active Anti-roll", "search_terms": ["active anti roll", "active stabilizer"], "children": []}
       ]
     }
   ]
