@@ -58,19 +58,18 @@ class SearchService:
     ) -> SearchResponse:
         raw = query.strip()
 
-        if not company:
-            try:
-                publication = normalize_patent_number(raw)
-            except PatentNumberError:
-                publication = None
-            if publication is not None:
-                page = await self.provider.lookup_publication(publication)
-                return SearchResponse(
-                    mode=SearchMode.PATENT_NUMBER,
-                    provider=self.provider.info.name,
-                    page=page,
-                    normalized_query=publication.canonical,
-                )
+        try:
+            publication = normalize_patent_number(raw)
+        except PatentNumberError:
+            publication = None
+        if publication is not None:
+            page = await self.provider.lookup_publication(publication)
+            return SearchResponse(
+                mode=SearchMode.PATENT_NUMBER,
+                provider=_page_provider(page, self.provider.info.name),
+                page=page,
+                normalized_query=publication.canonical,
+            )
 
         if company:
             group = self.company_registry.get(company)
@@ -94,7 +93,7 @@ class SearchService:
             )
             return SearchResponse(
                 mode=mode,
-                provider=self.provider.info.name,
+                provider=_page_provider(page, self.provider.info.name),
                 page=page,
                 normalized_query=raw,
                 company_group_id=group.group_id,
@@ -116,7 +115,13 @@ class SearchService:
         )
         return SearchResponse(
             mode=SearchMode.TEXT,
-            provider=self.provider.info.name,
+            provider=_page_provider(page, self.provider.info.name),
             page=page,
             normalized_query=raw,
         )
+
+
+def _page_provider(page, fallback: str) -> str:
+    if page.hits and page.hits[0].source:
+        return page.hits[0].source
+    return fallback

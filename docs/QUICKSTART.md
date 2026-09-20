@@ -29,11 +29,17 @@ Fresh installations use:
 
 If an earlier build already contains `patent_library.db` or `patent_watch.db`, those legacy paths are kept rather than silently migrated.
 
-## 3. Configure EPO OPS
+## 3. Optional EPO OPS enhancement
 
-Local Library and local file management work without network credentials.
+Search does **not** require EPO OPS credentials in RC2. The default chain is:
 
-For Search, Patent Family and Patent Watch:
+1. Local Library;
+2. zero-credential public search;
+3. EPO OPS, only when credentials are configured.
+
+DOCDB simple-family analysis also has a zero-credential public fallback. EPO OPS remains useful for richer EPO data and INPADOC extended-family analysis.
+
+To enable the optional EPO provider:
 
 1. Open **Settings**.
 2. Enter your EPO OPS Consumer Key and Consumer Secret.

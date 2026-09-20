@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "patent-intelligence-workbench"
-version = "1.0.0rc1"
+version = "1.0.0rc2"
 description = "Patent search, family analysis, download and competitor patent watch workbench."
 readme = "README.md"
 requires-python = ">=3.12"

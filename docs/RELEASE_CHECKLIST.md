@@ -77,12 +77,13 @@ On a Windows desktop:
 
 RC:
 
-- [ ] version is `1.0.0rc1`;
+- [ ] version is `1.0.0rc2`;
 - [ ] changelog is current;
 - [ ] Quick Start is current;
+- [ ] zero-credential patent-number and keyword search are validated;
 - [ ] CI and Windows Build are green;
 - [ ] artifact checksum is available;
-- [ ] tag convention: `v1.0.0-rc.1`;
+- [ ] tag convention: `v1.0.0-rc.2`;
 - [ ] successful main-branch Windows build triggers the idempotent RC publisher;
 - [ ] prerelease contains EXE, `BUILD_INFO.txt` and `SHA256SUMS.txt`.
 

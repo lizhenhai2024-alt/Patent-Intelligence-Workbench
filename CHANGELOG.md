@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.0.0rc2 — Zero-configuration search fallback
+
+### Search
+
+- Search remains enabled when EPO OPS credentials are absent.
+- Patent-number detection now has highest routing priority, even when a stale company filter remains selected.
+- Added Local Library as the first search layer.
+- Added zero-credential Google Patents structured search/publication lookup fallback.
+- EPO OPS is now an optional enhancement provider rather than the global search gate.
+- Provider fallback distinguishes authentication, rate-limit, unavailable and response failures.
+- Google public search automatically retries transient throttling/network failures with bounded backoff.
+- A failed provider no longer aborts the whole search when another provider can succeed.
+- Company/entity queries stop once enough public results are collected, reducing unnecessary requests.
+
+### Patent Family
+
+- DOCDB simple-family analysis can fall back to structured Google Patents family metadata without EPO credentials.
+- INPADOC extended family remains an EPO-enhanced capability.
+
+### Desktop
+
+- Search button is always available.
+- Network status now reports public search separately from optional EPO OPS configuration.
+- Search completion shows the source that supplied the result.
+
+### Validation
+
+- Added regression coverage for zero-EPO runtime, patent-number routing, provider fallback, rate limiting and Google structured metadata parsing.
+- Added `scripts/rc2_zero_config_smoke.py` for live zero-credential validation.
+
 ## 1.0.0rc1 — V1 Release Candidate
 
 ### Search and company intelligence

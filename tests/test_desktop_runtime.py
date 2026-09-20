@@ -29,19 +29,21 @@ class FakeCredentialStore:
         self.credentials = None
 
 
-def test_runtime_without_epo_credentials_keeps_local_features_available(
-    monkeypatch,
-    tmp_path,
-):
-    monkeypatch.delenv("EPO_OPS_KEY", raising=False)
-    monkeypatch.delenv("EPO_OPS_SECRET", raising=False)
+def test_runtime_without_epo_credentials_keeps_local_features_available(tmp_path):
     paths = paths_from_root(tmp_path)
 
-    runtime = DesktopRuntime.create(paths)
+    runtime = DesktopRuntime.create(
+        paths,
+        credential_store=FakeCredentialStore(),
+    )
     try:
-        assert runtime.search_service is None
-        assert runtime.family_resolver is None
-        assert runtime.watch_scheduler is None
+        assert runtime.search_service is not None
+        assert runtime.family_resolver is not None
+        assert runtime.watch_scheduler is not None
+        assert [
+            provider.info.name
+            for provider in runtime.search_service.provider.providers
+        ] == ["LOCAL_LIBRARY", "GOOGLE_PATENTS"]
         assert "未配置" in runtime.search_status
         assert runtime.watch_store.list_rules()
         assert runtime.paths.library_db.is_file()
@@ -88,7 +90,10 @@ def test_runtime_can_save_and_delete_credentials_without_restart(tmp_path):
         credential_store=credential_store,
     )
     try:
-        assert runtime.search_service is None
+        assert runtime.search_service is not None
+        assert runtime.family_resolver is not None
+        assert runtime.watch_scheduler is not None
+        assert runtime.credential_source is None
 
         runtime.save_epo_credentials(" new-key ", " new-secret ")
 
@@ -99,8 +104,9 @@ def test_runtime_can_save_and_delete_credentials_without_restart(tmp_path):
         runtime.delete_epo_credentials()
 
         assert credential_store.deleted == 1
-        assert runtime.search_service is None
-        assert runtime.family_resolver is None
-        assert runtime.watch_scheduler is None
+        assert runtime.search_service is not None
+        assert runtime.family_resolver is not None
+        assert runtime.watch_scheduler is not None
+        assert runtime.credential_source is None
     finally:
         runtime.close()

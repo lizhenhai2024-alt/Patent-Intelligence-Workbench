@@ -84,6 +84,19 @@ def test_patent_number_query_routes_to_direct_lookup():
     assert provider.search_calls == []
 
 
+def test_patent_number_query_ignores_stale_company_filter_and_still_uses_lookup():
+    provider = FakeProvider()
+    service = SearchService(provider=provider, company_registry=_registry())
+
+    result = asyncio.run(
+        service.search("CN 115123456 A", company="ClearMotion")
+    )
+
+    assert result.mode.value == "PATENT_NUMBER"
+    assert provider.lookup_calls[0].canonical == "CN115123456A"
+    assert provider.search_calls == []
+
+
 def test_company_only_query_does_not_include_scoped_portfolio():
     provider = FakeProvider()
     service = SearchService(provider=provider, company_registry=_registry())

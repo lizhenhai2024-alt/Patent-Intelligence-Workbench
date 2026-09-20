@@ -134,8 +134,6 @@ class PatentWorkbenchApp(tk.Tk):
             command=self.run_search,
         )
         self.search_button.grid(row=1, column=3, sticky="e")
-        if self.runtime.search_service is None:
-            self.search_button.state(["disabled"])
 
         form.columnconfigure(0, weight=3)
         form.columnconfigure(1, weight=1)
@@ -207,8 +205,6 @@ class PatentWorkbenchApp(tk.Tk):
             command=self.run_family_analysis,
         )
         self.family_analyze_button.grid(row=1, column=2, padx=(0, 8))
-        if self.runtime.family_resolver is None:
-            self.family_analyze_button.state(["disabled"])
 
         ttk.Button(
             form,
@@ -263,8 +259,6 @@ class PatentWorkbenchApp(tk.Tk):
             command=self.run_due_watch_rules,
         )
         self.run_watch_button.pack(side="left", padx=(8, 0))
-        if self.runtime.watch_scheduler is None:
-            self.run_watch_button.state(["disabled"])
 
         self.watch_rule_tree = ttk.Treeview(
             self.watch_tab,
@@ -580,10 +574,10 @@ class PatentWorkbenchApp(tk.Tk):
         self._set_status("已删除 Windows Credential Manager 中的 EPO 凭据")
 
     def _refresh_network_controls(self) -> None:
-        enabled = self.runtime.search_service is not None
-        state = ["!disabled"] if enabled else ["disabled"]
-        self.search_button.state(state)
-        self.family_analyze_button.state(state)
+        self.search_button.state(["!disabled"])
+        self.family_analyze_button.state(
+            ["!disabled"] if self.runtime.family_resolver else ["disabled"]
+        )
         self.run_watch_button.state(
             ["!disabled"] if self.runtime.watch_scheduler else ["disabled"]
         )
@@ -721,7 +715,7 @@ class PatentWorkbenchApp(tk.Tk):
             )
         total = response.page.total_result_count
         self._set_status(
-            f"搜索完成：显示 {len(response.page.hits)} 条"
+            f"搜索完成：{response.provider} · 显示 {len(response.page.hits)} 条"
             + (f" / 共 {total} 条" if total is not None else "")
         )
 
