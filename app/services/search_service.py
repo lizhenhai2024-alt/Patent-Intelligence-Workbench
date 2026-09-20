@@ -97,10 +97,27 @@ class SearchService:
                     expanded_groups = portfolio_groups
                 elif portfolio_scope:
                     terms = (portfolio_scope,)
+            portfolio_terms: tuple[str, ...] = ()
+            portfolio_classifications: tuple[str, ...] = ()
+            if portfolio_context:
+                portfolio_terms = tuple(
+                    term
+                    for group_terms in expanded_groups
+                    for term in group_terms
+                )
+                expanded_groups = ()
+                portfolio_classifications = (
+                    "B60G13", "B60G15", "B60G17", "B60G21",
+                    "F16F9/00", "F16F9/10", "F16F9/16", "F16F9/18",
+                    "F16F9/32", "F16F9/34", "F16F9/44", "F16F9/46",
+                    "F16F9/50", "F16F9/512",
+                )
             expression = SearchExpression(
                 applicants=applicants,
-                text_terms=terms if not expanded_groups else (),
+                text_terms=terms if not expanded_groups and not portfolio_context else (),
                 text_groups=expanded_groups,
+                portfolio_terms=portfolio_terms,
+                portfolio_classifications=portfolio_classifications,
                 jurisdictions=jurisdictions,
                 published_from=published_from,
                 published_to=published_to,

@@ -48,3 +48,18 @@ def test_publication_date_range_uses_ops_within_syntax():
     cql = compile_epo_cql(expression)
 
     assert 'pd within "20250101 20260920"' in cql
+
+
+def test_portfolio_terms_and_classifications_share_one_or_group():
+    expression = SearchExpression(
+        applicants=("KYB Corporation",),
+        portfolio_terms=("shock absorber", "active suspension"),
+        portfolio_classifications=("B60G13", "F16F9/46"),
+    )
+    cql = compile_epo_cql(expression)
+    assert 'pa="KYB Corporation"' in cql
+    expected = (
+        '(ta all "shock absorber" or ta all "active suspension" '
+        'or cl="B60G13" or cl="F16F9/46")'
+    )
+    assert expected in cql

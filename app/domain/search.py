@@ -20,6 +20,9 @@ class SearchExpression:
     applicants: tuple[str, ...] = ()
     text_terms: tuple[str, ...] = ()
     text_groups: tuple[tuple[str, ...], ...] = ()
+    classification_groups: tuple[tuple[str, ...], ...] = ()
+    portfolio_terms: tuple[str, ...] = ()
+    portfolio_classifications: tuple[str, ...] = ()
     jurisdictions: tuple[str, ...] = ()
     published_from: date | None = None
     published_to: date | None = None

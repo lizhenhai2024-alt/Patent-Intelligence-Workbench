@@ -188,15 +188,19 @@ def test_company_portfolio_search_uses_suspension_scope_and_scoped_entity():
     assert result.mode.value == "COMPANY_PORTFOLIO"
     assert expression.applicants == ("ClearMotion, Inc.", "Bose Corporation")
     assert expression.text_terms == ()
-    assert expression.text_groups == (
-        (
-            "suspension",
-            "shock absorber",
-            "damper",
-            "strut",
-            "active suspension",
-            "semi active suspension",
-            "stabilizer",
-            "anti roll",
-        ),
+    assert expression.text_groups == ()
+    assert "suspension" in expression.portfolio_terms
+    assert "shock absorber" in expression.portfolio_terms
+    assert "B60G13" in expression.portfolio_classifications
+    assert "F16F9/46" in expression.portfolio_classifications
+    # portfolio is one broad OR package, not multiple AND groups
+    assert expression.portfolio_terms == (
+        "suspension",
+        "shock absorber",
+        "damper",
+        "strut",
+        "active suspension",
+        "semi active suspension",
+        "stabilizer",
+        "anti roll",
     )

@@ -7,22 +7,56 @@
       "display_name": "ASTEMO",
       "core_watch": true,
       "entities": [
-        {"name": "Hitachi Astemo, Ltd.", "relation": "SAME_ENTITY"},
-        {"name": "Hitachi Automotive Systems, Ltd.", "relation": "PREDECESSOR"},
-        {"name": "Showa Corporation", "relation": "TECHNOLOGY_PREDECESSOR"},
-        {"name": "Tokico Ltd.", "relation": "TECHNOLOGY_PREDECESSOR"}
+        {
+          "name": "Hitachi Astemo, Ltd.",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "Hitachi Automotive Systems, Ltd.",
+          "relation": "PREDECESSOR"
+        },
+        {
+          "name": "Showa Corporation",
+          "relation": "TECHNOLOGY_PREDECESSOR"
+        },
+        {
+          "name": "Tokico Ltd.",
+          "relation": "TECHNOLOGY_PREDECESSOR"
+        }
       ]
     },
-    {"group_id": "kyb", "display_name": "KYB", "core_watch": true, "entities": []},
+    {
+      "group_id": "kyb",
+      "display_name": "KYB",
+      "core_watch": true,
+      "entities": [
+        {
+          "name": "KYB Corporation",
+          "relation": "SAME_ENTITY"
+        }
+      ]
+    },
     {
       "group_id": "tenneco",
       "display_name": "Tenneco / Monroe",
       "core_watch": true,
       "entities": [
-        {"name": "Tenneco Automotive Operating Company Inc.", "relation": "SAME_ENTITY"},
-        {"name": "Tenneco Automotive Inc.", "relation": "PREVIOUS_NAME"},
-        {"name": "Monroe Auto Equipment Company", "relation": "TECHNOLOGY_PREDECESSOR"},
-        {"name": "Advanced Suspension Technology LLC", "relation": "IP_HOLDING_ENTITY"}
+        {
+          "name": "Tenneco Automotive Operating Company Inc.",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "Tenneco Automotive Inc.",
+          "relation": "PREVIOUS_NAME"
+        },
+        {
+          "name": "Monroe Auto Equipment Company",
+          "relation": "TECHNOLOGY_PREDECESSOR"
+        },
+        {
+          "name": "Advanced Suspension Technology LLC",
+          "relation": "IP_HOLDING_ENTITY"
+        }
       ]
     },
     {
@@ -30,28 +64,153 @@
       "display_name": "ZF / Sachs",
       "core_watch": true,
       "entities": [
-        {"name": "ZF Friedrichshafen AG", "relation": "SAME_ENTITY"},
-        {"name": "ZF Sachs AG", "relation": "PREDECESSOR"},
-        {"name": "Mannesmann Sachs AG", "relation": "TECHNOLOGY_PREDECESSOR"}
+        {
+          "name": "ZF Friedrichshafen AG",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "ZF Sachs AG",
+          "relation": "PREDECESSOR"
+        },
+        {
+          "name": "Mannesmann Sachs AG",
+          "relation": "TECHNOLOGY_PREDECESSOR"
+        }
       ]
     },
-    {"group_id": "bwi", "display_name": "BWI", "core_watch": true, "entities": []},
-    {"group_id": "hl_mando", "display_name": "HL Mando", "core_watch": true, "entities": []},
-    {"group_id": "bilstein", "display_name": "thyssenkrupp BILSTEIN", "core_watch": true, "entities": []},
-    {"group_id": "multimatic", "display_name": "Multimatic", "core_watch": true, "entities": []},
-    {"group_id": "ohlins", "display_name": "Öhlins", "core_watch": true, "entities": []},
+    {
+      "group_id": "bwi",
+      "display_name": "BWI",
+      "core_watch": true,
+      "entities": [
+        {
+          "name": "BWI Group",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "BeijingWest Industries Co., Ltd.",
+          "relation": "SAME_ENTITY"
+        }
+      ]
+    },
+    {
+      "group_id": "hl_mando",
+      "display_name": "HL Mando",
+      "core_watch": true,
+      "entities": [
+        {
+          "name": "HL Mando Corporation",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "Mando Corporation",
+          "relation": "PREVIOUS_NAME"
+        }
+      ]
+    },
+    {
+      "group_id": "bilstein",
+      "display_name": "thyssenkrupp BILSTEIN",
+      "core_watch": true,
+      "entities": [
+        {
+          "name": "thyssenkrupp Bilstein GmbH",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "ThyssenKrupp Bilstein GmbH",
+          "relation": "PREVIOUS_NAME"
+        }
+      ]
+    },
+    {
+      "group_id": "multimatic",
+      "display_name": "Multimatic",
+      "core_watch": true,
+      "entities": [
+        {
+          "name": "Multimatic Inc.",
+          "relation": "SAME_ENTITY"
+        }
+      ]
+    },
+    {
+      "group_id": "ohlins",
+      "display_name": "Öhlins",
+      "core_watch": true,
+      "entities": [
+        {
+          "name": "Öhlins Racing AB",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "Ohlins Racing AB",
+          "relation": "SAME_ENTITY"
+        }
+      ]
+    },
     {
       "group_id": "clearmotion",
       "display_name": "ClearMotion",
       "core_watch": true,
       "entities": [
-        {"name": "ClearMotion, Inc.", "relation": "SAME_ENTITY"},
-        {"name": "Levant Power Corporation", "relation": "PREVIOUS_NAME"},
-        {"name": "ClearMotion Acquisition I LLC", "relation": "IP_HOLDING_ENTITY"},
+        {
+          "name": "ClearMotion, Inc.",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "Levant Power Corporation",
+          "relation": "PREVIOUS_NAME"
+        },
+        {
+          "name": "ClearMotion Acquisition I LLC",
+          "relation": "IP_HOLDING_ENTITY"
+        },
         {
           "name": "Bose Corporation",
           "relation": "ACQUIRED_PATENT_PORTFOLIO",
           "scope": "suspension portfolio only"
+        }
+      ]
+    },
+    {
+      "group_id": "mobis",
+      "display_name": "Hyundai MOBIS",
+      "core_watch": true,
+      "entities": [
+        {
+          "name": "Hyundai Mobis Co., Ltd.",
+          "relation": "SAME_ENTITY"
+        }
+      ]
+    },
+    {
+      "group_id": "aisin",
+      "display_name": "AISIN",
+      "core_watch": true,
+      "entities": [
+        {
+          "name": "Aisin Corporation",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "Aisin Seiki Co., Ltd.",
+          "relation": "PREVIOUS_NAME"
+        }
+      ]
+    },
+    {
+      "group_id": "schaeffler",
+      "display_name": "Schaeffler",
+      "core_watch": true,
+      "entities": [
+        {
+          "name": "Schaeffler Technologies AG & Co. KG",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "Schaeffler AG",
+          "relation": "SAME_ENTITY"
         }
       ]
     }

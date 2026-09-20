@@ -889,16 +889,25 @@ class PatentWorkbenchApp(tk.Tk):
         self._set_status("正在搜索…")
 
         def task():
+            resolved_company = company
+            resolved_query = query
+            if not resolved_company and query:
+                try:
+                    resolved_company = service.company_registry.get(query).display_name
+                    resolved_query = ""
+                except KeyError:
+                    pass
+
             portfolio_scope = None
             technology_terms = ()
-            if company:
+            if resolved_company:
                 if scope == "悬架与减振器":
                     portfolio_scope = "suspension portfolio"
-                elif scope == "具体技术主题" and query:
-                    technology_terms = (query,)
+                elif scope == "具体技术主题" and resolved_query:
+                    technology_terms = (resolved_query,)
             return service.search(
-                query if not company or scope == "具体技术主题" else "",
-                company=company,
+                resolved_query if not resolved_company or scope == "具体技术主题" else "",
+                company=resolved_company,
                 portfolio_scope=portfolio_scope,
                 technology_terms=technology_terms,
                 jurisdictions=jurisdictions,
