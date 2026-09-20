@@ -414,6 +414,7 @@ class EpoOpsProvider:
         token: str,
         params: dict[str, str] | None = None,
         headers: dict[str, str] | None = None,
+        allow_not_found: bool = False,
     ) -> httpx.Response:
         request_headers = {
             "Authorization": f"Bearer {token}",
@@ -436,6 +437,8 @@ class EpoOpsProvider:
             raise ProviderAuthenticationError(
                 f"EPO OPS rejected authentication for {url}."
             )
+        if response.status_code == 404 and allow_not_found:
+            return response
         if response.status_code == 429:
             raise ProviderRateLimitError(
                 f"EPO OPS rate limit reached for {url} (HTTP 429)."
@@ -478,14 +481,22 @@ class EpoOpsProvider:
 
         async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
             token = await self._access_token(client)
-            url = f"{OPS_BASE_URL}/published-data/search/biblio"
+            url = f"{OPS_BASE_URL}/published-data/search"
             response = await self._authorized_get(
                 client,
                 url,
                 token=token,
                 params={"q": cql},
                 headers={"X-OPS-Range": f"{page_start}-{page_end}"},
+                allow_not_found=True,
             )
+            if response.status_code == 404:
+                if "no results found" in response.text.casefold():
+                    return SearchPage(hits=(), total_result_count=0)
+                raise ProviderResponseError(
+                    "EPO OPS search endpoint returned HTTP 404 without "
+                    "the expected no-results fault."
+                )
             return parse_biblio_search_xml(response.text)
 
     async def get_family(

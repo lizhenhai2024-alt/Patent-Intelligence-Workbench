@@ -44,6 +44,13 @@ def test_runtime_without_epo_credentials_keeps_local_features_available(tmp_path
             provider.info.name
             for provider in runtime.search_service.provider.providers
         ] == ["LOCAL_LIBRARY", "GOOGLE_PATENTS"]
+        regular_google = runtime.search_service.provider.providers[-1]
+        watch_google = (
+            runtime.watch_scheduler.engine.search_service.provider.providers[-1]
+        )
+        assert regular_google.max_attempts == 3
+        assert watch_google.info.name == "GOOGLE_PATENTS"
+        assert watch_google.max_attempts == 1
         assert "未配置" in runtime.search_status
         assert runtime.watch_store.list_rules()
         assert runtime.paths.library_db.is_file()
@@ -78,6 +85,15 @@ def test_runtime_uses_saved_credentials_to_enable_network_services(tmp_path):
         assert runtime.family_resolver is not None
         assert runtime.watch_scheduler is not None
         assert runtime.watch_scheduler.engine.event_sink is not None
+        watch_providers = (
+            runtime.watch_scheduler.engine.search_service.provider.providers
+        )
+        assert [provider.info.name for provider in watch_providers] == [
+            "LOCAL_LIBRARY",
+            "EPO_OPS",
+            "GOOGLE_PATENTS",
+        ]
+        assert watch_providers[-1].max_attempts == 1
         assert "Windows Credential Manager" in runtime.search_status
     finally:
         runtime.close()
