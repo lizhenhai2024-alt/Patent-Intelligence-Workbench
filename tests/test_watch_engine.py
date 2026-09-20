@@ -94,7 +94,7 @@ def _family(family_id, *members):
     )
 
 
-def _engine(tmp_path):
+def _engine(tmp_path, event_sink=None):
     search_provider = MutableSearchProvider()
     family_provider = MutableFamilyProvider()
     search_service = SearchService(
@@ -106,6 +106,7 @@ def _engine(tmp_path):
         search_service=search_service,
         family_resolver=FamilyResolver([family_provider]),
         state_store=store,
+        event_sink=event_sink,
     )
     return engine, search_provider, family_provider, store
 
@@ -241,4 +242,38 @@ def test_unresolved_publication_is_retried_on_later_run(tmp_path):
 
     assert second.events[0].event_type is WatchEventType.NEW_FAMILY
     assert store.publication_family_key(rule.rule_id, a) is not None
+    store.close()
+
+
+def test_event_sink_archives_events_without_turning_archive_failure_into_rule_failure(tmp_path):
+    archived = []
+
+    def sink(rule, event):
+        archived.append((rule.rule_id, event.publication_number))
+        if event.publication_number.startswith("EP"):
+            raise RuntimeError("local archive unavailable")
+
+    engine, search, families, store = _engine(tmp_path, event_sink=sink)
+    rule = WatchRule(
+        rule_id="archive-watch",
+        name="Archive watch",
+        company_group="testco",
+        notify_on_first_run=True,
+    )
+    a = "EP4000000A1"
+    search.hits = [SearchHit(a, "EP")]
+    families.families[a] = _family("F-ARCHIVE", a)
+
+    result = asyncio.run(
+        engine.run_rule(
+            rule,
+            now=datetime(2026, 9, 20, 8, 0, tzinfo=UTC),
+        )
+    )
+
+    assert archived == [("archive-watch", a)]
+    assert len(result.events) == 1
+    assert result.events[0].event_type is WatchEventType.NEW_FAMILY
+    assert any(error.startswith(f"archive:{a}:") for error in result.errors)
+    assert store.get_state(rule.rule_id).last_run_at is not None
     store.close()

@@ -3,6 +3,13 @@ name: Windows Desktop Build
 on:
   push:
     branches: ["main"]
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "app/**"
+      - "scripts/**"
+      - "pyproject.toml"
+      - ".github/workflows/windows-build.yml"
   workflow_dispatch:
 
 permissions:
@@ -35,13 +42,20 @@ jobs:
           & ".\dist\PatentIntelligenceWorkbench.exe" --smoke --data-dir "${{ runner.temp }}\piw-packaged-smoke"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Write build information
+      - name: Write build information and checksum
         shell: pwsh
         run: |
+          $version = python -c "import importlib.metadata; print(importlib.metadata.version('patent-intelligence-workbench'))"
+          $builtAt = (Get-Date).ToUniversalTime().ToString("o")
           "Patent Intelligence Workbench" | Out-File -Encoding utf8 ".\dist\BUILD_INFO.txt"
+          "Version: $version" | Out-File -Append -Encoding utf8 ".\dist\BUILD_INFO.txt"
           "Commit: ${{ github.sha }}" | Out-File -Append -Encoding utf8 ".\dist\BUILD_INFO.txt"
+          "Built UTC: $builtAt" | Out-File -Append -Encoding utf8 ".\dist\BUILD_INFO.txt"
           "Python: 3.12" | Out-File -Append -Encoding utf8 ".\dist\BUILD_INFO.txt"
           "Build: one-file / windowed" | Out-File -Append -Encoding utf8 ".\dist\BUILD_INFO.txt"
+
+          $hash = (Get-FileHash ".\dist\PatentIntelligenceWorkbench.exe" -Algorithm SHA256).Hash.ToLower()
+          "$hash  PatentIntelligenceWorkbench.exe" | Out-File -Encoding ascii ".\dist\SHA256SUMS.txt"
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
@@ -50,5 +64,6 @@ jobs:
           path: |
             dist/PatentIntelligenceWorkbench.exe
             dist/BUILD_INFO.txt
+            dist/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 30

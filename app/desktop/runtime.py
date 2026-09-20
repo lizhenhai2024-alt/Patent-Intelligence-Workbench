@@ -108,10 +108,18 @@ class DesktopRuntime:
             technology_dictionary=TechnologyDictionary.default(),
         )
         self.family_resolver = FamilyResolver([epo])
+        def archive_watch_event(rule, event) -> None:
+            self.library_service.ingest_watch_event(
+                event,
+                company_group=rule.company_group,
+                technology_topics=rule.technology_terms,
+            )
+
         watch_engine = PatentWatchEngine(
             search_service=self.search_service,
             family_resolver=self.family_resolver,
             state_store=self.watch_store,
+            event_sink=archive_watch_event,
         )
         self.watch_scheduler = PatentWatchScheduler(
             engine=watch_engine,

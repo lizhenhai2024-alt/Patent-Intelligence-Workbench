@@ -69,6 +69,13 @@ Current phase: **P8 V1 Release Candidate hardening** — end-to-end acceptance, 
 
 See `docs/ARCHITECTURE.md` and `docs/DOWNLOAD_SOURCES.md` for the frozen V1 architecture and source policy.
 
+Release-candidate documentation:
+
+- `docs/QUICKSTART.md`
+- `docs/RELEASE_CHECKLIST.md`
+- `CHANGELOG.md`
+
+
 ## License
 
 MIT

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 
@@ -21,6 +22,7 @@ class PatentWatchEngine:
     family_resolver: FamilyResolver
     state_store: SQLiteWatchStateStore
     family_type: FamilyType = FamilyType.DOCDB_SIMPLE
+    event_sink: Callable[[WatchRule, WatchEvent], None] | None = None
 
     async def run_rule(
         self,
@@ -189,6 +191,15 @@ class PatentWatchEngine:
         if first_run:
             self.state_store.mark_baselined(rule.rule_id, completed_at)
         self.state_store.mark_run(rule.rule_id, completed_at)
+
+        if self.event_sink is not None:
+            for event in events:
+                try:
+                    self.event_sink(rule, event)
+                except Exception as exc:
+                    errors.append(
+                        f"archive:{event.publication_number}: {exc}"
+                    )
 
         result = WatchRunResult(
             rule_id=rule.rule_id,

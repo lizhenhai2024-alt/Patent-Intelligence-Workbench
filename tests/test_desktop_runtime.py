@@ -75,6 +75,7 @@ def test_runtime_uses_saved_credentials_to_enable_network_services(tmp_path):
         assert runtime.search_service is not None
         assert runtime.family_resolver is not None
         assert runtime.watch_scheduler is not None
+        assert runtime.watch_scheduler.engine.event_sink is not None
         assert "Windows Credential Manager" in runtime.search_status
     finally:
         runtime.close()
