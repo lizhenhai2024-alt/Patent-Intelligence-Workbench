@@ -796,20 +796,25 @@ class PatentWorkbenchApp(tk.Tk):
             toolbar,
             text="筛选",
             command=self.refresh_library,
+            style="Accent.TButton",
         ).pack(side="left", padx=(8, 0))
         ttk.Button(
             toolbar,
             text="导出 CSV",
             command=lambda: self.export_library(".csv"),
-        ).pack(side="left", padx=(8, 0))
+            style="Quiet.TButton",
+        ).pack(side="left", padx=(6, 0))
         ttk.Button(
             toolbar,
             text="导出 Excel",
             command=lambda: self.export_library(".xlsx"),
-        ).pack(side="left", padx=(8, 0))
+            style="Ghost.TButton",
+        ).pack(side="left", padx=(2, 0))
 
+        library_results = ttk.LabelFrame(self.library_tab, text="专利库", padding=8)
+        library_results.pack(fill="both", expand=True, pady=(0, 8))
         self.library_tree = ttk.Treeview(
-            self.library_tab,
+            library_results,
             columns=(
                 "number",
                 "country",
@@ -843,7 +848,7 @@ class PatentWorkbenchApp(tk.Tk):
             text="专利详情 / 本地整理",
             padding=10,
         )
-        detail.pack(fill="x", pady=(10, 0))
+        detail.pack(fill="x", pady=(0, 0))
 
         self.library_detail_number_var = tk.StringVar()
         self.library_detail_title_var = tk.StringVar()
@@ -911,9 +916,9 @@ class PatentWorkbenchApp(tk.Tk):
             height=6,
             borderwidth=0,
             highlightthickness=1,
-            highlightbackground="#E5E7EB",
-            selectbackground="#EEF2FF",
-            selectforeground="#111827",
+            highlightbackground="#DDE3EA",
+            selectbackground="#EAF3FB",
+            selectforeground="#25364A",
             font=("Segoe UI", 9),
         )
         self.library_evidence_list.pack(side="left", fill="both", expand=True)
@@ -925,9 +930,9 @@ class PatentWorkbenchApp(tk.Tk):
             wrap="word",
             borderwidth=0,
             highlightthickness=1,
-            highlightbackground="#E5E7EB",
-            background="#F9FAFB",
-            foreground="#374151",
+            highlightbackground="#DDE3EA",
+            background="#F9FBFC",
+            foreground="#52677B",
             font=("Segoe UI", 9),
             padx=10,
             pady=8,
@@ -948,12 +953,14 @@ class PatentWorkbenchApp(tk.Tk):
             actions,
             text="打开 PDF",
             command=self.open_selected_library_pdf,
+            style="Ghost.TButton",
         ).pack(side="left", padx=(8, 0))
         ttk.Button(
             actions,
             text="打开所在目录",
             command=self.open_selected_library_folder,
-        ).pack(side="left", padx=(8, 0))
+            style="Quiet.TButton",
+        ).pack(side="left", padx=(4, 0))
 
         detail.columnconfigure(1, weight=2)
         detail.columnconfigure(2, weight=1)
@@ -1038,9 +1045,21 @@ class PatentWorkbenchApp(tk.Tk):
             textvariable=self.evidence_topic_var,
             width=16,
         ).pack(side="left", padx=(8, 0))
-        ttk.Button(toolbar, text="搜索", command=self.refresh_evidence).pack(
-            side="left", padx=(8, 0)
-        )
+        ttk.Button(
+            toolbar,
+            text="搜索",
+            command=self.refresh_evidence,
+            style="Accent.TButton",
+        ).pack(side="left", padx=(8, 0))
+
+        evidence_summary = ttk.Frame(self.evidence_tab, style="Surface.TFrame", padding=(12, 8))
+        evidence_summary.pack(fill="x", pady=(0, 8))
+        self.evidence_summary_var = tk.StringVar(value="Evidence 0")
+        ttk.Label(
+            evidence_summary,
+            textvariable=self.evidence_summary_var,
+            style="SurfaceSubtle.TLabel",
+        ).pack(side="left")
 
         pane = ttk.Panedwindow(self.evidence_tab, orient="horizontal")
         pane.pack(fill="both", expand=True)
@@ -1113,6 +1132,7 @@ class PatentWorkbenchApp(tk.Tk):
                 "No evidence found.\n\n从 Search 页面使用“采集 URL / 文件”创建第一条 Evidence。",
             )
         self.evidence_preview.configure(state="disabled")
+        self.evidence_summary_var.set(f"Evidence {len(self._evidence_center_records)}")
         self._set_status(f"Evidence：{len(self._evidence_center_records)} 条")
 
     def _load_evidence_center_preview(self, _event=None) -> None:
