@@ -7,6 +7,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 APP_DIR_NAME = "PatentIntelligenceWorkbench"
+UNIFIED_DB_NAME = "workbench.db"
+LEGACY_LIBRARY_DB_NAME = "patent_library.db"
+LEGACY_WATCH_DB_NAME = "patent_watch.db"
 
 
 @dataclass(frozen=True, slots=True)
@@ -16,6 +19,18 @@ class AppPaths:
     watch_db: Path
     downloads: Path
     exports: Path
+
+    @classmethod
+    def for_root(cls, root: str | Path) -> AppPaths:
+        resolved = Path(root).expanduser()
+        library_db, watch_db = _database_paths(resolved)
+        return cls(
+            root=resolved,
+            library_db=library_db,
+            watch_db=watch_db,
+            downloads=resolved / "downloads",
+            exports=resolved / "exports",
+        )
 
     @classmethod
     def default(cls) -> AppPaths:
@@ -32,16 +47,31 @@ class AppPaths:
         else:
             root = Path.home() / ".local" / "share" / APP_DIR_NAME
 
-        return cls(
-            root=root,
-            library_db=root / "patent_library.db",
-            watch_db=root / "patent_watch.db",
-            downloads=root / "downloads",
-            exports=root / "exports",
-        )
+        return cls.for_root(root)
+
+    @property
+    def uses_unified_database(self) -> bool:
+        return self.library_db == self.watch_db
 
     def ensure(self) -> AppPaths:
         self.root.mkdir(parents=True, exist_ok=True)
         self.downloads.mkdir(parents=True, exist_ok=True)
         self.exports.mkdir(parents=True, exist_ok=True)
         return self
+
+
+def _database_paths(root: Path) -> tuple[Path, Path]:
+    unified = root / UNIFIED_DB_NAME
+    legacy_library = root / LEGACY_LIBRARY_DB_NAME
+    legacy_watch = root / LEGACY_WATCH_DB_NAME
+
+    if unified.exists():
+        return unified, unified
+
+    # Existing development/user data is kept on its legacy paths to avoid
+    # silent data loss. Fresh installations use one database for all local
+    # library and watch tables.
+    if legacy_library.exists() or legacy_watch.exists():
+        return legacy_library, legacy_watch
+
+    return unified, unified
