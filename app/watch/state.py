@@ -167,6 +167,22 @@ class SQLiteWatchStateStore:
         )
         self.connection.commit()
 
+    def publication_family_key(
+        self,
+        rule_id: str,
+        publication_number: str,
+    ) -> str | None:
+        row = self.connection.execute(
+            """
+            SELECT family_key FROM watch_seen_publication
+            WHERE rule_id = ? AND publication_number = ?
+            """,
+            (rule_id, publication_number),
+        ).fetchone()
+        if row is None:
+            return None
+        return row["family_key"]
+
     def publication_seen(self, rule_id: str, publication_number: str) -> bool:
         row = self.connection.execute(
             """
