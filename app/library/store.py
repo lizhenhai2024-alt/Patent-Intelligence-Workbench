@@ -15,6 +15,7 @@ from pathlib import Path
 
 from app.domain.family import PatentFamily, PatentPublication
 from app.library.models import (
+    EvidenceRecord,
     LibraryClassification,
     LibraryDocument,
     LibraryFamilySummary,
@@ -184,6 +185,28 @@ class SQLitePatentLibrary:
                 ON library_tag(tag);
             CREATE INDEX IF NOT EXISTS idx_library_provenance_type
                 ON library_provenance(source_type);
+
+            CREATE TABLE IF NOT EXISTS library_evidence (
+                evidence_id TEXT PRIMARY KEY,
+                source TEXT NOT NULL,
+                source_type TEXT NOT NULL,
+                title TEXT,
+                markdown TEXT NOT NULL,
+                metadata_json TEXT NOT NULL DEFAULT '{}',
+                captured_at TEXT NOT NULL,
+                publication_number TEXT,
+                company_group TEXT,
+                technology_topic TEXT,
+                tags_json TEXT NOT NULL DEFAULT '[]',
+                FOREIGN KEY(publication_number)
+                    REFERENCES library_publication(publication_number)
+                    ON DELETE SET NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_library_evidence_publication
+                ON library_evidence(publication_number);
+            CREATE INDEX IF NOT EXISTS idx_library_evidence_source_type
+                ON library_evidence(source_type);
             """
         )
         self._ensure_column("library_publication", "filing_date", "TEXT")
@@ -534,6 +557,92 @@ class SQLitePatentLibrary:
             commit=False,
         )
         self.connection.commit()
+
+    def add_evidence(self, record: EvidenceRecord) -> None:
+        publication = record.publication_number
+        if publication:
+            self._require_publication(publication)
+        self.connection.execute(
+            """
+            INSERT INTO library_evidence (
+                evidence_id, source, source_type, title, markdown,
+                metadata_json, captured_at, publication_number,
+                company_group, technology_topic, tags_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(evidence_id) DO UPDATE SET
+                source=excluded.source,
+                source_type=excluded.source_type,
+                title=excluded.title,
+                markdown=excluded.markdown,
+                metadata_json=excluded.metadata_json,
+                captured_at=excluded.captured_at,
+                publication_number=excluded.publication_number,
+                company_group=excluded.company_group,
+                technology_topic=excluded.technology_topic,
+                tags_json=excluded.tags_json
+            """,
+            (
+                record.evidence_id,
+                record.source,
+                record.source_type,
+                record.title,
+                record.markdown,
+                record.metadata_json,
+                record.captured_at.isoformat(),
+                publication,
+                record.company_group,
+                record.technology_topic,
+                json.dumps(record.tags, ensure_ascii=False),
+            ),
+        )
+        if publication:
+            self.add_provenance(
+                publication,
+                "EVIDENCE",
+                record.source,
+                seen_at=record.captured_at,
+                commit=False,
+            )
+        self.connection.commit()
+
+    def list_evidence(
+        self,
+        *,
+        publication_number: str | None = None,
+        text: str | None = None,
+        limit: int = 200,
+    ) -> tuple[EvidenceRecord, ...]:
+        clauses: list[str] = []
+        params: list[object] = []
+        if publication_number:
+            clauses.append("publication_number = ?")
+            params.append(publication_number)
+        if text and text.strip():
+            needle = f"%{text.strip()}%"
+            clauses.append("(source LIKE ? OR title LIKE ? OR markdown LIKE ?)")
+            params.extend((needle, needle, needle))
+        sql = "SELECT * FROM library_evidence"
+        if clauses:
+            sql += " WHERE " + " AND ".join(clauses)
+        sql += " ORDER BY captured_at DESC LIMIT ?"
+        params.append(limit)
+        rows = self.connection.execute(sql, params).fetchall()
+        return tuple(
+            EvidenceRecord(
+                evidence_id=row["evidence_id"],
+                source=row["source"],
+                source_type=row["source_type"],
+                title=row["title"],
+                markdown=row["markdown"],
+                metadata_json=row["metadata_json"],
+                captured_at=datetime.fromisoformat(row["captured_at"]),
+                publication_number=row["publication_number"],
+                company_group=row["company_group"],
+                technology_topic=row["technology_topic"],
+                tags=tuple(json.loads(row["tags_json"] or "[]")),
+            )
+            for row in rows
+        )
 
     def get_patent(self, publication_number: str) -> LibraryPatent | None:
         row = self.connection.execute(

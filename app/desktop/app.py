@@ -22,6 +22,7 @@ class PatentWorkbenchApp(tk.Tk):
         super().__init__()
         self.runtime = runtime
         self._current_family: PatentFamily | None = None
+        self._current_acquisition = None
 
         self.title("Patent Intelligence Workbench")
         self.geometry("1280x820")
@@ -184,6 +185,19 @@ class PatentWorkbenchApp(tk.Tk):
             text="选择本地文件",
             command=self.choose_acquisition_file,
         ).pack(side="left", padx=(8, 0))
+        ttk.Button(
+            actions,
+            text="保存为证据",
+            command=self.save_current_acquisition,
+        ).pack(side="left", padx=(8, 0))
+
+        self.acquisition_link_var = tk.StringVar()
+        ttk.Entry(
+            actions,
+            textvariable=self.acquisition_link_var,
+            width=24,
+        ).pack(side="left", padx=(12, 0))
+        ttk.Label(actions, text="关联专利号（可选）").pack(side="left", padx=(4, 0))
 
         self.acquisition_preview = tk.Text(self.search_tab, height=9, wrap="word")
         self.acquisition_preview.pack(fill="x", pady=(8, 0))
@@ -708,14 +722,45 @@ class PatentWorkbenchApp(tk.Tk):
         )
 
     def _render_acquisition_result(self, result) -> None:
+        self._current_acquisition = result
         preview = result.markdown[:12000]
         self.acquisition_preview.configure(state="normal")
         self.acquisition_preview.delete("1.0", "end")
         self.acquisition_preview.insert("1.0", preview)
         self.acquisition_preview.configure(state="disabled")
+        if not self.acquisition_link_var.get().strip():
+            try:
+                normalized = normalize_patent_number(self.search_query_var.get().strip())
+            except PatentNumberError:
+                normalized = None
+            if normalized is not None:
+                self.acquisition_link_var.set(normalized.canonical)
         self._set_status(
             f"采集完成：{result.kind.value} · {len(result.markdown)} 字符 · {result.source}"
         )
+
+    def save_current_acquisition(self) -> None:
+        result = self._current_acquisition
+        if result is None:
+            messagebox.showinfo("没有采集结果", "请先采集 URL 或本地文件。")
+            return
+        try:
+            record = self.runtime.library_service.save_acquisition_evidence(
+                source=result.source,
+                source_type=result.kind.value,
+                title=result.title,
+                markdown=result.markdown,
+                metadata=result.metadata,
+                publication_number=self.acquisition_link_var.get().strip() or None,
+                company_group=self.search_company_var.get().strip() or None,
+                technology_topic=self.search_query_var.get().strip() or None,
+            )
+        except Exception as exc:
+            messagebox.showerror("保存证据失败", str(exc))
+            return
+        self.refresh_library()
+        linked = record.publication_number or "未关联专利"
+        self._set_status(f"证据已保存：{record.evidence_id} · {linked}")
 
     def run_search(self) -> None:
         service = self.runtime.search_service

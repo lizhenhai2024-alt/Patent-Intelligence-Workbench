@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from app.core.patent_number import PatentNumberError, normalize_patent_number
@@ -11,7 +13,7 @@ from app.domain.family import PatentFamily, PatentPublication
 from app.domain.search import SearchResponse
 from app.downloads.family import FamilyDownloadSummary
 from app.library.export import export_csv, export_xlsx
-from app.library.models import LibraryPatent, LibraryQuery
+from app.library.models import EvidenceRecord, LibraryPatent, LibraryQuery
 from app.library.store import SQLitePatentLibrary
 from app.watch.models import WatchEvent
 
@@ -22,6 +24,53 @@ class PatentLibraryService:
 
     def search(self, query: LibraryQuery | None = None) -> tuple[LibraryPatent, ...]:
         return self.store.query(query)
+
+    def save_acquisition_evidence(
+        self,
+        *,
+        source: str,
+        source_type: str,
+        markdown: str,
+        title: str | None = None,
+        metadata: dict[str, object] | None = None,
+        publication_number: str | None = None,
+        company_group: str | None = None,
+        technology_topic: str | None = None,
+        tags: tuple[str, ...] = (),
+        captured_at: datetime | None = None,
+    ) -> EvidenceRecord:
+        stamp = captured_at or datetime.now(UTC)
+        linked_publication = None
+        if publication_number and publication_number.strip():
+            linked_publication = _canonical_or_raw(publication_number)
+            if self.store.get_patent(linked_publication) is None:
+                jurisdiction = linked_publication[:2]
+                self.store.upsert_publication(
+                    _placeholder_publication(
+                        linked_publication,
+                        jurisdiction=jurisdiction,
+                    ),
+                    source="ACQUISITION",
+                    seen_at=stamp,
+                )
+        digest = hashlib.sha256(
+            f"{source}\n{linked_publication or ''}\n{markdown}".encode()
+        ).hexdigest()[:24]
+        record = EvidenceRecord(
+            evidence_id=f"ev-{digest}",
+            source=source,
+            source_type=source_type.upper(),
+            title=title,
+            markdown=markdown,
+            metadata_json=json.dumps(metadata or {}, ensure_ascii=False, default=str),
+            captured_at=stamp,
+            publication_number=linked_publication,
+            company_group=company_group or None,
+            technology_topic=technology_topic or None,
+            tags=tuple(dict.fromkeys(tag.strip() for tag in tags if tag.strip())),
+        )
+        self.store.add_evidence(record)
+        return record
 
     def ingest_search_response(
         self,

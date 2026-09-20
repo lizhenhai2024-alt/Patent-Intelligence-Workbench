@@ -127,3 +127,18 @@ class LibraryQuery:
     favorite_only: bool = False
     has_pdf: bool | None = None
     limit: int = 500
+
+
+@dataclass(frozen=True, slots=True)
+class EvidenceRecord:
+    evidence_id: str
+    source: str
+    source_type: str
+    title: str | None
+    markdown: str
+    metadata_json: str
+    captured_at: datetime
+    publication_number: str | None = None
+    company_group: str | None = None
+    technology_topic: str | None = None
+    tags: tuple[str, ...] = ()
