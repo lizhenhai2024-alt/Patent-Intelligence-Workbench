@@ -82,7 +82,9 @@ RC:
 - [ ] Quick Start is current;
 - [ ] CI and Windows Build are green;
 - [ ] artifact checksum is available;
-- [ ] tag convention: `v1.0.0-rc.1`.
+- [ ] tag convention: `v1.0.0-rc.1`;
+- [ ] successful main-branch Windows build triggers the idempotent RC publisher;
+- [ ] prerelease contains EXE, `BUILD_INFO.txt` and `SHA256SUMS.txt`.
 
 Stable:
 
