@@ -8,6 +8,7 @@ from tkinter import filedialog, messagebox, ttk
 
 from app.core.patent_number import PatentNumberError, normalize_patent_number
 from app.desktop.async_runner import run_async_in_thread
+from app.desktop.opening import open_local_path
 from app.desktop.presenters import patent_row, watch_history_row, watch_rule_row
 from app.desktop.runtime import DesktopRuntime
 from app.domain.family import FamilyType, PatentFamily
@@ -48,9 +49,10 @@ class PatentWorkbenchApp(tk.Tk):
             text="Patent Intelligence Workbench",
             style="Title.TLabel",
         ).pack(side="left")
+        self.network_status_var = tk.StringVar(value=self.runtime.search_status)
         ttk.Label(
             header,
-            text=self.runtime.search_status,
+            textvariable=self.network_status_var,
             style="Subtle.TLabel",
         ).pack(side="right")
 
@@ -61,16 +63,19 @@ class PatentWorkbenchApp(tk.Tk):
         self.family_tab = ttk.Frame(self.notebook, padding=10)
         self.watch_tab = ttk.Frame(self.notebook, padding=10)
         self.library_tab = ttk.Frame(self.notebook, padding=10)
+        self.settings_tab = ttk.Frame(self.notebook, padding=10)
 
         self.notebook.add(self.search_tab, text="Search")
         self.notebook.add(self.family_tab, text="Family")
         self.notebook.add(self.watch_tab, text="Patent Watch")
         self.notebook.add(self.library_tab, text="Local Library")
+        self.notebook.add(self.settings_tab, text="Settings")
 
         self._build_search_tab()
         self._build_family_tab()
         self._build_watch_tab()
         self._build_library_tab()
+        self._build_settings_tab()
 
         self.status_var = tk.StringVar(value="就绪")
         ttk.Label(
@@ -94,15 +99,24 @@ class PatentWorkbenchApp(tk.Tk):
         self.search_company_var = tk.StringVar()
         companies = [
             group.display_name
-            for group in self.runtime.search_service.company_registry.groups
-        ] if self.runtime.search_service else []
-        company_box = ttk.Combobox(
+            for group in (
+                self.runtime.search_service.company_registry.groups
+                if self.runtime.search_service
+                else ()
+            )
+        ]
+        self.search_company_box = ttk.Combobox(
             form,
             textvariable=self.search_company_var,
             values=companies,
             width=26,
         )
-        company_box.grid(row=1, column=1, padx=(0, 8), sticky="ew")
+        self.search_company_box.grid(
+            row=1,
+            column=1,
+            padx=(0, 8),
+            sticky="ew",
+        )
 
         ttk.Label(form, text="国家").grid(row=0, column=2, sticky="w")
         self.search_jurisdiction_var = tk.StringVar(
@@ -324,20 +338,334 @@ class PatentWorkbenchApp(tk.Tk):
 
         self.library_tree = ttk.Treeview(
             self.library_tab,
-            columns=("number", "country", "title", "company", "topic", "favorite"),
+            columns=(
+                "number",
+                "country",
+                "title",
+                "company",
+                "topic",
+                "favorite",
+            ),
             show="headings",
+            height=13,
+            selectmode="browse",
         )
         for column, title, width in (
             ("number", "公开号", 180),
             ("country", "国家", 70),
-            ("title", "标题", 420),
-            ("company", "公司", 190),
-            ("topic", "技术主题", 220),
+            ("title", "标题", 410),
+            ("company", "公司", 180),
+            ("topic", "技术主题", 210),
             ("favorite", "收藏", 60),
         ):
             self.library_tree.heading(column, text=title)
             self.library_tree.column(column, width=width, anchor="w")
         self.library_tree.pack(fill="both", expand=True)
+        self.library_tree.bind(
+            "<<TreeviewSelect>>",
+            self._load_library_detail,
+        )
+
+        detail = ttk.LabelFrame(
+            self.library_tab,
+            text="专利详情 / 本地整理",
+            padding=10,
+        )
+        detail.pack(fill="x", pady=(10, 0))
+
+        self.library_detail_number_var = tk.StringVar()
+        self.library_detail_title_var = tk.StringVar()
+        self.library_favorite_var = tk.BooleanVar(value=False)
+        self.library_tags_var = tk.StringVar()
+        self.library_projects_var = tk.StringVar()
+
+        ttk.Label(detail, text="公开号").grid(row=0, column=0, sticky="w")
+        ttk.Label(
+            detail,
+            textvariable=self.library_detail_number_var,
+        ).grid(row=0, column=1, sticky="w", padx=(6, 18))
+        ttk.Checkbutton(
+            detail,
+            text="收藏",
+            variable=self.library_favorite_var,
+        ).grid(row=0, column=2, sticky="w")
+
+        ttk.Label(detail, text="标题").grid(row=1, column=0, sticky="nw")
+        ttk.Label(
+            detail,
+            textvariable=self.library_detail_title_var,
+            wraplength=900,
+        ).grid(row=1, column=1, columnspan=4, sticky="w", padx=(6, 0))
+
+        ttk.Label(detail, text="标签").grid(row=2, column=0, sticky="w")
+        ttk.Entry(
+            detail,
+            textvariable=self.library_tags_var,
+        ).grid(row=2, column=1, columnspan=2, sticky="ew", padx=(6, 14))
+
+        ttk.Label(detail, text="项目").grid(row=2, column=3, sticky="w")
+        ttk.Entry(
+            detail,
+            textvariable=self.library_projects_var,
+        ).grid(row=2, column=4, sticky="ew", padx=(6, 0))
+
+        ttk.Label(detail, text="备注").grid(row=3, column=0, sticky="nw")
+        self.library_note_text = tk.Text(detail, height=3, wrap="word")
+        self.library_note_text.grid(
+            row=3,
+            column=1,
+            columnspan=4,
+            sticky="ew",
+            padx=(6, 0),
+            pady=(5, 0),
+        )
+
+        ttk.Label(detail, text="本地 PDF").grid(row=4, column=0, sticky="nw")
+        self.library_pdf_list = tk.Listbox(detail, height=3)
+        self.library_pdf_list.grid(
+            row=4,
+            column=1,
+            columnspan=4,
+            sticky="ew",
+            padx=(6, 0),
+            pady=(5, 0),
+        )
+
+        actions = ttk.Frame(detail)
+        actions.grid(row=5, column=1, columnspan=4, sticky="w", pady=(8, 0))
+        ttk.Button(
+            actions,
+            text="保存详情",
+            command=self.save_library_detail,
+        ).pack(side="left")
+        ttk.Button(
+            actions,
+            text="打开 PDF",
+            command=self.open_selected_library_pdf,
+        ).pack(side="left", padx=(8, 0))
+        ttk.Button(
+            actions,
+            text="打开所在目录",
+            command=self.open_selected_library_folder,
+        ).pack(side="left", padx=(8, 0))
+
+        detail.columnconfigure(1, weight=2)
+        detail.columnconfigure(2, weight=1)
+        detail.columnconfigure(4, weight=2)
+
+    def _build_settings_tab(self) -> None:
+        credentials = self.runtime.current_epo_credentials()
+
+        frame = ttk.LabelFrame(
+            self.settings_tab,
+            text="EPO Open Patent Services",
+            padding=12,
+        )
+        frame.pack(fill="x")
+
+        self.epo_key_var = tk.StringVar(
+            value=credentials.consumer_key if credentials else ""
+        )
+        self.epo_secret_var = tk.StringVar(
+            value=credentials.consumer_secret if credentials else ""
+        )
+        self.settings_status_var = tk.StringVar(value=self.runtime.search_status)
+
+        ttk.Label(frame, text="Consumer Key").grid(
+            row=0,
+            column=0,
+            sticky="w",
+        )
+        ttk.Entry(
+            frame,
+            textvariable=self.epo_key_var,
+            width=56,
+        ).grid(row=1, column=0, padx=(0, 10), sticky="ew")
+
+        ttk.Label(frame, text="Consumer Secret").grid(
+            row=0,
+            column=1,
+            sticky="w",
+        )
+        ttk.Entry(
+            frame,
+            textvariable=self.epo_secret_var,
+            show="●",
+            width=56,
+        ).grid(row=1, column=1, padx=(0, 10), sticky="ew")
+
+        self.save_credentials_button = ttk.Button(
+            frame,
+            text="安全保存",
+            command=self.save_epo_settings,
+        )
+        self.save_credentials_button.grid(row=1, column=2, padx=(0, 8))
+        if not self.runtime.credential_store.persistent_available:
+            self.save_credentials_button.state(["disabled"])
+
+        ttk.Button(
+            frame,
+            text="删除已保存凭据",
+            command=self.delete_epo_settings,
+        ).grid(row=1, column=3)
+
+        ttk.Label(
+            frame,
+            textvariable=self.settings_status_var,
+            style="Subtle.TLabel",
+        ).grid(row=2, column=0, columnspan=4, sticky="w", pady=(10, 0))
+
+        frame.columnconfigure(0, weight=1)
+        frame.columnconfigure(1, weight=1)
+
+        local = ttk.LabelFrame(
+            self.settings_tab,
+            text="本地数据",
+            padding=12,
+        )
+        local.pack(fill="x", pady=(12, 0))
+        ttk.Label(
+            local,
+            text=str(self.runtime.paths.root),
+        ).pack(side="left", fill="x", expand=True)
+        ttk.Button(
+            local,
+            text="打开数据目录",
+            command=lambda: open_local_path(self.runtime.paths.root),
+        ).pack(side="right")
+
+        note = (
+            "Windows：凭据保存在系统 Credential Manager；"
+            "不会写入 SQLite、JSON 或 Git 仓库。"
+            if self.runtime.credential_store.persistent_available
+            else "当前平台不提供桌面持久化凭据；可通过环境变量 "
+            "EPO_OPS_KEY / EPO_OPS_SECRET 使用网络功能。"
+        )
+        ttk.Label(
+            self.settings_tab,
+            text=note,
+            style="Subtle.TLabel",
+            wraplength=920,
+        ).pack(anchor="w", pady=(12, 0))
+
+    def save_epo_settings(self) -> None:
+        key = self.epo_key_var.get().strip()
+        secret = self.epo_secret_var.get().strip()
+        if not key or not secret:
+            messagebox.showinfo(
+                "缺少凭据",
+                "Consumer Key 和 Consumer Secret 都必须填写。",
+            )
+            return
+        try:
+            self.runtime.save_epo_credentials(key, secret)
+        except Exception as exc:
+            messagebox.showerror("保存失败", str(exc))
+            return
+        self._refresh_network_controls()
+        self._set_status("EPO OPS 凭据已安全保存")
+
+    def delete_epo_settings(self) -> None:
+        try:
+            self.runtime.delete_epo_credentials()
+        except Exception as exc:
+            messagebox.showerror("删除失败", str(exc))
+            return
+        credentials = self.runtime.current_epo_credentials()
+        self.epo_key_var.set(credentials.consumer_key if credentials else "")
+        self.epo_secret_var.set(
+            credentials.consumer_secret if credentials else ""
+        )
+        self._refresh_network_controls()
+        self._set_status("已删除 Windows Credential Manager 中的 EPO 凭据")
+
+    def _refresh_network_controls(self) -> None:
+        enabled = self.runtime.search_service is not None
+        state = ["!disabled"] if enabled else ["disabled"]
+        self.search_button.state(state)
+        self.family_analyze_button.state(state)
+        self.run_watch_button.state(
+            ["!disabled"] if self.runtime.watch_scheduler else ["disabled"]
+        )
+        self.network_status_var.set(self.runtime.search_status)
+        self.settings_status_var.set(self.runtime.search_status)
+
+        if self.runtime.search_service:
+            companies = [
+                group.display_name
+                for group in self.runtime.search_service.company_registry.groups
+            ]
+            self.search_company_box.configure(values=companies)
+        else:
+            self.search_company_box.configure(values=())
+
+    def _load_library_detail(self, _event=None) -> None:
+        selection = self.library_tree.selection()
+        if not selection:
+            return
+        patent = self.runtime.library_store.get_patent(selection[0])
+        if patent is None:
+            return
+
+        self.library_detail_number_var.set(patent.publication_number)
+        self.library_detail_title_var.set(patent.title or "")
+        self.library_favorite_var.set(patent.favorite)
+        self.library_tags_var.set(", ".join(patent.tags))
+        self.library_projects_var.set(", ".join(patent.projects))
+
+        self.library_note_text.delete("1.0", "end")
+        self.library_note_text.insert("1.0", patent.note or "")
+
+        self.library_pdf_list.delete(0, "end")
+        for path in patent.pdf_paths:
+            self.library_pdf_list.insert("end", str(path))
+
+    def save_library_detail(self) -> None:
+        number = self.library_detail_number_var.get().strip()
+        if not number:
+            return
+        tags = _split_values(self.library_tags_var.get())
+        projects = _split_values(self.library_projects_var.get())
+        note = self.library_note_text.get("1.0", "end").strip() or None
+
+        store = self.runtime.library_store
+        try:
+            store.set_favorite(number, self.library_favorite_var.get())
+            store.set_note(number, note)
+            store.replace_tags(number, tags)
+            store.replace_projects(number, projects)
+        except Exception as exc:
+            messagebox.showerror("保存失败", str(exc))
+            return
+
+        self.refresh_library()
+        if self.library_tree.exists(number):
+            self.library_tree.selection_set(number)
+            self.library_tree.see(number)
+            self._load_library_detail()
+        self._set_status(f"已保存 {number} 的本地库信息")
+
+    def open_selected_library_pdf(self) -> None:
+        selection = self.library_pdf_list.curselection()
+        if not selection:
+            messagebox.showinfo("没有 PDF", "请选择一个本地 PDF。")
+            return
+        try:
+            open_local_path(self.library_pdf_list.get(selection[0]))
+        except Exception as exc:
+            messagebox.showerror("打开失败", str(exc))
+
+    def open_selected_library_folder(self) -> None:
+        selection = self.library_pdf_list.curselection()
+        if selection:
+            path = self.library_pdf_list.get(selection[0])
+            target = __import__("pathlib").Path(path).parent
+        else:
+            target = self.runtime.paths.downloads
+        try:
+            open_local_path(target)
+        except Exception as exc:
+            messagebox.showerror("打开失败", str(exc))
 
     def run_search(self) -> None:
         service = self.runtime.search_service
@@ -615,6 +943,17 @@ class PatentWorkbenchApp(tk.Tk):
     def _on_close(self) -> None:
         self.runtime.close()
         self.destroy()
+
+
+def _split_values(value: str) -> tuple[str, ...]:
+    normalized = value.replace("，", ",").replace(";", ",").replace("；", ",")
+    return tuple(
+        dict.fromkeys(
+            item.strip()
+            for item in normalized.split(",")
+            if item.strip()
+        )
+    )
 
 
 def run_desktop(runtime: DesktopRuntime | None = None) -> None:

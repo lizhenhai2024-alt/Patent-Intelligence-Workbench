@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 
 from app.core.company_registry import CompanyRegistry
 from app.core.technology_dictionary import TechnologyDictionary
+from app.desktop.credentials import CredentialStore, DesktopCredentialStore, EpoOpsCredentials
 from app.desktop.paths import AppPaths
 from app.downloads.factory import build_default_download_manager
 from app.downloads.family import FamilyDownloader
@@ -27,14 +27,20 @@ class DesktopRuntime:
     library_store: SQLitePatentLibrary
     library_service: PatentLibraryService
     watch_store: SQLiteWatchStateStore
-    search_service: SearchService | None
-    family_resolver: FamilyResolver | None
     family_downloader: FamilyDownloader
-    watch_scheduler: PatentWatchScheduler | None
-    search_status: str
+    credential_store: CredentialStore
+    search_service: SearchService | None = None
+    family_resolver: FamilyResolver | None = None
+    watch_scheduler: PatentWatchScheduler | None = None
+    search_status: str = "EPO OPS 未配置"
+    credential_source: str | None = None
 
     @classmethod
-    def create(cls, paths: AppPaths | None = None) -> DesktopRuntime:
+    def create(
+        cls,
+        paths: AppPaths | None = None,
+        credential_store: CredentialStore | None = None,
+    ) -> DesktopRuntime:
         resolved_paths = (paths or AppPaths.default()).ensure()
         library_store = SQLitePatentLibrary(resolved_paths.library_db)
         watch_store = SQLiteWatchStateStore(resolved_paths.watch_db)
@@ -45,48 +51,78 @@ class DesktopRuntime:
                 default_v1_watch_templates(),
             )
 
-        family_downloader = FamilyDownloader(build_default_download_manager())
-        epo_key = os.getenv("EPO_OPS_KEY")
-        epo_secret = os.getenv("EPO_OPS_SECRET")
-        search_service: SearchService | None = None
-        family_resolver: FamilyResolver | None = None
-        watch_scheduler: PatentWatchScheduler | None = None
-
-        if epo_key and epo_secret:
-            epo = EpoOpsProvider(
-                consumer_key=epo_key,
-                consumer_secret=epo_secret,
-            )
-            search_service = SearchService(
-                provider=epo,
-                company_registry=CompanyRegistry.default(),
-                technology_dictionary=TechnologyDictionary.default(),
-            )
-            family_resolver = FamilyResolver([epo])
-            watch_engine = PatentWatchEngine(
-                search_service=search_service,
-                family_resolver=family_resolver,
-                state_store=watch_store,
-            )
-            watch_scheduler = PatentWatchScheduler(
-                engine=watch_engine,
-                state_store=watch_store,
-            )
-            search_status = "EPO OPS 已配置"
-        else:
-            search_status = "EPO OPS 未配置：设置 EPO_OPS_KEY / EPO_OPS_SECRET"
-
-        return cls(
+        runtime = cls(
             paths=resolved_paths,
             library_store=library_store,
             library_service=PatentLibraryService(library_store),
             watch_store=watch_store,
-            search_service=search_service,
-            family_resolver=family_resolver,
-            family_downloader=family_downloader,
-            watch_scheduler=watch_scheduler,
-            search_status=search_status,
+            family_downloader=FamilyDownloader(build_default_download_manager()),
+            credential_store=credential_store or DesktopCredentialStore(),
         )
+        runtime.reload_network_services()
+        return runtime
+
+    def reload_network_services(self) -> None:
+        credentials = self.credential_store.load_epo_ops()
+        if credentials is None:
+            self.search_service = None
+            self.family_resolver = None
+            self.watch_scheduler = None
+            self.credential_source = None
+            self.search_status = (
+                "EPO OPS 未配置：请在 Settings 中填写 Consumer Key / Secret"
+            )
+            return
+
+        self._configure_epo(credentials)
+
+    def save_epo_credentials(
+        self,
+        consumer_key: str,
+        consumer_secret: str,
+    ) -> None:
+        self.credential_store.save_epo_ops(consumer_key, consumer_secret)
+        self._configure_epo(
+            EpoOpsCredentials(
+                consumer_key=consumer_key.strip(),
+                consumer_secret=consumer_secret.strip(),
+                source="windows-credential-manager",
+            )
+        )
+
+    def delete_epo_credentials(self) -> None:
+        self.credential_store.delete_epo_ops()
+        self.reload_network_services()
+
+    def current_epo_credentials(self) -> EpoOpsCredentials | None:
+        return self.credential_store.load_epo_ops()
+
+    def _configure_epo(self, credentials: EpoOpsCredentials) -> None:
+        epo = EpoOpsProvider(
+            consumer_key=credentials.consumer_key,
+            consumer_secret=credentials.consumer_secret,
+        )
+        self.search_service = SearchService(
+            provider=epo,
+            company_registry=CompanyRegistry.default(),
+            technology_dictionary=TechnologyDictionary.default(),
+        )
+        self.family_resolver = FamilyResolver([epo])
+        watch_engine = PatentWatchEngine(
+            search_service=self.search_service,
+            family_resolver=self.family_resolver,
+            state_store=self.watch_store,
+        )
+        self.watch_scheduler = PatentWatchScheduler(
+            engine=watch_engine,
+            state_store=self.watch_store,
+        )
+        self.credential_source = credentials.source
+        source_label = {
+            "windows-credential-manager": "Windows Credential Manager",
+            "environment": "环境变量",
+        }.get(credentials.source, credentials.source)
+        self.search_status = f"EPO OPS 已配置（{source_label}）"
 
     def close(self) -> None:
         self.library_store.close()

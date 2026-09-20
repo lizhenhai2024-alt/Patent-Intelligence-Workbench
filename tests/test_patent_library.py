@@ -127,3 +127,21 @@ def test_duplicate_relations_are_idempotent(tmp_path):
     assert patent.tags == ("重点",)
     assert patent.projects == ("CDC",)
     library.close()
+
+
+def test_replace_tags_and_projects_is_transactional_and_deduplicated(tmp_path):
+    library = SQLitePatentLibrary(tmp_path / "library.db")
+    library.upsert_family(_family())
+
+    number = "JP2024000123A"
+    library.add_tag(number, "old")
+    library.add_project(number, "old-project")
+
+    library.replace_tags(number, ("重点", "重点", " 结构 "))
+    library.replace_projects(number, ("CDC", " 双阀研究 ", "CDC"))
+
+    patent = library.get_patent(number)
+    assert patent is not None
+    assert patent.tags == ("结构", "重点")
+    assert patent.projects == ("CDC", "双阀研究")
+    library.close()
