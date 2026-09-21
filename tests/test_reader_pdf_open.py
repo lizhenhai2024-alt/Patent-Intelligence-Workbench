@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
-from types import SimpleNamespace
 
 from app.desktop.app import PatentWorkbenchApp
 from app.desktop.paths import AppPaths
