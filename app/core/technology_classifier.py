@@ -33,6 +33,20 @@ _DOMAIN_TEXT_TERMS = (
 _DOMAIN_CLASS_PREFIXES = ("B60G", "F16F9")
 
 
+def _normalize_text(value: str) -> str:
+    normalized = unicodedata.normalize("NFKC", value).casefold()
+    normalized = normalized.replace("_", " ")
+    normalized = re.sub(r"[^\w]+", " ", normalized, flags=re.UNICODE)
+    return " ".join(normalized.split())
+
+
+# The domain gate runs for every classified document, so the normalized form of
+# these constant terms is computed once at import time instead of per call.
+_NORMALIZED_DOMAIN_TERMS: tuple[str, ...] = tuple(
+    _normalize_text(term) for term in _DOMAIN_TEXT_TERMS
+)
+
+
 @dataclass(frozen=True, slots=True)
 class TechnologyMatch:
     node_id: str
@@ -45,6 +59,10 @@ class TechnologyMatch:
 class TechnologyClassifier:
     def __init__(self, taxonomy: TechnologyTaxonomy | None = None):
         self.taxonomy = taxonomy or TechnologyTaxonomy.default()
+        # Taxonomy nodes are static, so their normalized search terms are
+        # cached per node id instead of being re-normalized for every document.
+        self._term_cache: dict[str, tuple[tuple[str, str], ...]] = {}
+        self._exclude_cache: dict[str, tuple[str, ...]] = {}
 
     def classify(
         self,
@@ -54,7 +72,7 @@ class TechnologyClassifier:
         min_score: int = 2,
         require_domain_context: bool = True,
     ) -> tuple[TechnologyMatch, ...]:
-        haystack = self._normalize_text(text)
+        haystack = _normalize_text(text)
         normalized_classes = tuple(code.upper() for code in classifications)
         if require_domain_context and not self._has_domain_context(
             haystack,
@@ -65,14 +83,11 @@ class TechnologyClassifier:
         for node in self._iter_nodes(self.taxonomy.roots):
             if node.children and not node.search_terms and not node.include_terms:
                 continue
-            terms = self._candidate_terms(node)
+            candidates = self._normalized_terms(node)
             matched_terms = tuple(
-                term for term in terms
-                if self._normalize_text(term) in haystack
+                original for original, normalized in candidates if normalized in haystack
             )
-            excluded = any(
-                self._normalize_text(term) in haystack for term in node.exclude_terms
-            )
+            excluded = any(term in haystack for term in self._normalized_excludes(node))
             if excluded:
                 continue
             matched_classes = tuple(
@@ -92,12 +107,25 @@ class TechnologyClassifier:
                 )
         return tuple(sorted(matches, key=lambda item: (-item.score, item.name)))
 
+    def _normalized_terms(self, node: TechnologyNode) -> tuple[tuple[str, str], ...]:
+        cached = self._term_cache.get(node.node_id)
+        if cached is None:
+            cached = tuple(
+                (term, _normalize_text(term)) for term in self._candidate_terms(node)
+            )
+            self._term_cache[node.node_id] = cached
+        return cached
+
+    def _normalized_excludes(self, node: TechnologyNode) -> tuple[str, ...]:
+        cached = self._exclude_cache.get(node.node_id)
+        if cached is None:
+            cached = tuple(_normalize_text(term) for term in node.exclude_terms)
+            self._exclude_cache[node.node_id] = cached
+        return cached
+
     @staticmethod
     def _normalize_text(value: str) -> str:
-        normalized = unicodedata.normalize("NFKC", value).casefold()
-        normalized = normalized.replace("_", " ")
-        normalized = re.sub(r"[^\w]+", " ", normalized, flags=re.UNICODE)
-        return " ".join(normalized.split())
+        return _normalize_text(value)
 
     @staticmethod
     def _has_domain_context(
@@ -110,10 +138,7 @@ class TechnologyClassifier:
             for prefix in _DOMAIN_CLASS_PREFIXES
         ):
             return True
-        return any(
-            TechnologyClassifier._normalize_text(term) in haystack
-            for term in _DOMAIN_TEXT_TERMS
-        )
+        return any(term in haystack for term in _NORMALIZED_DOMAIN_TERMS)
 
     @staticmethod
     def _candidate_terms(node: TechnologyNode) -> tuple[str, ...]:

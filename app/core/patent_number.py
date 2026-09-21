@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-SUPPORTED_JURISDICTIONS = frozenset({"CN", "JP", "EP", "US", "WO", "KR"})
+SUPPORTED_JURISDICTIONS = frozenset({"CN", "DE", "JP", "EP", "US", "WO", "KR"})
 _KIND_CODE_RE = re.compile(r"([A-Z]{1,2}\d{0,2})$")
 _SEPARATORS_RE = re.compile(r"[\s\-_/.,:;()\[\]{}]+")
 

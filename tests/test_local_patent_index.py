@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from app.library.local_patent_index import import_patent_folder
@@ -100,4 +101,57 @@ def test_canonical_filename_does_not_guess_title_or_assignee(tmp_path: Path):
     assert patent is not None
     assert patent.title is None
     assert patent.original_assignees == ()
+    store.close()
+
+
+def test_family_manifest_restores_family_and_member_metadata(tmp_path: Path):
+    folder = tmp_path / "Tenneco"
+    family_dir = folder / "Family_TEST-F1"
+    us_dir = family_dir / "US"
+    wo_dir = family_dir / "WO"
+    us_dir.mkdir(parents=True)
+    wo_dir.mkdir(parents=True)
+    (us_dir / "2024-US20240003399A1-Pilot damper-DRiV.pdf").write_bytes(b"%PDF-1.4")
+    (wo_dir / "2024-WO2024123456A1-Pilot damper-DRiV.pdf").write_bytes(b"%PDF-1.4")
+    manifest = {
+        "family_type": "DOCDB_SIMPLE",
+        "source": "TEST_PROVIDER",
+        "source_family_id": "TEST-F1",
+        "members": [
+            {
+                "publication_number": "US20240003399A1",
+                "jurisdiction": "US",
+                "title": "Pilot damper",
+                "publication_date": "2024-01-04",
+                "original_assignees": ["DRiV Automotive Inc."],
+                "priorities": [
+                    {
+                        "number": "US202263000001",
+                        "country": "US",
+                        "priority_date": "2022-01-03",
+                    }
+                ],
+                "classifications": [{"system": "CPC", "code": "F16F9/46", "is_main": True}],
+            },
+            {"publication_number": "WO2024123456A1", "jurisdiction": "WO", "title": "Pilot damper"},
+        ],
+        "downloads": [],
+    }
+    (family_dir / "family.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+    store = SQLitePatentLibrary(tmp_path / "library.db")
+    summary = import_patent_folder(store, folder, company_group="tenneco")
+    patent = store.get_patent("US20240003399A1")
+    families = store.list_families()
+
+    assert summary.families == 1
+    assert summary.imported == 2
+    assert patent is not None
+    assert patent.family_key is not None
+    assert patent.title == "Pilot damper"
+    assert patent.original_assignees == ("DRiV Automotive Inc.",)
+    assert patent.classifications[0].code == "F16F9/46"
+    assert patent.priorities[0].number == "US202263000001"
+    assert len(families) == 1
+    assert families[0].member_count == 2
     store.close()

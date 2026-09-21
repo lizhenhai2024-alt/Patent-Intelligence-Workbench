@@ -130,3 +130,39 @@ def test_classifier_accepts_domain_classification_without_text_anchor():
         classifications=("F16F9/46",),
     )
     assert any(match.node_id == "control_electronics" for match in matches)
+
+
+def test_classifier_covers_hydraulic_end_stop_wording():
+    classifier = TechnologyClassifier()
+    matches = classifier.classify(text="Dampers with hydraulic end stops")
+    assert any(match.node_id == "travel_control" for match in matches)
+
+
+def test_classifier_covers_single_axle_roll_control_wording():
+    classifier = TechnologyClassifier()
+    matches = classifier.classify(
+        text="Single axle roll control system with gerotor pump for vehicle suspension"
+    )
+    assert any(match.node_id == "active_anti_roll" for match in matches)
+
+
+def test_classifier_rejects_broad_cpc_false_positive_components():
+    classifier = TechnologyClassifier()
+    matches = classifier.classify(
+        text="Pressure relief poppet valve for suspension damper",
+        classifications=("F16F9/32AI", "F16F9/34AI"),
+    )
+    ids = {match.node_id for match in matches}
+    assert "blowoff_relief" in ids
+    assert not {"hrs", "hcs", "separating_piston"} & ids
+
+
+def test_classifier_does_not_call_roll_control_a_rebound_spring():
+    classifier = TechnologyClassifier()
+    matches = classifier.classify(
+        text="Single axle roll control system for vehicle suspension",
+        classifications=("B60G13/08AI", "B60G21/073AI"),
+    )
+    ids = {match.node_id for match in matches}
+    assert "active_anti_roll" in ids
+    assert "rebound_spring" not in ids

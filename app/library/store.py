@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator, Sequence
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -26,6 +26,25 @@ from app.library.models import (
 )
 from app.sqlite_connection import ThreadLocalSQLite
 from app.watch.family_key import derive_family_key
+
+# Relation tables that hang off a publication, as (table, value column) pairs.
+# They are only ever read through `_row_to_patent`; batching them keeps the
+# library grid from issuing one query per patent per relation.
+_RELATION_COLUMNS: tuple[tuple[str, str], ...] = (
+    ("library_company_group", "company_group"),
+    ("library_technology_topic", "topic"),
+    ("library_project", "project"),
+    ("library_tag", "tag"),
+    ("library_watch_source", "rule_id"),
+)
+
+# Stay well under SQLite's bound-parameter ceiling for IN (...) lists.
+_BATCH_CHUNK = 400
+
+
+def _chunked(values: Sequence[str], size: int = _BATCH_CHUNK) -> Iterator[tuple[str, ...]]:
+    for index in range(0, len(values), size):
+        yield tuple(values[index : index + size])
 
 
 class SQLitePatentLibrary:
@@ -770,7 +789,7 @@ class SQLitePatentLibrary:
             """,
             params,
         ).fetchall()
-        return tuple(self._row_to_patent(row) for row in rows)
+        return self._batched_patents(rows)
 
     def list_families(self, limit: int = 500) -> tuple[LibraryFamilySummary, ...]:
         if limit < 1:
@@ -807,8 +826,23 @@ class SQLitePatentLibrary:
         ).fetchone()
         return int(row["count"])
 
+    def count_families(self) -> int:
+        row = self.connection.execute(
+            "SELECT COUNT(*) AS count FROM library_family"
+        ).fetchone()
+        return int(row["count"])
+
+    def count_evidence(self) -> int:
+        row = self.connection.execute(
+            "SELECT COUNT(*) AS count FROM library_evidence"
+        ).fetchone()
+        return int(row["count"])
+
     def _row_to_patent(self, row: sqlite3.Row) -> LibraryPatent:
         publication_number = row["publication_number"]
+        # Resolve the PDF rows once; `pdf_paths` and `documents` describe the
+        # same rows and previously triggered two identical queries.
+        documents = self._documents(publication_number)
         return LibraryPatent(
             publication_number=publication_number,
             jurisdiction=row["jurisdiction"],
@@ -845,7 +879,7 @@ class SQLitePatentLibrary:
                 "tag",
                 publication_number,
             ),
-            pdf_paths=tuple(document.path for document in self._documents(publication_number)),
+            pdf_paths=tuple(document.path for document in documents),
             watch_rule_ids=self._relation_values(
                 "library_watch_source",
                 "rule_id",
@@ -861,9 +895,169 @@ class SQLitePatentLibrary:
             language=row["language"],
             classifications=self._classifications(publication_number),
             priorities=self._priorities(publication_number),
-            documents=self._documents(publication_number),
+            documents=documents,
             provenance=self._provenance(publication_number),
         )
+
+    def _batched_patents(
+        self,
+        rows: Sequence[sqlite3.Row],
+    ) -> tuple[LibraryPatent, ...]:
+        """Build many `LibraryPatent` objects with a constant number of queries.
+
+        `_row_to_patent` issues ~10 statements per patent. For the library grid
+        (limit 1000) that meant thousands of round trips on the Tk main thread,
+        so relations are loaded per chunk and grouped by publication number.
+        Row ordering inside each group matches the single-row queries exactly.
+        """
+        if not rows:
+            return ()
+        numbers = tuple(row["publication_number"] for row in rows)
+
+        relations: dict[tuple[str, str], dict[str, list[str]]] = {
+            key: {} for key in _RELATION_COLUMNS
+        }
+        documents: dict[str, list[LibraryDocument]] = {}
+        classifications: dict[str, list[LibraryClassification]] = {}
+        priorities: dict[str, list[LibraryPriority]] = {}
+        provenance: dict[str, list[LibrarySource]] = {}
+
+        for chunk in _chunked(numbers):
+            placeholders = ",".join("?" * len(chunk))
+            for table, column in _RELATION_COLUMNS:
+                bucket = relations[(table, column)]
+                for row in self.connection.execute(
+                    f"""
+                    SELECT publication_number, {column} FROM {table}
+                    WHERE publication_number IN ({placeholders})
+                    ORDER BY publication_number, {column}
+                    """,
+                    chunk,
+                ):
+                    bucket.setdefault(row["publication_number"], []).append(row[column])
+
+            for row in self.connection.execute(
+                f"""
+                SELECT publication_number, path, provider, source_url, added_at
+                FROM library_pdf
+                WHERE publication_number IN ({placeholders})
+                ORDER BY publication_number, added_at DESC, path
+                """,
+                chunk,
+            ):
+                documents.setdefault(row["publication_number"], []).append(
+                    LibraryDocument(
+                        path=Path(row["path"]),
+                        provider=row["provider"],
+                        source_url=row["source_url"],
+                        added_at=datetime.fromisoformat(row["added_at"]),
+                    )
+                )
+
+            for row in self.connection.execute(
+                f"""
+                SELECT publication_number, system, code, is_main
+                FROM library_classification
+                WHERE publication_number IN ({placeholders})
+                ORDER BY publication_number, system, is_main DESC, code
+                """,
+                chunk,
+            ):
+                classifications.setdefault(row["publication_number"], []).append(
+                    LibraryClassification(
+                        system=row["system"],
+                        code=row["code"],
+                        is_main=bool(row["is_main"]),
+                    )
+                )
+
+            for row in self.connection.execute(
+                f"""
+                SELECT publication_number, priority_number, country,
+                       priority_date, priority_type
+                FROM library_priority_claim
+                WHERE publication_number IN ({placeholders})
+                ORDER BY publication_number, COALESCE(priority_date, ''),
+                         priority_number
+                """,
+                chunk,
+            ):
+                priorities.setdefault(row["publication_number"], []).append(
+                    LibraryPriority(
+                        number=row["priority_number"],
+                        country=row["country"],
+                        priority_date=_parse_date(row["priority_date"]),
+                        priority_type=row["priority_type"],
+                    )
+                )
+
+            for row in self.connection.execute(
+                f"""
+                SELECT publication_number, source_type, source_ref,
+                       first_seen_at, last_seen_at
+                FROM library_provenance
+                WHERE publication_number IN ({placeholders})
+                ORDER BY publication_number, source_type, source_ref
+                """,
+                chunk,
+            ):
+                provenance.setdefault(row["publication_number"], []).append(
+                    LibrarySource(
+                        source_type=row["source_type"],
+                        source_ref=row["source_ref"],
+                        first_seen_at=datetime.fromisoformat(row["first_seen_at"]),
+                        last_seen_at=datetime.fromisoformat(row["last_seen_at"]),
+                    )
+                )
+
+        patents: list[LibraryPatent] = []
+        for row in rows:
+            number = row["publication_number"]
+            patent_documents = tuple(documents.get(number, ()))
+            patents.append(
+                LibraryPatent(
+                    publication_number=number,
+                    jurisdiction=row["jurisdiction"],
+                    kind_code=row["kind_code"],
+                    family_key=row["family_key"],
+                    family_type=row["family_type"],
+                    family_source=row["family_source"],
+                    source_family_id=row["source_family_id"],
+                    title=row["title"],
+                    application_number=row["application_number"],
+                    grant_number=row["grant_number"],
+                    publication_date=_parse_date(row["publication_date"]),
+                    earliest_priority_number=row["earliest_priority_number"],
+                    earliest_priority_date=_parse_date(row["earliest_priority_date"]),
+                    original_assignees=tuple(json.loads(row["original_assignees_json"])),
+                    current_assignees=tuple(json.loads(row["current_assignees_json"])),
+                    company_groups=tuple(
+                        relations[("library_company_group", "company_group")].get(number, ())
+                    ),
+                    technology_topics=tuple(
+                        relations[("library_technology_topic", "topic")].get(number, ())
+                    ),
+                    projects=tuple(relations[("library_project", "project")].get(number, ())),
+                    tags=tuple(relations[("library_tag", "tag")].get(number, ())),
+                    pdf_paths=tuple(document.path for document in patent_documents),
+                    watch_rule_ids=tuple(
+                        relations[("library_watch_source", "rule_id")].get(number, ())
+                    ),
+                    first_seen_at=datetime.fromisoformat(row["first_seen_at"]),
+                    last_seen_at=datetime.fromisoformat(row["last_seen_at"]),
+                    source=row["source"],
+                    favorite=bool(row["favorite"]),
+                    note=row["note"],
+                    filing_date=_parse_date(row["filing_date"]),
+                    grant_date=_parse_date(row["grant_date"]),
+                    language=row["language"],
+                    classifications=tuple(classifications.get(number, ())),
+                    priorities=tuple(priorities.get(number, ())),
+                    documents=patent_documents,
+                    provenance=tuple(provenance.get(number, ())),
+                )
+            )
+        return tuple(patents)
 
     def _classifications(
         self,

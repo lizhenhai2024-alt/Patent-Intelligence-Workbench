@@ -19,6 +19,7 @@ class RootSyncSummary:
     skipped: int = 0
     classified: int = 0
     dry_run: bool = False
+    families: int = 0
 
 
 def _company_root(root: Path) -> Path:
@@ -35,7 +36,7 @@ def sync_library_root(
 ) -> RootSyncSummary:
     root = _company_root(Path(root))
     registry = registry or CompanyRegistry.default()
-    imported = attached = folders = skipped = classified = 0
+    imported = attached = folders = skipped = classified = families = 0
     unknown: list[str] = []
 
     for folder in sorted(path for path in root.iterdir() if path.is_dir()):
@@ -58,6 +59,7 @@ def sync_library_root(
         attached += summary.attached_pdfs
         skipped += summary.skipped
         classified += summary.classified
+        families += summary.families
 
     return RootSyncSummary(
         folders=folders,
@@ -67,4 +69,5 @@ def sync_library_root(
         skipped=skipped,
         classified=classified,
         dry_run=dry_run,
+        families=families,
     )

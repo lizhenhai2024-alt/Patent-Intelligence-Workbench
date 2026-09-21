@@ -2640,9 +2640,9 @@ class PatentWorkbenchApp(tk.Tk):
             return
         store = self.runtime.library_store
         self.dashboard_patents_var.set(str(store.count_patents()))
-        self.dashboard_families_var.set(str(len(store.list_families(limit=500))))
+        self.dashboard_families_var.set(str(store.count_families()))
         self.dashboard_watch_var.set(str(len(self.runtime.watch_store.list_rules())))
-        self.dashboard_evidence_var.set(str(len(store.list_evidence(limit=1000))))
+        self.dashboard_evidence_var.set(str(store.count_evidence()))
 
     def refresh_library(self) -> None:
         self._refresh_dashboard_metrics()
@@ -2696,8 +2696,9 @@ class PatentWorkbenchApp(tk.Tk):
     def _on_library_preview_ready(self, summary) -> None:
         message = (
             f"扫描预览（未写入）：{summary.folders} 个公司目录 · "
-            f"{summary.imported} 条专利 · {summary.attached_pdfs} 个 PDF · "
-            f"{summary.classified} 条已分类 · 跳过 {summary.skipped}"
+            f"{summary.imported} 条专利 · {summary.families} 个 Family · "
+            f"{summary.attached_pdfs} 个 PDF · {summary.classified} 条已分类 · "
+            f"跳过 {summary.skipped}"
         )
         if summary.unknown_folders:
             message += f" · 待核目录 {len(summary.unknown_folders)}"
@@ -2722,8 +2723,9 @@ class PatentWorkbenchApp(tk.Tk):
         self.refresh_library()
         message = (
             f"LocalLibrary 已同步：{summary.folders} 个公司目录 · "
-            f"{summary.imported} 条专利 · {summary.attached_pdfs} 个 PDF · "
-            f"{summary.classified} 条已分类 · 跳过 {summary.skipped}"
+            f"{summary.imported} 条专利 · {summary.families} 个 Family · "
+            f"{summary.attached_pdfs} 个 PDF · {summary.classified} 条已分类 · "
+            f"跳过 {summary.skipped}"
         )
         if summary.unknown_folders:
             message += f" · 待核目录 {len(summary.unknown_folders)}"

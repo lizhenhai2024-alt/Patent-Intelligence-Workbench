@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 import csv
+import json
 import re
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
 from app.core.technology_classifier import TechnologyClassifier
-from app.domain.family import PatentPublication
+from app.domain.family import (
+    Classification,
+    FamilyType,
+    PatentFamily,
+    PatentPublication,
+    PriorityClaim,
+)
 from app.library.store import SQLitePatentLibrary
 
 _PATENT_RE = re.compile(
@@ -41,6 +48,7 @@ class LocalPatentImportSummary:
     attached_pdfs: int
     skipped: int
     classified: int = 0
+    families: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,6 +71,61 @@ def _parse_date(value: str) -> date | None:
         return date.fromisoformat(text)
     except ValueError:
         return None
+
+
+def _priority_from_payload(item: dict) -> PriorityClaim | None:
+    number = str(item.get("number") or "").strip()
+    country = str(item.get("country") or "").strip()
+    if not number or not country:
+        return None
+    return PriorityClaim(
+        number=number,
+        country=country,
+        priority_date=_parse_date(str(item.get("priority_date") or "")),
+        priority_type=str(item.get("priority_type") or "").strip() or None,
+    )
+
+
+def _classification_from_payload(item: dict) -> Classification | None:
+    system = str(item.get("system") or "").strip()
+    code = str(item.get("code") or "").strip()
+    if not system or not code:
+        return None
+    return Classification(system=system, code=code, is_main=bool(item.get("is_main", False)))
+
+
+def _manifest_member(item: dict) -> PatentPublication | None:
+    number = str(item.get("publication_number") or "").strip().upper()
+    if not number:
+        return None
+    priorities = tuple(
+        claim
+        for raw in item.get("priorities", [])
+        if isinstance(raw, dict)
+        if (claim := _priority_from_payload(raw)) is not None
+    )
+    classifications = tuple(
+        classification
+        for raw in item.get("classifications", [])
+        if isinstance(raw, dict)
+        if (classification := _classification_from_payload(raw)) is not None
+    )
+    return PatentPublication(
+        publication_number=number,
+        jurisdiction=str(item.get("jurisdiction") or number[:2]).upper(),
+        kind_code=str(item.get("kind_code") or "").strip() or None,
+        application_number=str(item.get("application_number") or "").strip() or None,
+        grant_number=str(item.get("grant_number") or "").strip() or None,
+        title=str(item.get("title") or "").strip() or None,
+        filing_date=_parse_date(str(item.get("filing_date") or "")),
+        publication_date=_parse_date(str(item.get("publication_date") or "")),
+        grant_date=_parse_date(str(item.get("grant_date") or "")),
+        language=str(item.get("language") or "").strip() or None,
+        original_assignees=tuple(str(v) for v in item.get("original_assignees", []) if v),
+        current_assignees=tuple(str(v) for v in item.get("current_assignees", []) if v),
+        priorities=priorities,
+        classifications=classifications,
+    )
 
 
 def _pdf_number(path: Path) -> str | None:
@@ -142,6 +205,56 @@ def _load_index_rows(folder: Path) -> dict[str, _IndexRow]:
     return rows
 
 
+def _load_family_manifests(folder: Path) -> tuple[PatentFamily, ...]:
+    families: list[PatentFamily] = []
+    for path in sorted(folder.rglob("family.json")):
+        if not _is_active_path(path, folder):
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            family_type = FamilyType(payload.get("family_type", FamilyType.DOCDB_SIMPLE.value))
+        except (OSError, json.JSONDecodeError, ValueError, TypeError):
+            continue
+
+        members = [
+            member
+            for raw in payload.get("members", [])
+            if isinstance(raw, dict)
+            if (member := _manifest_member(raw)) is not None
+        ]
+        if not members:
+            earliest_raw = payload.get("earliest_priority")
+            earliest = (
+                _priority_from_payload(earliest_raw)
+                if isinstance(earliest_raw, dict)
+                else None
+            )
+            for index, raw in enumerate(payload.get("downloads", [])):
+                if not isinstance(raw, dict):
+                    continue
+                number = str(raw.get("publication_number") or "").strip().upper()
+                if not number:
+                    continue
+                members.append(
+                    PatentPublication(
+                        publication_number=number,
+                        jurisdiction=str(raw.get("jurisdiction") or number[:2]).upper(),
+                        priorities=(earliest,) if earliest is not None and index == 0 else (),
+                    )
+                )
+        if not members:
+            continue
+        families.append(
+            PatentFamily(
+                family_type=family_type,
+                source=str(payload.get("source") or "LOCAL_FAMILY_MANIFEST"),
+                source_family_id=str(payload.get("source_family_id") or "").strip() or None,
+                members=members,
+            )
+        )
+    return tuple(families)
+
+
 def _topics_for(
     row: _IndexRow | None,
     path: Path | None,
@@ -186,6 +299,12 @@ def import_patent_folder(
     folder = Path(folder)
     classifier = TechnologyClassifier()
     rows = _load_index_rows(folder)
+    families = _load_family_manifests(folder)
+    manifest_publications = {
+        member.publication_number: member
+        for family in families
+        for member in family.members
+    }
     pdfs: dict[str, list[Path]] = {}
     skipped = 0
 
@@ -207,8 +326,13 @@ def import_patent_folder(
                 bucket.insert(0, indexed_path)
 
     imported = attached = classified = 0
-    for number in sorted(set(rows) | set(pdfs)):
+    if not dry_run:
+        for family in families:
+            store.upsert_family(family)
+
+    for number in sorted(set(rows) | set(pdfs) | set(manifest_publications)):
         row = rows.get(number)
+        manifest = manifest_publications.get(number)
         paths = pdfs.get(number, [])
         primary_path = paths[0] if paths else None
         topics = _topics_for(row, primary_path, folder, classifier)
@@ -220,18 +344,31 @@ def import_patent_folder(
             attached += len(paths)
             continue
 
-        jurisdiction = number[:2]
+        jurisdiction = manifest.jurisdiction if manifest else number[:2]
         assignee = (row.assignee if row else None) or default_assignee
-        title = row.title if row else None
+        title = (row.title if row else None) or (manifest.title if manifest else None)
         if title is None and primary_path is not None:
             title = _legacy_title_from_pdf(primary_path, number)
+        original_assignees = (
+            (assignee,) if assignee else (manifest.original_assignees if manifest else ())
+        )
         publication = PatentPublication(
             publication_number=number,
             jurisdiction=jurisdiction,
+            kind_code=manifest.kind_code if manifest else None,
+            application_number=manifest.application_number if manifest else None,
+            grant_number=manifest.grant_number if manifest else None,
             title=title,
-            filing_date=row.filing_date if row else None,
-            publication_date=row.publication_date if row else None,
-            original_assignees=(assignee,) if assignee else (),
+            filing_date=(row.filing_date if row and row.filing_date else None)
+            or (manifest.filing_date if manifest else None),
+            publication_date=(row.publication_date if row and row.publication_date else None)
+            or (manifest.publication_date if manifest else None),
+            grant_date=manifest.grant_date if manifest else None,
+            language=manifest.language if manifest else None,
+            original_assignees=original_assignees,
+            current_assignees=manifest.current_assignees if manifest else (),
+            priorities=manifest.priorities if manifest else (),
+            classifications=manifest.classifications if manifest else (),
         )
         store.upsert_publication(publication, source="LOCAL_PATENT_FOLDER")
         imported += 1
@@ -251,4 +388,5 @@ def import_patent_folder(
         attached_pdfs=attached,
         skipped=skipped,
         classified=classified,
+        families=len(families),
     )

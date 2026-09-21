@@ -60,7 +60,19 @@
           "relation": "IP_HOLDING_ENTITY"
         }
       ],
-      "archive_name": "Tenneco"
+      "archive_name": "Tenneco",
+      "aliases": [
+        "Advanced Suspension Technology Co ltd",
+        "Tenneco Automotive Operating Co Inc",
+        "Driv Automotive Inc",
+        "DRiV Automotive Inc.",
+        "De Lei Wei Automobile Co ltd",
+        "DREWE AUTOMOTIVE CO LTD",
+        "德雷威汽车股份有限公司",
+        "TIANNAC AUTOMOBILE MAN LIMITED COMPANY",
+        "天纳克汽车经营有限公司",
+        "先进悬挂技术有限责任公司"
+      ]
     },
     {
       "group_id": "zf",
@@ -160,7 +172,12 @@
           "relation": "SAME_ENTITY"
         }
       ],
-      "archive_name": "Öhlins"
+      "archive_name": "Öhlins",
+      "aliases": [
+        "OEHLINS GROUP AB [SE]",
+        "ÖHLINS GROUP AB",
+        "Öhlins Group AB"
+      ]
     },
     {
       "group_id": "clearmotion",

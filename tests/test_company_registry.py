@@ -87,3 +87,22 @@ def test_default_registry_resolves_local_library_aliases():
     assert registry.get("Fichtel_Sachs").group_id == "zf"
     assert registry.get("博格华纳天津").group_id == "borgwarner"
     assert registry.get("BMW").group_id == "bmw"
+
+def test_default_registry_resolves_tenneco_provider_aliases():
+    registry = CompanyRegistry.default()
+    for alias in (
+        "Advanced Suspension Technology Co ltd",
+        "Tenneco Automotive Operating Co Inc",
+        "Driv Automotive Inc",
+        "De Lei Wei Automobile Co ltd",
+    ):
+        assert registry.get(alias).group_id == "tenneco"
+    assert "Driv Automotive Inc" not in registry.get("tenneco").applicant_names()
+
+
+def test_default_registry_resolves_epo_assignee_aliases():
+    registry = CompanyRegistry.default()
+    assert registry.get("DREWE AUTOMOTIVE CO LTD").group_id == "tenneco"
+    assert registry.get("TIANNAC AUTOMOBILE MAN LIMITED COMPANY").group_id == "tenneco"
+    assert registry.get("天纳克汽车经营有限公司").group_id == "tenneco"
+    assert registry.get("OEHLINS GROUP AB [SE]").group_id == "ohlins"

@@ -209,6 +209,37 @@ def _load_manifest(path: Path) -> dict[str, dict]:
     }
 
 
+def _date_text(value) -> str | None:
+    return value.isoformat() if value else None
+
+
+def _publication_payload(member) -> dict[str, object]:
+    return {
+        "publication_number": member.publication_number,
+        "jurisdiction": member.jurisdiction,
+        "kind_code": member.kind_code,
+        "application_number": member.application_number,
+        "grant_number": member.grant_number,
+        "title": member.title,
+        "filing_date": _date_text(member.filing_date),
+        "publication_date": _date_text(member.publication_date),
+        "grant_date": _date_text(member.grant_date),
+        "language": member.language,
+        "original_assignees": list(member.original_assignees),
+        "current_assignees": list(member.current_assignees),
+        "priorities": [
+            {
+                "number": item.number,
+                "country": item.country,
+                "priority_date": _date_text(item.priority_date),
+                "priority_type": item.priority_type,
+            }
+            for item in member.priorities
+        ],
+        "classifications": [asdict(item) for item in member.classifications],
+    }
+
+
 def _write_manifest(
     family: PatentFamily,
     summary: FamilyDownloadSummary,
@@ -232,6 +263,7 @@ def _write_manifest(
             if earliest
             else None
         ),
+        "members": [_publication_payload(member) for member in family.members],
         "downloads": [asdict(member) for member in summary.members],
     }
     summary.manifest_path.write_text(

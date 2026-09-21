@@ -16,7 +16,8 @@ def safe_folder_name(value: str) -> str:
 
 
 def company_folder(root: Path, company_name: str | None) -> Path:
-    folder = root / safe_folder_name(company_name or "待归类")
+    patent_root = root / "10_Patents" if (root / "10_Patents").is_dir() else root
+    folder = patent_root / safe_folder_name(company_name or "待归类")
     folder.mkdir(parents=True, exist_ok=True)
     return folder
 

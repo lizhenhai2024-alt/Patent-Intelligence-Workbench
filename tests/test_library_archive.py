@@ -23,3 +23,10 @@ def test_patent_archive_uses_knowledge_base_filename(tmp_path: Path):
         "2025-CN120100850A-一种浮动密封式电磁阀减振器-"
         "一汽东机工减振器有限公司.pdf"
     )
+
+
+def test_company_folder_uses_patents_container_when_present(tmp_path: Path):
+    patents_root = tmp_path / "10_Patents"
+    patents_root.mkdir()
+    folder = company_folder(tmp_path, "Tenneco")
+    assert folder == patents_root / "Tenneco"
