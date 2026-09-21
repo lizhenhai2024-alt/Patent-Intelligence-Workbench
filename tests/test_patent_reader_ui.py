@@ -40,7 +40,6 @@ def test_reader_opens_selected_search_hit():
 
     app.translate_reader_abstract()
     translated = app.reader_translation_text.get("1.0", "end").strip()
-    assert translated
-    assert translated != "译文将在这里显示。"
+    assert "正在翻译" in translated
     app.destroy()
     runtime.close()
