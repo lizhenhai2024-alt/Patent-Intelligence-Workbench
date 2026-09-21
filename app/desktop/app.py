@@ -12,13 +12,21 @@ from app.core.patent_number import PatentNumberError, normalize_patent_number
 from app.core.technology_classifier import TechnologyClassifier
 from app.core.technology_taxonomy import TechnologyTaxonomy
 from app.core.translation import UnconfiguredTranslationProvider
+from app.core.translation_http import CachedTranslationProvider, HttpTranslationProvider
 from app.desktop.async_runner import TkCallbackQueue, run_async_in_thread
 from app.desktop.opening import open_local_path
 from app.desktop.presenters import patent_row, watch_history_row, watch_rule_row
 from app.desktop.runtime import DesktopRuntime
+from app.desktop.translation_config import (
+    TranslationSettings,
+    delete_translation_settings,
+    load_translation_settings,
+    save_translation_settings,
+)
 from app.domain.family import FamilyType, PatentFamily
 from app.library.ingest import ingest_download_summary, ingest_family
 from app.library.models import LibraryQuery
+from app.library.root_sync import sync_library_root
 
 
 class PatentWorkbenchApp(tk.Tk):
@@ -29,7 +37,10 @@ class PatentWorkbenchApp(tk.Tk):
         self._current_family: PatentFamily | None = None
         self._current_acquisition = None
         self.technology_classifier = TechnologyClassifier()
+        self.translation_settings_path = self.runtime.paths.root / "translation.json"
+        self.translation_cache_path = self.runtime.paths.root / "translation-cache.json"
         self.translation_provider = UnconfiguredTranslationProvider()
+        self._reload_translation_provider()
         self._search_technology_evidence: dict[str, tuple] = {}
         self._search_hits_by_number = {}
         self._reader_hit = None
@@ -680,12 +691,17 @@ class PatentWorkbenchApp(tk.Tk):
         if self._reader_hit is None:
             return
         text = self._reader_hit.abstract or self._reader_hit.title or ""
-        try:
-            result = self.translation_provider.translate(text)
-        except Exception as exc:
-            self._set_reader_translation(str(exc))
-            return
-        self._set_reader_translation(result.text)
+        self._set_reader_translation("正在翻译…")
+
+        def task():
+            return self.translation_provider.translate(text)
+
+        run_async_in_thread(
+            task,
+            on_success=lambda result: self._set_reader_translation(result.text),
+            on_error=lambda exc: self._set_reader_translation(str(exc)),
+            schedule_ui=self._ui_callbacks.submit,
+        )
 
     def _build_family_tab(self) -> None:
         ttk.Label(self.family_tab, text="Patent Family", style="PageTitle.TLabel").pack(anchor="w")
@@ -1334,6 +1350,7 @@ class PatentWorkbenchApp(tk.Tk):
 
     def _build_settings_tab(self) -> None:
         credentials = self.runtime.current_epo_credentials()
+        translation = load_translation_settings(self.translation_settings_path)
 
         frame = ttk.LabelFrame(
             self.settings_tab,
@@ -1393,6 +1410,52 @@ class PatentWorkbenchApp(tk.Tk):
         frame.columnconfigure(0, weight=1)
         frame.columnconfigure(1, weight=1)
 
+        translation_frame = ttk.LabelFrame(
+            self.settings_tab,
+            text="Translation",
+            padding=12,
+        )
+        translation_frame.pack(fill="x", pady=(12, 0))
+        self.translation_endpoint_var = tk.StringVar(
+            value=translation.endpoint if translation else ""
+        )
+        self.translation_api_key_var = tk.StringVar(
+            value=translation.api_key if translation else ""
+        )
+        self.translation_status_var = tk.StringVar(
+            value="翻译服务：已配置" if translation else "翻译服务：未配置"
+        )
+        ttk.Label(translation_frame, text="Endpoint").grid(row=0, column=0, sticky="w")
+        ttk.Entry(
+            translation_frame,
+            textvariable=self.translation_endpoint_var,
+            width=72,
+        ).grid(row=1, column=0, padx=(0, 10), sticky="ew")
+        ttk.Label(translation_frame, text="API Key（可选）").grid(row=0, column=1, sticky="w")
+        ttk.Entry(
+            translation_frame,
+            textvariable=self.translation_api_key_var,
+            show="●",
+            width=42,
+        ).grid(row=1, column=1, padx=(0, 10), sticky="ew")
+        ttk.Button(
+            translation_frame,
+            text="保存翻译配置",
+            command=self.save_translation_settings,
+        ).grid(row=1, column=2, padx=(0, 8))
+        ttk.Button(
+            translation_frame,
+            text="删除翻译配置",
+            command=self.delete_translation_settings,
+        ).grid(row=1, column=3)
+        ttk.Label(
+            translation_frame,
+            textvariable=self.translation_status_var,
+            style="Subtle.TLabel",
+        ).grid(row=2, column=0, columnspan=4, sticky="w", pady=(10, 0))
+        translation_frame.columnconfigure(0, weight=1)
+        translation_frame.columnconfigure(1, weight=1)
+
         local = ttk.LabelFrame(
             self.settings_tab,
             text="本地数据",
@@ -1421,6 +1484,41 @@ class PatentWorkbenchApp(tk.Tk):
             style="Subtle.TLabel",
             wraplength=920,
         ).pack(anchor="w", pady=(12, 0))
+
+    def _reload_translation_provider(self) -> None:
+        settings = load_translation_settings(self.translation_settings_path)
+        if settings is None:
+            self.translation_provider = UnconfiguredTranslationProvider()
+            return
+        self.translation_provider = CachedTranslationProvider(
+            provider=HttpTranslationProvider(
+                endpoint=settings.endpoint,
+                api_key=settings.api_key or None,
+            ),
+            cache_path=self.translation_cache_path,
+        )
+
+    def save_translation_settings(self) -> None:
+        endpoint = self.translation_endpoint_var.get().strip()
+        api_key = self.translation_api_key_var.get().strip()
+        if not endpoint:
+            messagebox.showinfo("缺少配置", "Translation Endpoint 必须填写。")
+            return
+        save_translation_settings(
+            self.translation_settings_path,
+            TranslationSettings(endpoint=endpoint, api_key=api_key),
+        )
+        self._reload_translation_provider()
+        self.translation_status_var.set("翻译服务：已配置")
+        self._set_status("翻译服务配置已保存")
+
+    def delete_translation_settings(self) -> None:
+        delete_translation_settings(self.translation_settings_path)
+        self.translation_endpoint_var.set("")
+        self.translation_api_key_var.set("")
+        self._reload_translation_provider()
+        self.translation_status_var.set("翻译服务：未配置")
+        self._set_status("翻译服务配置已删除")
 
     def save_epo_settings(self) -> None:
         key = self.epo_key_var.get().strip()
@@ -2116,7 +2214,21 @@ class PatentWorkbenchApp(tk.Tk):
             return
         root = self.runtime.set_library_root(selected)
         self.library_root_var.set(str(root))
-        self._set_status(f"LocalLibrary 目录已更新：{root}")
+        summary = sync_library_root(
+            self.runtime.library_store,
+            root,
+            self.runtime.search_service.company_registry
+            if self.runtime.search_service
+            else None,
+        )
+        self.refresh_library()
+        message = (
+            f"LocalLibrary 已同步：{summary.folders} 个公司目录 · "
+            f"{summary.imported} 条专利 · {summary.attached_pdfs} 个 PDF"
+        )
+        if summary.unknown_folders:
+            message += f" · 待核目录 {len(summary.unknown_folders)}"
+        self._set_status(message)
 
     def enrich_library_metadata(self) -> None:
         service = self.runtime.library_enrichment_service

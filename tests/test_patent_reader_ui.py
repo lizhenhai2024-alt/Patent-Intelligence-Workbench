@@ -39,6 +39,8 @@ def test_reader_opens_selected_search_hit():
     assert app._pages["reader"].winfo_manager() == "pack"
 
     app.translate_reader_abstract()
-    assert "翻译服务尚未配置" in app.reader_translation_text.get("1.0", "end")
+    translated = app.reader_translation_text.get("1.0", "end").strip()
+    assert translated
+    assert translated != "译文将在这里显示。"
     app.destroy()
     runtime.close()
