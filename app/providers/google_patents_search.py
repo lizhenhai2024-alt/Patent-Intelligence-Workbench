@@ -19,6 +19,7 @@ import httpx
 
 from app.core.patent_number import PatentNumber, PatentNumberError, normalize_patent_number
 from app.domain.family import FamilyType, PatentFamily, PatentPublication
+from app.domain.reader import PatentReaderDocument
 from app.domain.search import SearchExpression, SearchHit, SearchPage
 from app.providers.base import (
     ProviderCapability,
@@ -58,7 +59,9 @@ class _PatentPageParser(HTMLParser):
         self.values: dict[str, list[str]] = {}
         self.named_meta: dict[str, list[str]] = {}
         self.family_members: list[tuple[str, str | None]] = []
+        self.sections: dict[str, list[str]] = {"claims": [], "description": []}
         self._captures: list[dict[str, object]] = []
+        self._section_stack: list[tuple[str, str]] = []
         self._in_docdb_family = False
         self._family_current: dict[str, str] = {}
 
@@ -73,6 +76,19 @@ class _PatentPageParser(HTMLParser):
         if tag == "tr" and itemprop == "docdbFamily":
             self._in_docdb_family = True
             self._family_current = {}
+
+        if itemprop in self.sections:
+            self._section_stack.append((tag, itemprop))
+
+        if self._section_stack and tag in {"p", "div", "li"}:
+            self._captures.append(
+                {
+                    "tag": tag,
+                    "prop": f"__section__:{self._section_stack[-1][1]}",
+                    "data": [],
+                    "family": False,
+                }
+            )
 
         if tag == "meta":
             content = values.get("content")
@@ -115,9 +131,16 @@ class _PatentPageParser(HTMLParser):
             text = _clean_text("".join(str(item) for item in buffer))
             if text:
                 prop = str(capture["prop"])
-                family = bool(capture["family"])
-                self._store(prop, text, family=family)
+                if prop.startswith("__section__:"):
+                    section = prop.split(":", 1)[1]
+                    self.sections.setdefault(section, []).append(text)
+                else:
+                    family = bool(capture["family"])
+                    self._store(prop, text, family=family)
             break
+
+        if self._section_stack and tag == self._section_stack[-1][0]:
+            self._section_stack.pop()
 
         if tag == "tr" and self._in_docdb_family:
             publication = self._family_current.get("publicationNumber")
@@ -284,6 +307,33 @@ class GooglePatentsSearchProvider:
                 range_begin=1,
                 range_end=1,
             )
+
+    async def get_reader_document(
+        self,
+        publication: PatentNumber,
+    ) -> PatentReaderDocument:
+        url = f"{GOOGLE_PATENT_URL}/{publication.canonical}/en"
+        async with httpx.AsyncClient(
+            timeout=self.timeout_seconds,
+            follow_redirects=True,
+            headers={"User-Agent": self.user_agent},
+        ) as client:
+            response = await self._get(client, url, allow_not_found=True)
+            if response is None:
+                raise ProviderResponseError(
+                    f"Google Patents did not find {publication.canonical}."
+                )
+        parser = _PatentPageParser()
+        parser.feed(response.text)
+        hit = _page_hit(parser, publication)
+        return PatentReaderDocument(
+            publication_number=hit.publication_number,
+            title=hit.title,
+            abstract=hit.abstract,
+            claims="\n\n".join(parser.sections.get("claims", ())),
+            description="\n\n".join(parser.sections.get("description", ())),
+            classifications=hit.classifications,
+        )
 
     async def search_publications(
         self,

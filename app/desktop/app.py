@@ -24,9 +24,11 @@ from app.desktop.translation_config import (
     save_translation_settings,
 )
 from app.domain.family import FamilyType, PatentFamily
+from app.domain.reader import PatentReaderDocument
 from app.library.ingest import ingest_download_summary, ingest_family
 from app.library.models import LibraryQuery
 from app.library.root_sync import sync_library_root
+from app.providers.google_patents_search import GooglePatentsSearchProvider
 
 
 class PatentWorkbenchApp(tk.Tk):
@@ -44,6 +46,7 @@ class PatentWorkbenchApp(tk.Tk):
         self._search_technology_evidence: dict[str, tuple] = {}
         self._search_hits_by_number = {}
         self._reader_hit = None
+        self._reader_document: PatentReaderDocument | None = None
 
         self.title("Patent Intelligence Workbench")
         self.geometry("1460x900")
@@ -634,10 +637,28 @@ class PatentWorkbenchApp(tk.Tk):
             text="打开 Google Patents 原文",
             command=self.open_reader_source,
         ).pack(side="left")
+        self.reader_section_var = tk.StringVar(value="摘要")
+        self.reader_section_box = ttk.Combobox(
+            actions,
+            textvariable=self.reader_section_var,
+            values=("摘要", "权利要求", "说明书"),
+            state="readonly",
+            width=10,
+        )
+        self.reader_section_box.pack(side="left", padx=(6, 0))
+        self.reader_section_box.bind(
+            "<<ComboboxSelected>>",
+            lambda _event: self._render_reader_section(),
+        )
         ttk.Button(
             actions,
-            text="翻译摘要",
-            command=self.translate_reader_abstract,
+            text="翻译当前章节",
+            command=self.translate_reader_section,
+        ).pack(side="left", padx=(6, 0))
+        ttk.Button(
+            actions,
+            text="翻译选中文本",
+            command=self.translate_reader_selection,
         ).pack(side="left", padx=(6, 0))
         body = ttk.Panedwindow(self.reader_tab, orient="horizontal")
         body.pack(fill="both", expand=True)
@@ -660,6 +681,13 @@ class PatentWorkbenchApp(tk.Tk):
         if hit is None:
             return
         self._reader_hit = hit
+        self._reader_document = PatentReaderDocument(
+            publication_number=hit.publication_number,
+            title=hit.title,
+            abstract=hit.abstract,
+            classifications=hit.classifications,
+        )
+        self.reader_section_var.set("摘要")
         self.reader_number_var.set(hit.publication_number)
         self.reader_title_var.set(hit.title or "")
         classes = ", ".join(hit.classifications) or "—"
@@ -675,6 +703,44 @@ class PatentWorkbenchApp(tk.Tk):
         self.reader_source_text.insert("1.0", "\n".join(source) or "暂无结构化预览内容。")
         self._set_reader_translation("")
         self._show_page("reader")
+        self._load_reader_document()
+
+    def _load_reader_document(self) -> None:
+        if self._reader_hit is None:
+            return
+        try:
+            publication = normalize_patent_number(self._reader_hit.publication_number)
+        except PatentNumberError:
+            return
+        provider = GooglePatentsSearchProvider()
+
+        async def task():
+            return await provider.get_reader_document(publication)
+
+        run_async_in_thread(
+            task,
+            on_success=self._on_reader_document_loaded,
+            on_error=lambda exc: self._set_status(f"Reader 全文加载失败：{exc}"),
+            schedule_ui=self._ui_callbacks.submit,
+        )
+
+    def _on_reader_document_loaded(self, document: PatentReaderDocument) -> None:
+        self._reader_document = document
+        self._render_reader_section()
+        self._set_status(f"Reader 全文已加载：{document.publication_number}")
+
+    def _render_reader_section(self) -> None:
+        document = self._reader_document
+        if document is None:
+            return
+        section = self.reader_section_var.get()
+        text = {
+            "摘要": document.abstract or "暂无摘要。",
+            "权利要求": document.claims or "暂无权利要求文本。",
+            "说明书": document.description or "暂无说明书文本。",
+        }.get(section, document.abstract or "")
+        self.reader_source_text.delete("1.0", "end")
+        self.reader_source_text.insert("1.0", text)
 
     def _set_reader_translation(self, text: str) -> None:
         self.reader_translation_text.configure(state="normal")
@@ -687,10 +753,10 @@ class PatentWorkbenchApp(tk.Tk):
         url = f"https://patents.google.com/patent/{self._reader_hit.publication_number}/en"
         webbrowser.open(url)
 
-    def translate_reader_abstract(self) -> None:
-        if self._reader_hit is None:
+    def _translate_reader_text(self, text: str) -> None:
+        if not text.strip():
+            self._set_reader_translation("没有可翻译的文本。")
             return
-        text = self._reader_hit.abstract or self._reader_hit.title or ""
         self._set_reader_translation("正在翻译…")
 
         def task():
@@ -702,6 +768,23 @@ class PatentWorkbenchApp(tk.Tk):
             on_error=lambda exc: self._set_reader_translation(str(exc)),
             schedule_ui=self._ui_callbacks.submit,
         )
+
+    def translate_reader_section(self) -> None:
+        text = self.reader_source_text.get("1.0", "end").strip()
+        self._translate_reader_text(text)
+
+    def translate_reader_selection(self) -> None:
+        try:
+            text = self.reader_source_text.get("sel.first", "sel.last")
+        except tk.TclError:
+            self._set_reader_translation("请先在左侧选择要翻译的文本。")
+            return
+        self._translate_reader_text(text)
+
+    def translate_reader_abstract(self) -> None:
+        self.reader_section_var.set("摘要")
+        self._render_reader_section()
+        self.translate_reader_section()
 
     def _build_family_tab(self) -> None:
         ttk.Label(self.family_tab, text="Patent Family", style="PageTitle.TLabel").pack(anchor="w")
