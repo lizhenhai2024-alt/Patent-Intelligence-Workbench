@@ -130,10 +130,21 @@ class FamilyDownloader:
                 )
                 continue
 
+            assignee = (
+                (member.current_assignees or member.original_assignees)[0]
+                if (member.current_assignees or member.original_assignees)
+                else None
+            )
+            year = member.publication_date.year if member.publication_date else None
             destination = (
                 folder
                 / member.jurisdiction.upper()
-                / patent_pdf_filename(publication.canonical, member.title)
+                / patent_pdf_filename(
+                    publication.canonical,
+                    member.title,
+                    year=year,
+                    assignee=assignee,
+                )
             )
 
             try:
