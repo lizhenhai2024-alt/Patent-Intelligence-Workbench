@@ -30,7 +30,7 @@ def test_known_company_download_root_uses_company_folder(tmp_path: Path):
             )
         ],
     )
-    assert app._family_company_folder_name(family) == "富奥东机工 / 一汽东机工"
+    assert app._family_company_folder_name(family) == "富奥东机工"
     app.destroy()
     runtime.close()
 

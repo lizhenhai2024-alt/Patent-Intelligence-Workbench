@@ -10,6 +10,8 @@ def test_ftl_aliases_resolve_exactly():
     assert registry.get("一汽东机工").group_id == "ftl"
     assert registry.get("富奥东机工").group_id == "ftl"
     assert registry.get("一汽东机工减振器有限公司").group_id == "ftl"
+    assert registry.get("富奥东机工").archive_folder_name == "富奥东机工"
+    assert registry.get("Tenneco").archive_folder_name == "Tenneco"
 
 
 def test_company_registry_no_longer_uses_substring_matching():

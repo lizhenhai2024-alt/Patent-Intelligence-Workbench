@@ -29,18 +29,16 @@ def sync_library_root(
     unknown: list[str] = []
     for folder in sorted(path for path in root.iterdir() if path.is_dir()):
         group_id = None
-        assignee = None
         try:
             company = registry.get(folder.name)
             group_id = company.group_id
-            assignee = company.display_name
         except KeyError:
             unknown.append(folder.name)
         summary = import_patent_folder(
             store,
             folder,
             company_group=group_id,
-            default_assignee=assignee,
+            default_assignee=None,
         )
         folders += 1
         imported += summary.imported

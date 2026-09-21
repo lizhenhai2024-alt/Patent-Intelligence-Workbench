@@ -26,6 +26,7 @@ def test_sync_library_root_imports_company_folders(tmp_path: Path):
     unknown_patent = store.get_patent("US20240000001A1")
     assert known_patent is not None
     assert "ftl" in known_patent.company_groups
+    assert known_patent.original_assignees == ()
     assert unknown_patent is not None
     assert unknown_patent.company_groups == ()
     store.close()

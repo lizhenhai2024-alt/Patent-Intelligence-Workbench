@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from app.downloads.naming import patent_pdf_filename
+
 _INVALID = re.compile(r'[<>:"/\\|?*]+')
 
 
@@ -24,9 +26,14 @@ def patent_archive_path(
     company_name: str | None,
     publication_number: str,
     title: str | None = None,
+    *,
+    year: int | None = None,
+    assignee: str | None = None,
 ) -> Path:
     folder = company_folder(root, company_name)
-    filename = publication_number
-    if title:
-        filename += "_" + safe_folder_name(title)[:100]
-    return folder / f"{filename}.pdf"
+    return folder / patent_pdf_filename(
+        publication_number,
+        title,
+        year=year,
+        assignee=assignee,
+    )

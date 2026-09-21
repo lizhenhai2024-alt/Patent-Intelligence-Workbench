@@ -29,7 +29,7 @@ from app.desktop.translation_config import (
 )
 from app.domain.family import FamilyType, PatentFamily, PatentPublication
 from app.domain.reader import PatentReaderDocument
-from app.library.archive import patent_archive_path
+from app.library.archive import company_folder, patent_archive_path
 from app.library.ingest import ingest_download_summary, ingest_family
 from app.library.models import LibraryQuery
 from app.library.root_sync import sync_library_root
@@ -1014,11 +1014,15 @@ class PatentWorkbenchApp(tk.Tk):
             return
 
         company_name = self._reader_company_folder_name(hit.applicants)
+        assignee = hit.applicants[0] if hit.applicants else None
+        year = hit.publication_date.year if hit.publication_date else None
         destination = patent_archive_path(
             self.runtime.library_root,
             company_name,
             publication.canonical,
             hit.title,
+            year=year,
+            assignee=assignee,
         )
         self._set_status(f"专利库未找到 PDF，开始下载：{publication.canonical}")
 
@@ -1060,7 +1064,7 @@ class PatentWorkbenchApp(tk.Tk):
         if registry is not None:
             for name in applicants:
                 try:
-                    return registry.get(name).display_name
+                    return registry.get(name).archive_folder_name
                 except KeyError:
                     continue
         return applicants[0] if applicants else "待归类"
@@ -2102,7 +2106,7 @@ class PatentWorkbenchApp(tk.Tk):
             path = self.library_pdf_list.get(selection[0])
             target = __import__("pathlib").Path(path).parent
         else:
-            target = self.runtime.paths.downloads
+            target = self.runtime.library_root or self.runtime.paths.downloads
         try:
             open_local_path(target)
         except Exception as exc:
@@ -2487,8 +2491,7 @@ class PatentWorkbenchApp(tk.Tk):
     def _download_family_to_library_root(self, family, *, on_progress=None):
         root = self.runtime.library_root or self.runtime.paths.downloads
         company_name = self._family_company_folder_name(family)
-        company_root = root / company_name
-        company_root.mkdir(parents=True, exist_ok=True)
+        company_root = company_folder(root, company_name)
         return self.runtime.family_downloader.download_family(
             family,
             company_root,
@@ -2509,7 +2512,7 @@ class PatentWorkbenchApp(tk.Tk):
         if registry is not None:
             for name in assignees:
                 try:
-                    return registry.get(name).display_name
+                    return registry.get(name).archive_folder_name
                 except KeyError:
                     continue
         return assignees[0] if assignees else "待归类"

@@ -23,6 +23,11 @@ class CompanyGroup:
     display_name: str
     core_watch: bool
     entities: tuple[RegisteredEntity, ...]
+    archive_name: str | None = None
+
+    @property
+    def archive_folder_name(self) -> str:
+        return self.archive_name or self.display_name
 
     def applicant_names(
         self,
@@ -71,6 +76,7 @@ class CompanyRegistry:
                     display_name=item["display_name"],
                     core_watch=bool(item.get("core_watch", False)),
                     entities=entities,
+                    archive_name=item.get("archive_name"),
                 )
             )
         return cls(tuple(groups))
@@ -95,6 +101,11 @@ class CompanyRegistry:
             if _normalize_company_key(group.group_id) == needle:
                 return group
             if _normalize_company_key(group.display_name) == needle:
+                return group
+            if (
+                group.archive_name
+                and _normalize_company_key(group.archive_name) == needle
+            ):
                 return group
             for entity in group.entities:
                 entity_key = _normalize_company_key(entity.name)

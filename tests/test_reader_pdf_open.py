@@ -1,5 +1,6 @@
 import asyncio
 import os
+from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -74,6 +75,7 @@ def test_reader_pdf_downloads_into_library_and_registers(monkeypatch, tmp_path: 
         jurisdiction="US",
         title="Pressure relief poppet valves for suspension dampers",
         applicants=("Driv Automotive Inc",),
+        publication_date=date(2024, 1, 4),
     )
     app._reader_hit = hit
     monkeypatch.setattr(
@@ -109,6 +111,10 @@ def test_reader_pdf_downloads_into_library_and_registers(monkeypatch, tmp_path: 
     assert len(destinations) == 1
     destination = destinations[0]
     assert runtime.library_root in destination.parents
+    assert destination.name == (
+        "2024-US20240003399A1-Pressure relief poppet valves for suspension dampers-"
+        "Driv Automotive Inc.pdf"
+    )
     assert "reader-cache" not in str(destination)
     stored = runtime.library_store.get_patent("US20240003399A1")
     assert stored is not None

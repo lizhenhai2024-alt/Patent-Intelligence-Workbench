@@ -23,7 +23,8 @@
           "name": "Tokico Ltd.",
           "relation": "TECHNOLOGY_PREDECESSOR"
         }
-      ]
+      ],
+      "archive_name": "ASTEMO"
     },
     {
       "group_id": "kyb",
@@ -34,7 +35,8 @@
           "name": "KYB Corporation",
           "relation": "SAME_ENTITY"
         }
-      ]
+      ],
+      "archive_name": "KYB"
     },
     {
       "group_id": "tenneco",
@@ -57,7 +59,8 @@
           "name": "Advanced Suspension Technology LLC",
           "relation": "IP_HOLDING_ENTITY"
         }
-      ]
+      ],
+      "archive_name": "Tenneco"
     },
     {
       "group_id": "zf",
@@ -76,7 +79,8 @@
           "name": "Mannesmann Sachs AG",
           "relation": "TECHNOLOGY_PREDECESSOR"
         }
-      ]
+      ],
+      "archive_name": "ZF"
     },
     {
       "group_id": "bwi",
@@ -91,7 +95,8 @@
           "name": "BeijingWest Industries Co., Ltd.",
           "relation": "SAME_ENTITY"
         }
-      ]
+      ],
+      "archive_name": "BWI"
     },
     {
       "group_id": "hl_mando",
@@ -106,7 +111,8 @@
           "name": "Mando Corporation",
           "relation": "PREVIOUS_NAME"
         }
-      ]
+      ],
+      "archive_name": "MANDO"
     },
     {
       "group_id": "bilstein",
@@ -121,7 +127,8 @@
           "name": "ThyssenKrupp Bilstein GmbH",
           "relation": "PREVIOUS_NAME"
         }
-      ]
+      ],
+      "archive_name": "BILSTEIN"
     },
     {
       "group_id": "multimatic",
@@ -132,7 +139,8 @@
           "name": "Multimatic Inc.",
           "relation": "SAME_ENTITY"
         }
-      ]
+      ],
+      "archive_name": "Multimatic"
     },
     {
       "group_id": "ohlins",
@@ -147,7 +155,8 @@
           "name": "Ohlins Racing AB",
           "relation": "SAME_ENTITY"
         }
-      ]
+      ],
+      "archive_name": "Öhlins"
     },
     {
       "group_id": "clearmotion",
@@ -171,7 +180,8 @@
           "relation": "ACQUIRED_PATENT_PORTFOLIO",
           "scope": "suspension portfolio only"
         }
-      ]
+      ],
+      "archive_name": "ClearMotion"
     },
     {
       "group_id": "mobis",
@@ -182,7 +192,8 @@
           "name": "Hyundai Mobis Co., Ltd.",
           "relation": "SAME_ENTITY"
         }
-      ]
+      ],
+      "archive_name": "MOBIS"
     },
     {
       "group_id": "aisin",
@@ -197,7 +208,8 @@
           "name": "Aisin Seiki Co., Ltd.",
           "relation": "PREVIOUS_NAME"
         }
-      ]
+      ],
+      "archive_name": "AISIN"
     },
     {
       "group_id": "schaeffler",
@@ -212,7 +224,8 @@
           "name": "Schaeffler AG",
           "relation": "SAME_ENTITY"
         }
-      ]
+      ],
+      "archive_name": "Schaeffler"
     },
     {
       "group_id": "ftl",
@@ -235,7 +248,8 @@
           "name": "一汽东机工",
           "relation": "PREVIOUS_NAME"
         }
-      ]
+      ],
+      "archive_name": "富奥东机工"
     }
   ]
 }
