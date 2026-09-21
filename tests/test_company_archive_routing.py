@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import pytest
@@ -6,11 +5,12 @@ import pytest
 from app.desktop.app import PatentWorkbenchApp
 from app.desktop.paths import AppPaths
 from app.desktop.runtime import DesktopRuntime
+from app.desktop.tk_runtime import can_run_tk_tests
 from app.domain.family import FamilyType, PatentFamily, PatentPublication
 
 pytestmark = pytest.mark.skipif(
-    os.name != "nt" and not os.environ.get("DISPLAY"),
-    reason="Tk UI tests require a display",
+    not can_run_tk_tests(),
+    reason="Tk UI tests require a usable Tcl/Tk runtime",
 )
 
 

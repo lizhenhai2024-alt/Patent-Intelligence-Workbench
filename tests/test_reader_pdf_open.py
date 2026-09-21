@@ -1,5 +1,4 @@
 import asyncio
-import os
 from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
@@ -9,12 +8,13 @@ import pytest
 from app.desktop.app import PatentWorkbenchApp
 from app.desktop.paths import AppPaths
 from app.desktop.runtime import DesktopRuntime
+from app.desktop.tk_runtime import can_run_tk_tests
 from app.domain.family import PatentPublication
 from app.domain.search import SearchHit
 
 pytestmark = pytest.mark.skipif(
-    os.name != "nt" and not os.environ.get("DISPLAY"),
-    reason="Tk UI tests require a display",
+    not can_run_tk_tests(),
+    reason="Tk UI tests require a usable Tcl/Tk runtime",
 )
 
 

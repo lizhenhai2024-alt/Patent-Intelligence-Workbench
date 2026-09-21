@@ -1,14 +1,13 @@
-import os
-
 import pytest
 
 from app.desktop.app import PatentWorkbenchApp
 from app.desktop.runtime import DesktopRuntime
+from app.desktop.tk_runtime import can_run_tk_tests
 from app.domain.search import SearchHit
 
 pytestmark = pytest.mark.skipif(
-    os.name != "nt" and not os.environ.get("DISPLAY"),
-    reason="Tk UI tests require a display",
+    not can_run_tk_tests(),
+    reason="Tk UI tests require a usable Tcl/Tk runtime",
 )
 
 
