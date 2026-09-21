@@ -359,6 +359,21 @@ class SQLiteWatchStateStore:
         )
         self.connection.commit()
 
+    def last_attempt_at(self, rule_id: str) -> datetime | None:
+        row = self.connection.execute(
+            """
+            SELECT completed_at
+            FROM watch_run_history
+            WHERE rule_id = ?
+            ORDER BY run_id DESC
+            LIMIT 1
+            """,
+            (rule_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return _parse_datetime(row["completed_at"])
+
     def recent_runs(self, limit: int = 50) -> tuple[WatchRunHistory, ...]:
         if limit < 1:
             raise ValueError("limit must be >= 1")

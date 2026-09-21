@@ -20,3 +20,7 @@ class PatentReaderDocument:
     description: str = ""
     classifications: tuple[str, ...] = ()
     figures: tuple[PatentFigure, ...] = ()
+    claims_source: str | None = None
+    description_source: str | None = None
+    figures_source: str | None = None
+    warnings: tuple[str, ...] = ()

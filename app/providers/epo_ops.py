@@ -35,6 +35,26 @@ TOKEN_URL = "https://ops.epo.org/3.2/auth/accesstoken"
 OPS_BASE_URL = "https://ops.epo.org/3.2/rest-services"
 
 
+@dataclass(frozen=True, slots=True)
+class EpoImageLayout:
+    total_pages: int
+    section_starts: tuple[tuple[str, int], ...]
+
+    def start_page(self, section: str) -> int | None:
+        target = section.upper()
+        for name, page in self.section_starts:
+            if name.upper() == target:
+                return page
+        return None
+
+    def end_page(self, section: str) -> int | None:
+        start = self.start_page(section)
+        if start is None:
+            return None
+        later = [page for _, page in self.section_starts if page > start]
+        return min(later) - 1 if later else self.total_pages
+
+
 def _local_name(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
 
@@ -224,6 +244,76 @@ def _extract_classifications(container: ET.Element) -> tuple[str, ...]:
         if value and value not in values:
             values.append(value)
     return tuple(values)
+
+
+def parse_fulltext_section_xml(xml_text: str, section: str) -> str:
+    """Extract claims or description text from OPS full-text XML."""
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError as exc:
+        raise ProviderResponseError("Invalid XML from EPO OPS full-text service.") from exc
+
+    target_name = section.casefold()
+    target = next(
+        (
+            node
+            for node in root.iter()
+            if _local_name(node.tag).casefold() == target_name
+        ),
+        None,
+    )
+    if target is None:
+        return ""
+
+    blocks: list[str] = []
+    if target_name == "claims":
+        claim_nodes = [
+            node for node in target.iter() if _local_name(node.tag) == "claim"
+        ]
+        for claim in claim_nodes:
+            value = " ".join("".join(claim.itertext()).split())
+            if value:
+                blocks.append(value)
+    else:
+        for child in target:
+            value = " ".join("".join(child.itertext()).split())
+            if value:
+                blocks.append(value)
+
+    if not blocks:
+        value = " ".join("".join(target.itertext()).split())
+        return value
+    return "\n\n".join(blocks)
+
+
+def parse_image_layout_xml(xml_text: str) -> EpoImageLayout | None:
+    """Parse the FullDocument section map returned by OPS images inquiry."""
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError as exc:
+        raise ProviderResponseError("Invalid XML from EPO OPS image service.") from exc
+
+    for node in root.iter():
+        if _local_name(node.tag) != "document-instance":
+            continue
+        if node.attrib.get("desc") != "FullDocument":
+            continue
+        total_text = node.attrib.get("number-of-pages")
+        if not total_text or not total_text.isdigit():
+            continue
+        sections: list[tuple[str, int]] = []
+        for section_node in node.iter():
+            if _local_name(section_node.tag) != "document-section":
+                continue
+            name = section_node.attrib.get("name")
+            start_text = section_node.attrib.get("start-page")
+            if name and start_text and start_text.isdigit():
+                sections.append((name.upper(), int(start_text)))
+        return EpoImageLayout(
+            total_pages=int(total_text),
+            section_starts=tuple(sections),
+        )
+    return None
 
 
 def _search_hit_from_exchange_document(container: ET.Element) -> SearchHit | None:
@@ -563,6 +653,88 @@ class EpoOpsProvider:
             if response.status_code == 404:
                 return SearchPage(hits=(), total_result_count=0)
             return parse_biblio_search_xml(response.text)
+
+    async def get_fulltext_section(
+        self,
+        publication: PatentNumber,
+        section: str,
+    ) -> str:
+        normalized_section = section.casefold()
+        if normalized_section not in {"claims", "description"}:
+            raise ValueError("section must be 'claims' or 'description'")
+
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+            token = await self._access_token(client)
+            docdb = to_docdb_publication(publication)
+            url = (
+                f"{OPS_BASE_URL}/published-data/publication/docdb/"
+                f"{docdb}/{normalized_section}"
+            )
+            response = await self._authorized_get(
+                client,
+                url,
+                token=token,
+                headers={"Accept": "application/fulltext+xml"},
+                allow_not_found=True,
+            )
+            if response.status_code == 404:
+                return ""
+            return parse_fulltext_section_xml(response.text, normalized_section)
+
+    async def get_image_layout(
+        self,
+        publication: PatentNumber,
+    ) -> EpoImageLayout | None:
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+            token = await self._access_token(client)
+            docdb = to_docdb_publication(publication)
+            url = (
+                f"{OPS_BASE_URL}/published-data/publication/docdb/"
+                f"{docdb}/images"
+            )
+            response = await self._authorized_get(
+                client,
+                url,
+                token=token,
+                headers={"Accept": "application/ops+xml"},
+                allow_not_found=True,
+            )
+            if response.status_code == 404:
+                return None
+            return parse_image_layout_xml(response.text)
+
+    async def get_image_page_pdf(
+        self,
+        publication: PatentNumber,
+        page: int,
+    ) -> bytes:
+        if page < 1:
+            raise ValueError("page must be >= 1")
+        if not publication.kind_code:
+            raise ProviderResponseError(
+                f"{publication.canonical} has no kind code for OPS image retrieval."
+            )
+
+        body = publication.number_without_kind[2:]
+        url = (
+            f"{OPS_BASE_URL}/published-data/images/"
+            f"{publication.jurisdiction}/{body}/{publication.kind_code}/fullimage"
+        )
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+            token = await self._access_token(client)
+            response = await self._authorized_get(
+                client,
+                url,
+                token=token,
+                headers={
+                    "Accept": "application/pdf",
+                    "X-OPS-Range": str(page),
+                },
+                allow_not_found=True,
+            )
+            if response.status_code == 404:
+                return b""
+            return response.content
 
     async def get_family(
         self,

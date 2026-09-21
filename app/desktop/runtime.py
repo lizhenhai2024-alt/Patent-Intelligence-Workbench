@@ -21,6 +21,7 @@ from app.providers.fallback_search import FallbackSearchProvider
 from app.providers.google_patents_search import GooglePatentsSearchProvider
 from app.providers.local_library import LocalLibrarySearchProvider
 from app.services.family_resolver import FamilyResolver
+from app.services.reader_service import ReaderService
 from app.services.search_service import SearchService
 from app.watch.engine import PatentWatchEngine
 from app.watch.scheduler import PatentWatchScheduler
@@ -39,6 +40,7 @@ class DesktopRuntime:
     acquisition_engine: AcquisitionEngine | None = None
     search_service: SearchService | None = None
     family_resolver: FamilyResolver | None = None
+    reader_service: ReaderService | None = None
     library_enrichment_service: LibraryEnrichmentService | None = None
     watch_scheduler: PatentWatchScheduler | None = None
     search_status: str = "公开搜索可用 · EPO OPS 未配置（可选增强）"
@@ -119,6 +121,7 @@ class DesktopRuntime:
         google = GooglePatentsSearchProvider()
         search_providers = [LocalLibrarySearchProvider(self.library_store)]
         family_providers = []
+        epo: EpoOpsProvider | None = None
 
         if credentials is not None:
             epo = EpoOpsProvider(
@@ -137,6 +140,14 @@ class DesktopRuntime:
             technology_dictionary=TechnologyDictionary.default(),
         )
         self.family_resolver = FamilyResolver(family_providers)
+        self.reader_service = ReaderService(
+            library_store=self.library_store,
+            family_resolver=self.family_resolver,
+            download_manager=self.family_downloader.manager,
+            cache_root=self.paths.root / "reader-cache",
+            google_provider=GooglePatentsSearchProvider(max_attempts=1),
+            epo_provider=epo,
+        )
         self.library_enrichment_service = LibraryEnrichmentService(
             self.library_store,
             self.search_service.provider,
