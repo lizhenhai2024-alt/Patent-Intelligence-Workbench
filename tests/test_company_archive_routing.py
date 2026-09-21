@@ -1,9 +1,17 @@
+import os
 from pathlib import Path
+
+import pytest
 
 from app.desktop.app import PatentWorkbenchApp
 from app.desktop.paths import AppPaths
 from app.desktop.runtime import DesktopRuntime
 from app.domain.family import FamilyType, PatentFamily, PatentPublication
+
+pytestmark = pytest.mark.skipif(
+    os.name != "nt" and not os.environ.get("DISPLAY"),
+    reason="Tk UI tests require a display",
+)
 
 
 def test_known_company_download_root_uses_company_folder(tmp_path: Path):
