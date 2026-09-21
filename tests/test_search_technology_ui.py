@@ -3,14 +3,14 @@ from datetime import date
 
 import pytest
 
+from app.desktop.app import PatentWorkbenchApp
+from app.desktop.runtime import DesktopRuntime
+from app.domain.search import SearchHit, SearchMode, SearchPage, SearchResponse
+
 pytestmark = pytest.mark.skipif(
     os.name != "nt" and not os.environ.get("DISPLAY"),
     reason="Tk UI tests require a display",
 )
-
-from app.desktop.app import PatentWorkbenchApp
-from app.desktop.runtime import DesktopRuntime
-from app.domain.search import SearchHit, SearchMode, SearchPage, SearchResponse
 
 
 def test_search_results_show_technology_tags_and_evidence():
