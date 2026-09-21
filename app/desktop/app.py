@@ -637,6 +637,11 @@ class PatentWorkbenchApp(tk.Tk):
             text="打开 Google Patents 原文",
             command=self.open_reader_source,
         ).pack(side="left")
+        ttk.Button(
+            actions,
+            text="打开 / 下载 PDF",
+            command=self.open_reader_pdf,
+        ).pack(side="left", padx=(6, 0))
         self.reader_section_var = tk.StringVar(value="摘要")
         self.reader_section_box = ttk.Combobox(
             actions,
@@ -752,6 +757,41 @@ class PatentWorkbenchApp(tk.Tk):
             return
         url = f"https://patents.google.com/patent/{self._reader_hit.publication_number}/en"
         webbrowser.open(url)
+
+    def open_reader_pdf(self) -> None:
+        if self._reader_hit is None:
+            return
+        publication_number = self._reader_hit.publication_number
+        patent = self.runtime.library_store.get_patent(publication_number)
+        if patent is not None:
+            for document in patent.documents:
+                if document.path.exists():
+                    open_local_path(document.path)
+                    self._set_status(f"已打开本地 PDF：{document.path}")
+                    return
+        try:
+            publication = normalize_patent_number(publication_number)
+        except PatentNumberError as exc:
+            self._set_status(f"PDF 下载失败：{exc}")
+            return
+        destination = self.runtime.paths.root / "reader-cache" / f"{publication.canonical}.pdf"
+
+        async def task():
+            return await self.runtime.family_downloader.manager.download(
+                publication,
+                destination,
+            )
+
+        run_async_in_thread(
+            task,
+            on_success=self._on_reader_pdf_ready,
+            on_error=lambda exc: self._set_status(f"PDF 下载失败：{exc}"),
+            schedule_ui=self._ui_callbacks.submit,
+        )
+
+    def _on_reader_pdf_ready(self, result) -> None:
+        open_local_path(result.path)
+        self._set_status(f"PDF 已打开：{result.path}")
 
     def _translate_reader_text(self, text: str) -> None:
         if not text.strip():
