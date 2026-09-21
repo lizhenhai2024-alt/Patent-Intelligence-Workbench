@@ -23,13 +23,17 @@ def test_reader_figure_navigation(monkeypatch):
             PatentFigure("https://example.com/t2.png", "https://example.com/f2.png"),
         ),
     )
+    loaded = []
+    monkeypatch.setattr(app, "_load_reader_figure_image", lambda url: loaded.append(url))
     app.reader_section_var.set("附图")
     app._render_reader_section()
-    assert "Figure 1/2" in app.reader_source_text.get("1.0", "end")
+    assert "Figure 1/2" in app.reader_figure_info_var.get()
+    assert loaded[-1] == "https://example.com/f1.png"
     app.reader_next_figure()
-    assert "Figure 2/2" in app.reader_source_text.get("1.0", "end")
+    assert "Figure 2/2" in app.reader_figure_info_var.get()
+    assert loaded[-1] == "https://example.com/f2.png"
     app.reader_next_figure()
-    assert "Figure 1/2" in app.reader_source_text.get("1.0", "end")
+    assert "Figure 1/2" in app.reader_figure_info_var.get()
     opened = []
     monkeypatch.setattr("app.desktop.app.webbrowser.open", lambda url: opened.append(url))
     app.open_reader_figure()

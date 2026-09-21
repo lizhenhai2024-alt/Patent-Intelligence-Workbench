@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import base64
 import tkinter as tk
 import webbrowser
 from dataclasses import replace
 from tkinter import filedialog, messagebox, ttk
+
+import httpx
 
 from app.acquisition import AcquisitionRequest
 from app.core.patent_number import PatentNumberError, normalize_patent_number
@@ -14,6 +17,7 @@ from app.core.technology_taxonomy import TechnologyTaxonomy
 from app.core.translation import UnconfiguredTranslationProvider
 from app.core.translation_http import CachedTranslationProvider, HttpTranslationProvider
 from app.desktop.async_runner import TkCallbackQueue, run_async_in_thread
+from app.desktop.figure_preview import figure_scale
 from app.desktop.opening import open_local_path
 from app.desktop.presenters import patent_row, watch_history_row, watch_rule_row
 from app.desktop.runtime import DesktopRuntime
@@ -48,6 +52,11 @@ class PatentWorkbenchApp(tk.Tk):
         self._search_hits_by_number = {}
         self._reader_hit = None
         self._reader_document: PatentReaderDocument | None = None
+        self._reader_figure_cache: dict[str, bytes] = {}
+        self._reader_figure_original = None
+        self._reader_figure_photo = None
+        self._reader_figure_loading_url: str | None = None
+        self._reader_figure_zoom_level = 0
 
         self.title("Patent Intelligence Workbench")
         self.geometry("1460x900")
@@ -675,6 +684,15 @@ class PatentWorkbenchApp(tk.Tk):
         ttk.Button(actions, text="打开原图", command=self.open_reader_figure).pack(
             side="left", padx=(4, 0)
         )
+        ttk.Button(actions, text="适配", command=self.fit_reader_figure).pack(
+            side="left", padx=(8, 0)
+        )
+        ttk.Button(actions, text="−", command=self.zoom_out_reader_figure).pack(
+            side="left", padx=(4, 0)
+        )
+        ttk.Button(actions, text="+", command=self.zoom_in_reader_figure).pack(
+            side="left", padx=(4, 0)
+        )
         self.reader_figure_index = 0
         body = ttk.Panedwindow(self.reader_tab, orient="horizontal")
         body.pack(fill="both", expand=True)
@@ -684,6 +702,47 @@ class PatentWorkbenchApp(tk.Tk):
         body.add(right, weight=1)
         self.reader_source_text = tk.Text(left, wrap="word", padx=10, pady=8)
         self.reader_source_text.pack(fill="both", expand=True)
+
+        self.reader_figure_frame = ttk.Frame(left)
+        self.reader_figure_info_var = tk.StringVar(value="附图尚未加载")
+        ttk.Label(
+            self.reader_figure_frame,
+            textvariable=self.reader_figure_info_var,
+            style="Subtle.TLabel",
+        ).pack(fill="x", pady=(0, 6))
+        figure_canvas_wrap = ttk.Frame(self.reader_figure_frame)
+        figure_canvas_wrap.pack(fill="both", expand=True)
+        self.reader_figure_canvas = tk.Canvas(
+            figure_canvas_wrap,
+            background="#FFFFFF",
+            highlightthickness=1,
+            highlightbackground="#DDE3EA",
+        )
+        figure_vscroll = ttk.Scrollbar(
+            figure_canvas_wrap,
+            orient="vertical",
+            command=self.reader_figure_canvas.yview,
+        )
+        figure_hscroll = ttk.Scrollbar(
+            figure_canvas_wrap,
+            orient="horizontal",
+            command=self.reader_figure_canvas.xview,
+        )
+        self.reader_figure_canvas.configure(
+            yscrollcommand=figure_vscroll.set,
+            xscrollcommand=figure_hscroll.set,
+        )
+        self.reader_figure_canvas.grid(row=0, column=0, sticky="nsew")
+        figure_vscroll.grid(row=0, column=1, sticky="ns")
+        figure_hscroll.grid(row=1, column=0, sticky="ew")
+        figure_canvas_wrap.rowconfigure(0, weight=1)
+        figure_canvas_wrap.columnconfigure(0, weight=1)
+        self.reader_figure_canvas.bind(
+            "<Double-1>",
+            lambda _event: self.open_reader_figure(),
+        )
+        self.reader_figure_canvas.bind("<Configure>", self._on_reader_figure_resize)
+
         self.reader_translation_text = tk.Text(right, wrap="word", padx=10, pady=8)
         self.reader_translation_text.pack(fill="both", expand=True)
         self.reader_translation_text.insert("1.0", "译文将在这里显示。")
@@ -703,7 +762,13 @@ class PatentWorkbenchApp(tk.Tk):
             abstract=hit.abstract,
             classifications=hit.classifications,
         )
+        self.reader_figure_index = 0
+        self._reader_figure_loading_url = None
+        self._reader_figure_original = None
+        self._reader_figure_photo = None
+        self._reader_figure_zoom_level = 0
         self.reader_section_var.set("摘要")
+        self._show_reader_text_view()
         self.reader_number_var.set(hit.publication_number)
         self.reader_title_var.set(hit.title or "")
         classes = ", ".join(hit.classifications) or "—"
@@ -745,6 +810,16 @@ class PatentWorkbenchApp(tk.Tk):
         self._render_reader_section()
         self._set_status(f"Reader 全文已加载：{document.publication_number}")
 
+    def _show_reader_text_view(self) -> None:
+        self.reader_figure_frame.pack_forget()
+        if not self.reader_source_text.winfo_ismapped():
+            self.reader_source_text.pack(fill="both", expand=True)
+
+    def _show_reader_figure_view(self) -> None:
+        self.reader_source_text.pack_forget()
+        if not self.reader_figure_frame.winfo_ismapped():
+            self.reader_figure_frame.pack(fill="both", expand=True)
+
     def _render_reader_section(self) -> None:
         document = self._reader_document
         if document is None:
@@ -753,6 +828,7 @@ class PatentWorkbenchApp(tk.Tk):
         if section == "附图":
             self._render_reader_figure()
             return
+        self._show_reader_text_view()
         text = {
             "摘要": document.abstract or "暂无摘要。",
             "权利要求": document.claims or "暂无权利要求文本。",
@@ -762,24 +838,116 @@ class PatentWorkbenchApp(tk.Tk):
         self.reader_source_text.insert("1.0", text)
 
     def _render_reader_figure(self) -> None:
+        self._show_reader_figure_view()
         document = self._reader_document
         if document is None or not document.figures:
-            text = "暂无附图。"
-        else:
-            self.reader_figure_index %= len(document.figures)
-            figure = document.figures[self.reader_figure_index]
-            text = (
-                f"Figure {self.reader_figure_index + 1}/{len(document.figures)}\n\n"
-                f"缩略图：{figure.thumbnail_url}\n\n原图：{figure.full_url}"
-            )
-        self.reader_source_text.delete("1.0", "end")
-        self.reader_source_text.insert("1.0", text)
+            self.reader_figure_info_var.set("暂无附图。")
+            self.reader_figure_canvas.delete("all")
+            return
+        self.reader_figure_index %= len(document.figures)
+        figure = document.figures[self.reader_figure_index]
+        self.reader_figure_info_var.set(
+            f"Figure {self.reader_figure_index + 1}/{len(document.figures)} · 正在加载…"
+        )
+        self._load_reader_figure_image(figure.full_url)
+
+    def _load_reader_figure_image(self, url: str) -> None:
+        self._reader_figure_loading_url = url
+        cached = self._reader_figure_cache.get(url)
+        if cached is not None:
+            self._on_reader_figure_image_loaded(url, cached)
+            return
+
+        async def task():
+            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+                response = await client.get(url)
+                response.raise_for_status()
+                return response.content
+
+        run_async_in_thread(
+            task,
+            on_success=lambda data, image_url=url: self._on_reader_figure_image_loaded(
+                image_url,
+                data,
+            ),
+            on_error=lambda exc: self._on_reader_figure_image_error(url, exc),
+            schedule_ui=self._ui_callbacks.submit,
+        )
+
+    def _on_reader_figure_image_loaded(self, url: str, data: bytes) -> None:
+        if url != self._reader_figure_loading_url:
+            return
+        self._reader_figure_cache[url] = data
+        try:
+            encoded = base64.b64encode(data).decode("ascii")
+            self._reader_figure_original = tk.PhotoImage(data=encoded)
+        except tk.TclError as exc:
+            self._on_reader_figure_image_error(url, exc)
+            return
+        self._reader_figure_zoom_level = 0
+        self._display_reader_figure_image()
+        document = self._reader_document
+        total = len(document.figures) if document else 0
+        self.reader_figure_info_var.set(
+            f"Figure {self.reader_figure_index + 1}/{total} · 双击图片打开原图"
+        )
+
+    def _on_reader_figure_image_error(self, url: str, exc: Exception) -> None:
+        if url != self._reader_figure_loading_url:
+            return
+        self.reader_figure_canvas.delete("all")
+        self.reader_figure_info_var.set(f"附图加载失败：{exc}")
+
+    def _display_reader_figure_image(self) -> None:
+        original = self._reader_figure_original
+        if original is None:
+            return
+        canvas = self.reader_figure_canvas
+        viewport_width = max(canvas.winfo_width() - 20, 100)
+        viewport_height = max(canvas.winfo_height() - 20, 100)
+        scale = figure_scale(
+            original.width(),
+            original.height(),
+            viewport_width,
+            viewport_height,
+            self._reader_figure_zoom_level,
+        )
+        photo = original
+        if scale.subsample > 1:
+            photo = photo.subsample(scale.subsample, scale.subsample)
+        if scale.zoom > 1:
+            photo = photo.zoom(scale.zoom, scale.zoom)
+        self._reader_figure_photo = photo
+        canvas.delete("all")
+        width = max(viewport_width, photo.width())
+        height = max(viewport_height, photo.height())
+        x = max((viewport_width - photo.width()) // 2, 0)
+        y = max((viewport_height - photo.height()) // 2, 0)
+        canvas.create_image(x, y, image=photo, anchor="nw")
+        canvas.configure(scrollregion=(0, 0, width, height))
+
+    def _on_reader_figure_resize(self, _event=None) -> None:
+        if self._reader_figure_zoom_level == 0:
+            self._display_reader_figure_image()
+
+    def fit_reader_figure(self) -> None:
+        self._reader_figure_zoom_level = 0
+        self._display_reader_figure_image()
+
+    def zoom_in_reader_figure(self) -> None:
+        self._reader_figure_zoom_level = min(4, self._reader_figure_zoom_level + 1)
+        self._display_reader_figure_image()
+
+    def zoom_out_reader_figure(self) -> None:
+        self._reader_figure_zoom_level = max(-6, self._reader_figure_zoom_level - 1)
+        self._display_reader_figure_image()
 
     def reader_previous_figure(self) -> None:
         document = self._reader_document
         if document is None or not document.figures:
             return
         self.reader_figure_index = (self.reader_figure_index - 1) % len(document.figures)
+        self._reader_figure_zoom_level = 0
         self.reader_section_var.set("附图")
         self._render_reader_figure()
 
@@ -788,6 +956,7 @@ class PatentWorkbenchApp(tk.Tk):
         if document is None or not document.figures:
             return
         self.reader_figure_index = (self.reader_figure_index + 1) % len(document.figures)
+        self._reader_figure_zoom_level = 0
         self.reader_section_var.set("附图")
         self._render_reader_figure()
 
@@ -934,6 +1103,9 @@ class PatentWorkbenchApp(tk.Tk):
         )
 
     def translate_reader_section(self) -> None:
+        if self.reader_section_var.get() == "附图":
+            self._set_reader_translation("附图章节不进行文本翻译；可双击图片打开原图。")
+            return
         text = self.reader_source_text.get("1.0", "end").strip()
         self._translate_reader_text(text)
 
