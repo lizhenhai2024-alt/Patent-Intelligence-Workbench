@@ -906,6 +906,21 @@ class PatentWorkbenchApp(tk.Tk):
         toolbar = ttk.Frame(library_toolbar_card, style="Surface.TFrame")
         toolbar.pack(fill="x")
 
+        library_root = self.runtime.library_root or self.runtime.paths.downloads
+        self.library_root_var = tk.StringVar(value=str(library_root))
+        ttk.Label(toolbar, text="专利库目录").pack(side="left")
+        ttk.Entry(
+            toolbar,
+            textvariable=self.library_root_var,
+            width=42,
+        ).pack(side="left", padx=(5, 4))
+        ttk.Button(
+            toolbar,
+            text="选择目录",
+            command=self.choose_library_root,
+            style="Quiet.TButton",
+        ).pack(side="left", padx=(0, 8))
+
         self.library_query_var = tk.StringVar()
         entry = ttk.Entry(
             toolbar,
@@ -1862,9 +1877,8 @@ class PatentWorkbenchApp(tk.Tk):
             )
 
         def task():
-            return self.runtime.family_downloader.download_family(
+            return self._download_family_to_library_root(
                 family,
-                self.runtime.paths.downloads,
                 on_progress=progress_callback,
             )
 
@@ -1914,6 +1928,36 @@ class PatentWorkbenchApp(tk.Tk):
             on_error=failed,
             schedule_ui=self._ui_callbacks.submit,
         )
+
+    def _download_family_to_library_root(self, family, *, on_progress=None):
+        root = self.runtime.library_root or self.runtime.paths.downloads
+        company_name = self._family_company_folder_name(family)
+        company_root = root / company_name
+        company_root.mkdir(parents=True, exist_ok=True)
+        return self.runtime.family_downloader.download_family(
+            family,
+            company_root,
+            on_progress=on_progress,
+        )
+
+    def _family_company_folder_name(self, family) -> str:
+        registry = (
+            self.runtime.search_service.company_registry
+            if self.runtime.search_service
+            else None
+        )
+        assignees = [
+            name
+            for member in family.members
+            for name in (member.current_assignees or member.original_assignees)
+        ]
+        if registry is not None:
+            for name in assignees:
+                try:
+                    return registry.get(name).display_name
+                except KeyError:
+                    continue
+        return assignees[0] if assignees else "待归类"
 
     def _render_family_download_progress(self, progress) -> None:
         self.family_download_progress.configure(
@@ -2062,6 +2106,17 @@ class PatentWorkbenchApp(tk.Tk):
             )
         if hasattr(self, "status_var"):
             self._set_status(f"本地库：{len(patents)} 条")
+
+    def choose_library_root(self) -> None:
+        selected = filedialog.askdirectory(
+            initialdir=self.library_root_var.get() or self.runtime.paths.downloads,
+            title="选择 LocalLibrary 专利库目录",
+        )
+        if not selected:
+            return
+        root = self.runtime.set_library_root(selected)
+        self.library_root_var.set(str(root))
+        self._set_status(f"LocalLibrary 目录已更新：{root}")
 
     def enrich_library_metadata(self) -> None:
         service = self.runtime.library_enrichment_service
