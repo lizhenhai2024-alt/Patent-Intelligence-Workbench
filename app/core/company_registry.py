@@ -98,7 +98,7 @@ class CompanyRegistry:
                 return group
             for entity in group.entities:
                 entity_key = _normalize_company_key(entity.name)
-                if entity_key == needle or needle in entity_key or entity_key in needle:
+                if entity_key == needle:
                     return group
         raise KeyError(f"Unknown company group: {value}")
 

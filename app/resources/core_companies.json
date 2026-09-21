@@ -213,6 +213,29 @@
           "relation": "SAME_ENTITY"
         }
       ]
+    },
+    {
+      "group_id": "ftl",
+      "display_name": "富奥东机工 / 一汽东机工",
+      "core_watch": true,
+      "entities": [
+        {
+          "name": "富奥东机工减振器有限公司",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "一汽东机工减振器有限公司",
+          "relation": "PREVIOUS_NAME"
+        },
+        {
+          "name": "富奥东机工",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "一汽东机工",
+          "relation": "PREVIOUS_NAME"
+        }
+      ]
     }
   ]
 }

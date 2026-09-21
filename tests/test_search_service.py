@@ -204,3 +204,16 @@ def test_company_portfolio_search_uses_suspension_scope_and_scoped_entity():
         "stabilizer",
         "anti roll",
     )
+
+def test_default_registry_routes_ftl_alias_to_company_search():
+    provider = FakeProvider()
+    service = SearchService(
+        provider=provider,
+        company_registry=CompanyRegistry.default(),
+    )
+    result = asyncio.run(service.search("一汽东机工"))
+    expression = provider.search_calls[0][0]
+    assert result.mode.value == "COMPANY"
+    assert result.company_group_id == "ftl"
+    assert "一汽东机工" in expression.applicants
+    assert "富奥东机工" in expression.applicants

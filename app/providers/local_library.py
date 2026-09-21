@@ -113,6 +113,7 @@ def _patent_to_hit(patent: LibraryPatent) -> SearchHit:
         kind_code=patent.kind_code,
         title=patent.title,
         applicants=applicants,
+        classifications=tuple(item.code for item in patent.classifications),
         publication_date=patent.publication_date,
         source="LOCAL_LIBRARY",
     )
