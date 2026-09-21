@@ -52,6 +52,9 @@ def test_semi_active_contains_control_architecture_nodes():
         "back_pressure_control",
         "floating_piston",
         "fail_safe_valve",
+        "solenoid_actuator",
+        "digital_valve",
+        "control_electronics",
     }
     assert {child.node_id for child in semi_active.children} == expected
     assert all(child.search_terms for child in semi_active.children)

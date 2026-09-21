@@ -40,6 +40,22 @@ def test_classifier_uses_classifications_as_strong_evidence():
     assert spring_seat.matched_classifications == ("B60G11",)
 
 
+def test_classifier_normalizes_hyphenated_engineering_terms():
+    classifier = TechnologyClassifier()
+    matches = classifier.classify(text="Frequency-dependent electronic damping")
+    assert any(match.node_id == "fsd" for match in matches)
+
+
+def test_classifier_handles_chinese_cdc_architecture_terms():
+    classifier = TechnologyClassifier()
+    matches = classifier.classify(
+        text="双电磁阀减振器采用先导阀、背压腔和浮动活塞，并具备故障安全功能"
+    )
+    ids = {match.node_id for match in matches}
+    assert {"semi_active", "pilot_valve", "back_pressure_control"}.issubset(ids)
+    assert {"floating_piston", "fail_safe_valve"}.issubset(ids)
+
+
 def test_taxonomy_path_exposes_engineering_hierarchy():
     taxonomy = TechnologyTaxonomy.default()
     path = taxonomy.path("pilot_valve")
@@ -65,3 +81,22 @@ def test_classifier_matches_pilot_control_hyphen_variant():
     )
     assert any(match.node_id == "pilot_valve" for match in matches)
     assert any(match.node_id == "semi_active" for match in matches)
+
+
+
+def test_classifier_covers_solenoid_magnetic_architecture():
+    classifier = TechnologyClassifier()
+    matches = classifier.classify(
+        text="Electromagnetic actuator magnetic circuit with armature and permanent magnet"
+    )
+    assert any(match.node_id == "solenoid_actuator" for match in matches)
+
+
+def test_classifier_covers_digital_valve_and_control_electronics():
+    classifier = TechnologyClassifier()
+    matches = classifier.classify(
+        text="Digital valve with integrated electronic circuit and printed circuit board"
+    )
+    ids = {match.node_id for match in matches}
+    assert "digital_valve" in ids
+    assert "control_electronics" in ids

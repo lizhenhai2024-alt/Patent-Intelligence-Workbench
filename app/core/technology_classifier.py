@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+import unicodedata
 from dataclasses import dataclass
 
 from .technology_taxonomy import TechnologyNode, TechnologyTaxonomy
@@ -27,16 +29,19 @@ class TechnologyClassifier:
         classifications: tuple[str, ...] = (),
         min_score: int = 2,
     ) -> tuple[TechnologyMatch, ...]:
-        haystack = text.casefold()
+        haystack = self._normalize_text(text)
         normalized_classes = tuple(code.upper() for code in classifications)
         matches: list[TechnologyMatch] = []
         for node in self._iter_nodes(self.taxonomy.roots):
             if node.children and not node.search_terms and not node.include_terms:
                 continue
             terms = self._candidate_terms(node)
-            matched_terms = tuple(term for term in terms if term.casefold() in haystack)
+            matched_terms = tuple(
+                term for term in terms
+                if self._normalize_text(term) in haystack
+            )
             excluded = any(
-                term.casefold() in haystack for term in node.exclude_terms
+                self._normalize_text(term) in haystack for term in node.exclude_terms
             )
             if excluded:
                 continue
@@ -56,6 +61,12 @@ class TechnologyClassifier:
                     )
                 )
         return tuple(sorted(matches, key=lambda item: (-item.score, item.name)))
+
+    @staticmethod
+    def _normalize_text(value: str) -> str:
+        normalized = unicodedata.normalize("NFKC", value).casefold()
+        normalized = re.sub(r"[^\w]+", " ", normalized, flags=re.UNICODE)
+        return " ".join(normalized.split())
 
     @staticmethod
     def _candidate_terms(node: TechnologyNode) -> tuple[str, ...]:

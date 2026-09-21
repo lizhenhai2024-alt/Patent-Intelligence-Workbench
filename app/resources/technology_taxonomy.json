@@ -8,10 +8,27 @@
         {
           "id": "passive_damper",
           "name": "Passive Damper",
+          "search_terms": [
+            "passive damper",
+            "passive shock absorber",
+            "被动减振器",
+            "传统液压减振器"
+          ],
           "children": [
             {
               "id": "valving",
               "name": "Valving",
+              "search_terms": [
+                "damper valving",
+                "damping valve mechanism",
+                "damping force generating mechanism",
+                "阀系",
+                "阻尼阀",
+                "阻尼力发生机构",
+                "valve body",
+                "阀体",
+                "可调阀"
+              ],
               "children": [
                 {
                   "id": "piston_valve",
@@ -69,7 +86,11 @@
                     "pressure relief valve",
                     "pressure relief poppet",
                     "relief poppet",
-                    "poppet valve"
+                    "poppet valve",
+                    "泄压阀",
+                    "溢流阀",
+                    "泄压结构",
+                    "pressure relief"
                   ],
                   "children": []
                 },
@@ -79,7 +100,9 @@
                   "search_terms": [
                     "check valve",
                     "non return valve",
-                    "one way valve"
+                    "one way valve",
+                    "单向阀",
+                    "止回阀"
                   ],
                   "children": []
                 },
@@ -89,7 +112,12 @@
                   "search_terms": [
                     "orifice",
                     "bleed passage",
-                    "bleed valve"
+                    "bleed valve",
+                    "variable bleed",
+                    "adjustable bleed",
+                    "节流孔",
+                    "节流通道",
+                    "泄流孔"
                   ],
                   "children": []
                 },
@@ -109,7 +137,13 @@
                   "search_terms": [
                     "valve seat",
                     "flow passage",
-                    "flow path"
+                    "flow path",
+                    "intake flow",
+                    "auxiliary flow",
+                    "阀座",
+                    "流道",
+                    "流路",
+                    "补油路径"
                   ],
                   "children": []
                 }
@@ -122,8 +156,14 @@
                 "frequency selective damping",
                 "frequency selective damper",
                 "frequency dependent damping",
+                "frequency dependent electronic damping",
                 "frequency sensitive damper",
-                "frequency dependent valve"
+                "frequency dependent valve",
+                "frequency selective",
+                "频率选择",
+                "频率依赖",
+                "频率响应",
+                "频率选择减振器"
               ],
               "children": [
                 {
@@ -213,7 +253,27 @@
             "variable damping damper",
             "variable damping valve",
             "proportional solenoid valve",
-            "electromagnetic damping valve"
+            "electromagnetic damping valve",
+            "damping force adjusting",
+            "adjustable damping force",
+            "damping force control",
+            "damping force variable",
+            "damper with solenoid valve",
+            "continuously semi active",
+            "电控减振器",
+            "可变阻尼力",
+            "可调阻尼力",
+            "阻尼力可调",
+            "阻尼力调整",
+            "阻尼力控制",
+            "可调阻尼阀",
+            "外置可调阀",
+            "电磁阀减振器",
+            "controllable valve",
+            "control valves",
+            "external active valve",
+            "可调阀",
+            "外置可调液压减振器"
           ],
           "children": [
             {
@@ -222,7 +282,14 @@
               "search_terms": [
                 "continuous damping control",
                 "continuously variable semi active",
-                "electronically controlled damper"
+                "continuously semi active",
+                "electronically controlled damper",
+                "cv valve",
+                "cvsa",
+                "cdc damper",
+                "电控减振器",
+                "连续可变阻尼",
+                "阻尼力连续可调"
               ],
               "children": []
             },
@@ -236,7 +303,12 @@
                 "pilot-control valve",
                 "pilot control valve",
                 "pilot operated damping valve",
-                "pilot chamber"
+                "pilot chamber",
+                "pilot main",
+                "servo valve",
+                "先导阀",
+                "前级阀",
+                "先导室"
               ],
               "children": [],
               "level": "component",
@@ -263,7 +335,10 @@
                 "external control valve",
                 "externally mounted damper valve",
                 "externally mounted control valve",
-                "side mounted solenoid valve"
+                "side mounted solenoid valve",
+                "外置电磁阀",
+                "外置控制阀",
+                "外部电磁阀"
               ],
               "children": []
             },
@@ -275,7 +350,10 @@
                 "internal control valve",
                 "built in damper valve",
                 "built-in control valve",
-                "piston integrated solenoid valve"
+                "piston integrated solenoid valve",
+                "内置电磁阀",
+                "内置控制阀",
+                "活塞集成电磁阀"
               ],
               "children": []
             },
@@ -285,7 +363,11 @@
               "search_terms": [
                 "back pressure control",
                 "back pressure chamber",
-                "pilot pressure chamber"
+                "pilot pressure chamber",
+                "背压控制",
+                "背压腔",
+                "先导压力腔",
+                "控制腔"
               ],
               "children": []
             },
@@ -295,7 +377,10 @@
               "search_terms": [
                 "floating piston",
                 "free piston",
-                "floating valve piston"
+                "floating valve piston",
+                "浮动活塞",
+                "控制浮动活塞",
+                "阀浮动活塞"
               ],
               "children": [],
               "level": "component",
@@ -319,8 +404,65 @@
               "name": "Fail-safe Valve",
               "search_terms": [
                 "fail safe valve",
+                "fail safe",
                 "failsafe valve",
-                "emergency damping valve"
+                "emergency damping valve",
+                "emergency operation valve",
+                "故障安全",
+                "失效安全",
+                "紧急操作阀",
+                "紧急阀"
+              ],
+              "children": []
+            },
+            {
+              "id": "solenoid_actuator",
+              "name": "Solenoid Actuator / Magnetic Circuit",
+              "search_terms": [
+                "solenoid actuator",
+                "electromagnetic actuator",
+                "magnetic circuit",
+                "magnetic flux",
+                "solenoid coil",
+                "armature",
+                "permanent magnet",
+                "电磁执行器",
+                "电磁铁",
+                "磁路",
+                "磁通",
+                "衔铁",
+                "电磁线圈",
+                "永磁体"
+              ],
+              "children": []
+            },
+            {
+              "id": "digital_valve",
+              "name": "Digital Valve",
+              "search_terms": [
+                "digital valve",
+                "digital damping valve",
+                "digitally controlled valve",
+                "数字阀",
+                "数字式阀"
+              ],
+              "children": []
+            },
+            {
+              "id": "control_electronics",
+              "name": "Control Electronics / PCB",
+              "search_terms": [
+                "electronic circuit",
+                "control electronics",
+                "control circuit",
+                "circuit board",
+                "printed circuit board",
+                "integrated electronic circuit",
+                "电子电路",
+                "控制电路",
+                "电路板",
+                "印刷电路板",
+                "集成电子电路"
               ],
               "children": []
             }
@@ -331,7 +473,11 @@
           "name": "Active Suspension",
           "search_terms": [
             "active suspension",
-            "active damper"
+            "active damper",
+            "hydraulic active suspension",
+            "主动悬架",
+            "全主动悬架",
+            "主动减振器"
           ],
           "children": [
             {
@@ -718,7 +864,11 @@
           "search_terms": [
             "suspension end stop",
             "damper travel control",
-            "hydraulic stop damper"
+            "hydraulic stop damper",
+            "行程末端缓冲",
+            "行程控制",
+            "液压限位",
+            "端部缓冲"
           ],
           "children": [
             {
@@ -727,7 +877,10 @@
               "search_terms": [
                 "hydraulic rebound stop",
                 "hydraulic rebound buffer",
-                "hydraulic extension stop damper"
+                "hydraulic extension stop damper",
+                "液压复原缓冲",
+                "液压复原限位",
+                "复原缓冲"
               ],
               "children": [],
               "level": "technology",
@@ -751,7 +904,10 @@
               "search_terms": [
                 "hydraulic compression stop",
                 "hydraulic bump stop",
-                "hydraulic jounce stop damper"
+                "hydraulic jounce stop damper",
+                "液压压缩缓冲",
+                "液压压缩限位",
+                "压缩缓冲"
               ],
               "children": [],
               "level": "technology",
@@ -1018,7 +1174,12 @@
           "name": "Seal / Friction / Guidance",
           "search_terms": [
             "damper seal friction guide",
-            "shock absorber seal guide"
+            "shock absorber seal guide",
+            "减振器密封",
+            "密封导向",
+            "摩擦控制",
+            "活塞杆密封",
+            "导向器"
           ],
           "children": [
             {
@@ -1119,7 +1280,12 @@
           "name": "Damper Structure / Hardware",
           "search_terms": [
             "shock absorber structure",
-            "damper hardware"
+            "damper hardware",
+            "damper assembly",
+            "减振器结构",
+            "减振器总成",
+            "液压减振器结构",
+            "减振器安装"
           ],
           "children": [
             {
@@ -1272,7 +1438,11 @@
           "search_terms": [
             "shock absorber noise",
             "damper noise",
-            "suspension nvh"
+            "suspension nvh",
+            "减振器噪声",
+            "减振器异响",
+            "悬架噪声",
+            "阀噪声"
           ],
           "children": [
             {
@@ -1366,7 +1536,11 @@
               "name": "Cavitation",
               "search_terms": [
                 "damper cavitation",
-                "shock absorber cavitation"
+                "shock absorber cavitation",
+                "cavitation",
+                "anti cavitation",
+                "空化",
+                "气蚀"
               ],
               "children": []
             },
@@ -1423,7 +1597,12 @@
           "name": "Materials / Manufacturing",
           "search_terms": [
             "shock absorber manufacturing",
-            "damper material"
+            "damper material",
+            "structure packaging",
+            "integrated packaging",
+            "结构封装",
+            "一体封装",
+            "加工难度"
           ],
           "children": [
             {
