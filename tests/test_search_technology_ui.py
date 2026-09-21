@@ -20,7 +20,10 @@ def test_search_results_show_technology_tags_and_evidence():
     hit = SearchHit(
         publication_number="US20240000001A1",
         jurisdiction="US",
-        title="Pilot controlled damper with floating piston and pilot pressure chamber",
+        title=(
+            "Pilot controlled damper with floating piston, pilot pressure chamber, "
+            "and fail safe valve"
+        ),
         applicants=("Example Corp",),
         publication_date=date(2024, 1, 4),
     )
@@ -32,13 +35,17 @@ def test_search_results_show_technology_tags_and_evidence():
     )
     app._render_search_response(response)
     values = app.search_tree.item(hit.publication_number, "values")
+    assert "Semi-active" in values[3]
     assert "Floating Piston" in values[3]
     assert "Pilot Valve" in values[3]
+    assert "Back-pressure Control" in values[3]
+    assert "Fail-safe Valve" in values[3]
 
     app.search_tree.selection_set(hit.publication_number)
     app._render_search_technology_evidence()
     evidence = app.search_technology_var.get()
     assert "Floating Piston" in evidence
+    assert "Fail-safe Valve" in evidence
     assert "pilot pressure chamber" in evidence
     app.destroy()
     runtime.close()

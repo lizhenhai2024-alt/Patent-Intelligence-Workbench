@@ -66,7 +66,10 @@
                   "search_terms": [
                     "blow off valve",
                     "relief valve",
-                    "pressure relief valve"
+                    "pressure relief valve",
+                    "pressure relief poppet",
+                    "relief poppet",
+                    "poppet valve"
                   ],
                   "children": []
                 },
@@ -206,7 +209,11 @@
           "name": "Semi-active",
           "search_terms": [
             "semi active suspension",
-            "electronically controlled damper"
+            "electronically controlled damper",
+            "variable damping damper",
+            "variable damping valve",
+            "proportional solenoid valve",
+            "electromagnetic damping valve"
           ],
           "children": [
             {
@@ -225,7 +232,11 @@
               "search_terms": [
                 "pilot valve",
                 "pilot operated valve",
-                "pilot controlled damper valve"
+                "pilot controlled damper valve",
+                "pilot-control valve",
+                "pilot control valve",
+                "pilot operated damping valve",
+                "pilot chamber"
               ],
               "children": [],
               "level": "component",
@@ -250,7 +261,9 @@
               "search_terms": [
                 "external solenoid valve",
                 "external control valve",
-                "externally mounted damper valve"
+                "externally mounted damper valve",
+                "externally mounted control valve",
+                "side mounted solenoid valve"
               ],
               "children": []
             },
@@ -260,7 +273,9 @@
               "search_terms": [
                 "internal solenoid valve",
                 "internal control valve",
-                "built in damper valve"
+                "built in damper valve",
+                "built-in control valve",
+                "piston integrated solenoid valve"
               ],
               "children": []
             },

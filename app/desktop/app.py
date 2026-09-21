@@ -532,9 +532,9 @@ class PatentWorkbenchApp(tk.Tk):
         widths = {
             "number": 170,
             "country": 70,
-            "title": 360,
-            "technology": 280,
-            "applicant": 250,
+            "title": 340,
+            "technology": 360,
+            "applicant": 210,
             "date": 100,
         }
         for column in columns:
@@ -550,6 +550,8 @@ class PatentWorkbenchApp(tk.Tk):
             results_card,
             textvariable=self.search_technology_var,
             style="SurfaceSubtle.TLabel",
+            wraplength=1160,
+            justify="left",
         ).pack(fill="x", pady=(7, 0))
 
         evidence_card = ttk.LabelFrame(self.search_tab, text="Evidence 采集", padding=8)
@@ -700,7 +702,23 @@ class PatentWorkbenchApp(tk.Tk):
         right = ttk.LabelFrame(body, text="中文译文", padding=8)
         body.add(left, weight=1)
         body.add(right, weight=1)
-        self.reader_source_text = tk.Text(left, wrap="word", padx=10, pady=8)
+        self.reader_source_text = tk.Text(
+            left,
+            wrap="word",
+            padx=18,
+            pady=14,
+            background="#FFFFFF",
+            foreground="#243447",
+            insertbackground="#243447",
+            selectbackground="#DCEBFA",
+            selectforeground="#172B3A",
+            relief="flat",
+            borderwidth=0,
+            font=("Cambria", 11),
+            spacing1=2,
+            spacing2=1,
+            spacing3=7,
+        )
         self.reader_source_text.pack(fill="both", expand=True)
 
         self.reader_figure_frame = ttk.Frame(left)
@@ -2230,6 +2248,23 @@ class PatentWorkbenchApp(tk.Tk):
             schedule_ui=self._ui_callbacks.submit,
         )
 
+    def _technology_display_labels(self, matches) -> tuple[str, ...]:
+        labels: list[str] = []
+        for match in matches:
+            try:
+                path = self.technology_classifier.taxonomy.path(match.node_id)
+            except KeyError:
+                path = ()
+            if path:
+                nodes = [node for node in path if node.node_id != "suspension"]
+                names = [node.name for node in nodes]
+            else:
+                names = [match.name]
+            for name in names:
+                if name not in labels:
+                    labels.append(name)
+        return tuple(labels)
+
     def _render_search_response(self, response) -> None:
         self.search_button.state(["!disabled"])
         self.search_tree.delete(*self.search_tree.get_children())
@@ -2251,7 +2286,7 @@ class PatentWorkbenchApp(tk.Tk):
                 classifications=hit.classifications,
             )
             self._search_technology_evidence[hit.publication_number] = matches
-            tag_text = " / ".join(match.name for match in matches[:3])
+            tag_text = " / ".join(self._technology_display_labels(matches))
             self.search_tree.insert(
                 "",
                 "end",
@@ -2287,12 +2322,15 @@ class PatentWorkbenchApp(tk.Tk):
         if not matches:
             self.search_technology_var.set("Technology evidence: 暂无匹配标签")
             return
+        hierarchy = " / ".join(self._technology_display_labels(matches))
         parts = []
-        for match in matches[:3]:
+        for match in matches:
             evidence = list(match.matched_terms) + list(match.matched_classifications)
             evidence_text = ", ".join(evidence) if evidence else "rule match"
             parts.append(f"{match.name} [{evidence_text}]")
-        self.search_technology_var.set("Technology evidence: " + " | ".join(parts))
+        self.search_technology_var.set(
+            "Technology: " + hierarchy + "    Evidence: " + " | ".join(parts)
+        )
 
     def _search_to_family(self, _event=None) -> None:
         selection = self.search_tree.selection()

@@ -35,6 +35,8 @@ def test_reader_opens_selected_search_hit():
 
     assert app.reader_number_var.get() == hit.publication_number
     assert "Pilot controlled damper" in app.reader_source_text.get("1.0", "end")
+    assert "Cambria" in str(app.reader_source_text.cget("font"))
+    assert int(app.reader_source_text.cget("spacing3")) == 7
     assert "F16F9/46" in app.reader_classification_var.get()
     assert app._pages["reader"].winfo_manager() == "pack"
 

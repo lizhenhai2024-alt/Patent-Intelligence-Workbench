@@ -38,3 +38,30 @@ def test_classifier_uses_classifications_as_strong_evidence():
     spring_seat = next(match for match in matches if match.node_id == "spring_seat")
     assert spring_seat.score == 3
     assert spring_seat.matched_classifications == ("B60G11",)
+
+
+def test_taxonomy_path_exposes_engineering_hierarchy():
+    taxonomy = TechnologyTaxonomy.default()
+    path = taxonomy.path("pilot_valve")
+    assert [node.name for node in path] == [
+        "Suspension",
+        "Semi-active",
+        "Pilot Valve",
+    ]
+
+
+def test_classifier_matches_common_damper_poppet_wording():
+    classifier = TechnologyClassifier()
+    matches = classifier.classify(
+        text="Pressure relief poppet valves for suspension dampers"
+    )
+    assert any(match.node_id == "blowoff_relief" for match in matches)
+
+
+def test_classifier_matches_pilot_control_hyphen_variant():
+    classifier = TechnologyClassifier()
+    matches = classifier.classify(
+        text="A pilot-control valve with a proportional solenoid valve"
+    )
+    assert any(match.node_id == "pilot_valve" for match in matches)
+    assert any(match.node_id == "semi_active" for match in matches)

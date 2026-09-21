@@ -55,11 +55,15 @@ def test_semi_active_contains_control_architecture_nodes():
     }
     assert {child.node_id for child in semi_active.children} == expected
     assert all(child.search_terms for child in semi_active.children)
-    assert taxonomy.find("pilot_valve").search_terms == (
+    pilot_terms = taxonomy.find("pilot_valve").search_terms
+    assert {
         "pilot valve",
         "pilot operated valve",
         "pilot controlled damper valve",
-    )
+        "pilot-control valve",
+        "pilot control valve",
+        "pilot chamber",
+    }.issubset(set(pilot_terms))
 
 
 def test_active_suspension_contains_core_architecture_nodes():

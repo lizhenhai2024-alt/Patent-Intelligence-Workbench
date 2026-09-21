@@ -50,11 +50,19 @@ class TechnologyTaxonomy:
         return cls.from_dict(json.loads(text))
 
     def find(self, node_id: str) -> TechnologyNode:
-        def walk(nodes: tuple[TechnologyNode, ...]) -> TechnologyNode | None:
+        path = self.path(node_id)
+        return path[-1]
+
+    def path(self, node_id: str) -> tuple[TechnologyNode, ...]:
+        def walk(
+            nodes: tuple[TechnologyNode, ...],
+            parents: tuple[TechnologyNode, ...] = (),
+        ) -> tuple[TechnologyNode, ...] | None:
             for node in nodes:
+                current = (*parents, node)
                 if node.node_id == node_id:
-                    return node
-                found = walk(node.children)
+                    return current
+                found = walk(node.children, current)
                 if found is not None:
                     return found
             return None
