@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import tkinter as tk
+import webbrowser
 from dataclasses import replace
 from tkinter import filedialog, messagebox, ttk
 
@@ -10,6 +11,7 @@ from app.acquisition import AcquisitionRequest
 from app.core.patent_number import PatentNumberError, normalize_patent_number
 from app.core.technology_classifier import TechnologyClassifier
 from app.core.technology_taxonomy import TechnologyTaxonomy
+from app.core.translation import UnconfiguredTranslationProvider
 from app.desktop.async_runner import TkCallbackQueue, run_async_in_thread
 from app.desktop.opening import open_local_path
 from app.desktop.presenters import patent_row, watch_history_row, watch_rule_row
@@ -27,7 +29,10 @@ class PatentWorkbenchApp(tk.Tk):
         self._current_family: PatentFamily | None = None
         self._current_acquisition = None
         self.technology_classifier = TechnologyClassifier()
+        self.translation_provider = UnconfiguredTranslationProvider()
         self._search_technology_evidence: dict[str, tuple] = {}
+        self._search_hits_by_number = {}
+        self._reader_hit = None
 
         self.title("Patent Intelligence Workbench")
         self.geometry("1460x900")
@@ -304,6 +309,7 @@ class PatentWorkbenchApp(tk.Tk):
         content.pack(side="left", fill="both", expand=True, padx=(22, 0))
 
         self.search_tab = ttk.Frame(content, padding=14)
+        self.reader_tab = ttk.Frame(content, padding=14)
         self.family_tab = ttk.Frame(content, padding=14)
         self.watch_tab = ttk.Frame(content, padding=14)
         self.library_tab = ttk.Frame(content, padding=14)
@@ -312,6 +318,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.settings_tab = ttk.Frame(content, padding=14)
         self._pages = {
             "search": self.search_tab,
+            "reader": self.reader_tab,
             "family": self.family_tab,
             "watch": self.watch_tab,
             "library": self.library_tab,
@@ -322,6 +329,7 @@ class PatentWorkbenchApp(tk.Tk):
         self._nav_buttons = {}
         for key, label in (
             ("search", "⌕   Search"),
+            ("reader", "▣   Patent Reader"),
             ("family", "◫   Patent Family"),
             ("watch", "◉   Patent Watch"),
             ("library", "▤   Local Library"),
@@ -339,6 +347,7 @@ class PatentWorkbenchApp(tk.Tk):
             self._nav_buttons[key] = button
 
         self._build_search_tab()
+        self._build_reader_tab()
         self._build_family_tab()
         self._build_watch_tab()
         self._build_library_tab()
@@ -507,7 +516,7 @@ class PatentWorkbenchApp(tk.Tk):
             self.search_tree.heading(column, text=headings[column])
             self.search_tree.column(column, width=widths[column], anchor="w")
         self.search_tree.pack(fill="both", expand=True)
-        self.search_tree.bind("<Double-1>", self._search_to_family)
+        self.search_tree.bind("<Double-1>", self._open_selected_in_reader)
         self.search_tree.bind("<<TreeviewSelect>>", self._render_search_technology_evidence)
         self.search_technology_var = tk.StringVar(
             value="Technology evidence: 选择检索结果查看自动分类证据"
@@ -524,10 +533,16 @@ class PatentWorkbenchApp(tk.Tk):
         actions.pack(fill="x")
         ttk.Button(
             actions,
+            text="预览 / 翻译",
+            command=self._open_selected_in_reader,
+            style="Accent.TButton",
+        ).pack(side="left")
+        ttk.Button(
+            actions,
             text="分析选中专利族",
             command=self._search_to_family,
             style="Ghost.TButton",
-        ).pack(side="left")
+        ).pack(side="left", padx=(6, 0))
         ttk.Button(
             actions,
             text="采集 URL / 文件",
@@ -575,6 +590,101 @@ class PatentWorkbenchApp(tk.Tk):
         self.acquisition_preview.pack(fill="x", pady=(8, 0))
         self.acquisition_preview.insert("1.0", "采集结果将在这里显示 Markdown 预览。")
         self.acquisition_preview.configure(state="disabled")
+
+    def _build_reader_tab(self) -> None:
+        ttk.Label(self.reader_tab, text="Patent Reader", style="PageTitle.TLabel").pack(anchor="w")
+        ttk.Label(
+            self.reader_tab,
+            text="专利预览、原文访问与中英对照翻译",
+            style="Subtle.TLabel",
+        ).pack(anchor="w", pady=(2, 10))
+        header = ttk.LabelFrame(self.reader_tab, text="专利信息", padding=10)
+        header.pack(fill="x", pady=(0, 10))
+        self.reader_number_var = tk.StringVar(value="尚未选择专利")
+        self.reader_title_var = tk.StringVar(value="")
+        self.reader_classification_var = tk.StringVar(value="CPC/IPC —")
+        ttk.Label(
+            header,
+            textvariable=self.reader_number_var,
+            style="Surface.TLabel",
+        ).pack(anchor="w")
+        ttk.Label(
+            header,
+            textvariable=self.reader_title_var,
+            wraplength=1000,
+            style="SurfaceSubtle.TLabel",
+        ).pack(anchor="w", pady=(4, 0))
+        ttk.Label(header, textvariable=self.reader_classification_var).pack(anchor="w", pady=(4, 0))
+        actions = ttk.Frame(header, style="Surface.TFrame")
+        actions.pack(fill="x", pady=(8, 0))
+        ttk.Button(
+            actions,
+            text="打开 Google Patents 原文",
+            command=self.open_reader_source,
+        ).pack(side="left")
+        ttk.Button(
+            actions,
+            text="翻译摘要",
+            command=self.translate_reader_abstract,
+        ).pack(side="left", padx=(6, 0))
+        body = ttk.Panedwindow(self.reader_tab, orient="horizontal")
+        body.pack(fill="both", expand=True)
+        left = ttk.LabelFrame(body, text="原文 / 预览", padding=8)
+        right = ttk.LabelFrame(body, text="中文译文", padding=8)
+        body.add(left, weight=1)
+        body.add(right, weight=1)
+        self.reader_source_text = tk.Text(left, wrap="word", padx=10, pady=8)
+        self.reader_source_text.pack(fill="both", expand=True)
+        self.reader_translation_text = tk.Text(right, wrap="word", padx=10, pady=8)
+        self.reader_translation_text.pack(fill="both", expand=True)
+        self.reader_translation_text.insert("1.0", "译文将在这里显示。")
+        self.reader_translation_text.configure(state="disabled")
+
+    def _open_selected_in_reader(self, _event=None) -> None:
+        selection = self.search_tree.selection()
+        if not selection:
+            return
+        hit = self._search_hits_by_number.get(selection[0])
+        if hit is None:
+            return
+        self._reader_hit = hit
+        self.reader_number_var.set(hit.publication_number)
+        self.reader_title_var.set(hit.title or "")
+        classes = ", ".join(hit.classifications) or "—"
+        self.reader_classification_var.set(f"CPC/IPC {classes}")
+        source = []
+        if hit.title:
+            source.append(hit.title)
+        if hit.abstract:
+            source.append("\nABSTRACT\n" + hit.abstract)
+        if hit.classifications:
+            source.append("\nCLASSIFICATIONS\n" + ", ".join(hit.classifications))
+        self.reader_source_text.delete("1.0", "end")
+        self.reader_source_text.insert("1.0", "\n".join(source) or "暂无结构化预览内容。")
+        self._set_reader_translation("")
+        self._show_page("reader")
+
+    def _set_reader_translation(self, text: str) -> None:
+        self.reader_translation_text.configure(state="normal")
+        self.reader_translation_text.delete("1.0", "end")
+        self.reader_translation_text.insert("1.0", text or "译文将在这里显示。")
+        self.reader_translation_text.configure(state="disabled")
+    def open_reader_source(self) -> None:
+        if self._reader_hit is None:
+            return
+        url = f"https://patents.google.com/patent/{self._reader_hit.publication_number}/en"
+        webbrowser.open(url)
+
+    def translate_reader_abstract(self) -> None:
+        if self._reader_hit is None:
+            return
+        text = self._reader_hit.abstract or self._reader_hit.title or ""
+        try:
+            result = self.translation_provider.translate(text)
+        except Exception as exc:
+            self._set_reader_translation(str(exc))
+            return
+        self._set_reader_translation(result.text)
 
     def _build_family_tab(self) -> None:
         ttk.Label(self.family_tab, text="Patent Family", style="PageTitle.TLabel").pack(anchor="w")
@@ -1563,7 +1673,9 @@ class PatentWorkbenchApp(tk.Tk):
         self.search_button.state(["!disabled"])
         self.search_tree.delete(*self.search_tree.get_children())
         self._search_technology_evidence.clear()
+        self._search_hits_by_number.clear()
         for hit in response.page.hits:
+            self._search_hits_by_number[hit.publication_number] = hit
             classification_text = " ".join(
                 part
                 for part in (
