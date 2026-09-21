@@ -80,7 +80,11 @@
           "relation": "TECHNOLOGY_PREDECESSOR"
         }
       ],
-      "archive_name": "ZF"
+      "archive_name": "ZF",
+      "aliases": [
+        "Fichtel_Sachs",
+        "Fichtel Sachs"
+      ]
     },
     {
       "group_id": "bwi",
@@ -250,6 +254,276 @@
         }
       ],
       "archive_name": "富奥东机工"
+    },
+    {
+      "group_id": "bmw",
+      "display_name": "BMW",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "Bayerische Motoren Werke AG",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "BMW"
+    },
+    {
+      "group_id": "audi",
+      "display_name": "Audi",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "Audi AG",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "Audi"
+    },
+    {
+      "group_id": "volkswagen",
+      "display_name": "Volkswagen",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "Volkswagen AG",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "Volkswagen"
+    },
+    {
+      "group_id": "porsche",
+      "display_name": "Porsche",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "Dr. Ing. h.c. F. Porsche AG",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "Porsche"
+    },
+    {
+      "group_id": "toyota",
+      "display_name": "Toyota",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "Toyota Motor Corporation",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "Toyota"
+    },
+    {
+      "group_id": "honda",
+      "display_name": "Honda",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "Honda Motor Co., Ltd.",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "Honda"
+    },
+    {
+      "group_id": "ford",
+      "display_name": "Ford",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "Ford Motor Company",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "Ford Global Technologies, LLC",
+          "relation": "IP_HOLDING_ENTITY"
+        }
+      ],
+      "archive_name": "Ford"
+    },
+    {
+      "group_id": "gm",
+      "display_name": "General Motors",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "General Motors LLC",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "GM Global Technology Operations LLC",
+          "relation": "IP_HOLDING_ENTITY"
+        }
+      ],
+      "archive_name": "GM",
+      "aliases": [
+        "GM"
+      ]
+    },
+    {
+      "group_id": "rapa",
+      "display_name": "RAPA",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "RAPA"
+    },
+    {
+      "group_id": "borgwarner",
+      "display_name": "BorgWarner",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "BorgWarner Inc.",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "博格华纳",
+      "aliases": [
+        "博格华纳",
+        "博格华纳天津"
+      ]
+    },
+    {
+      "group_id": "byd",
+      "display_name": "BYD / 比亚迪",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "BYD Company Limited",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "比亚迪",
+      "aliases": [
+        "BYD",
+        "比亚迪"
+      ]
+    },
+    {
+      "group_id": "dongfeng",
+      "display_name": "东风汽车",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "东风汽车",
+      "aliases": [
+        "Dongfeng",
+        "东风"
+      ]
+    },
+    {
+      "group_id": "baic",
+      "display_name": "北汽",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "北汽",
+      "aliases": [
+        "BAIC"
+      ]
+    },
+    {
+      "group_id": "jac",
+      "display_name": "江淮汽车",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "江淮汽车",
+      "aliases": [
+        "JAC",
+        "JAC Motors"
+      ]
+    },
+    {
+      "group_id": "nio",
+      "display_name": "蔚来汽车",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "蔚来汽车",
+      "aliases": [
+        "NIO",
+        "蔚来"
+      ]
+    },
+    {
+      "group_id": "great_wall",
+      "display_name": "长城汽车",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "Great Wall Motor Company Limited",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "长城汽车",
+      "aliases": [
+        "Great Wall Motor",
+        "GWM"
+      ]
+    },
+    {
+      "group_id": "changan",
+      "display_name": "长安汽车",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "Chongqing Changan Automobile Co., Ltd.",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "长安汽车",
+      "aliases": [
+        "Changan",
+        "Changan Automobile"
+      ]
+    },
+    {
+      "group_id": "shanghai_lindun",
+      "display_name": "上海琳顿汽车底盘件制造有限公司",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "上海琳顿汽车底盘件制造有限公司"
+    },
+    {
+      "group_id": "shanghai_xunbo",
+      "display_name": "上海迅铂科技有限公司",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "上海迅铂科技有限公司"
+    },
+    {
+      "group_id": "gold_suspension",
+      "display_name": "浙江戈尔德智能悬架股份有限公司",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "浙江戈尔德智能悬架股份有限公司"
+    },
+    {
+      "group_id": "xijian",
+      "display_name": "淅减",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "淅减"
+    },
+    {
+      "group_id": "fulin_precision",
+      "display_name": "绵阳富临精工股份有限公司",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "绵阳富临精工股份有限公司"
+    },
+    {
+      "group_id": "suzhou_zhixing_youdao",
+      "display_name": "苏州智行有道汽车科技有限公司",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "苏州智行有道汽车科技有限公司"
+    },
+    {
+      "group_id": "lanxun_air_suspension",
+      "display_name": "蓝讯汽车空气悬架系统（滁州）有限公司",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "蓝讯汽车空气悬架系统（滁州）有限公司"
     }
   ]
 }

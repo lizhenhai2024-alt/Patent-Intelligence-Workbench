@@ -24,6 +24,7 @@ class CompanyGroup:
     core_watch: bool
     entities: tuple[RegisteredEntity, ...]
     archive_name: str | None = None
+    aliases: tuple[str, ...] = ()
 
     @property
     def archive_folder_name(self) -> str:
@@ -77,6 +78,7 @@ class CompanyRegistry:
                     core_watch=bool(item.get("core_watch", False)),
                     entities=entities,
                     archive_name=item.get("archive_name"),
+                    aliases=tuple(item.get("aliases", ())),
                 )
             )
         return cls(tuple(groups))
@@ -106,6 +108,8 @@ class CompanyRegistry:
                 group.archive_name
                 and _normalize_company_key(group.archive_name) == needle
             ):
+                return group
+            if any(_normalize_company_key(alias) == needle for alias in group.aliases):
                 return group
             for entity in group.entities:
                 entity_key = _normalize_company_key(entity.name)

@@ -55,3 +55,35 @@ def test_company_portfolio_scope_includes_matching_scoped_entity():
         "ClearMotion, Inc.",
         "Bose Corporation",
     )
+
+
+def test_lookup_alias_does_not_expand_applicant_names():
+    registry = CompanyRegistry.from_dict(
+        {
+            "companies": [
+                {
+                    "group_id": "zf",
+                    "display_name": "ZF",
+                    "core_watch": False,
+                    "archive_name": "ZF",
+                    "aliases": ["Fichtel_Sachs"],
+                    "entities": [
+                        {
+                            "name": "ZF Friedrichshafen AG",
+                            "relation": "SAME_ENTITY",
+                        }
+                    ],
+                }
+            ]
+        }
+    )
+    group = registry.get("Fichtel_Sachs")
+    assert group.group_id == "zf"
+    assert group.applicant_names() == ("ZF Friedrichshafen AG",)
+
+
+def test_default_registry_resolves_local_library_aliases():
+    registry = CompanyRegistry.default()
+    assert registry.get("Fichtel_Sachs").group_id == "zf"
+    assert registry.get("博格华纳天津").group_id == "borgwarner"
+    assert registry.get("BMW").group_id == "bmw"
