@@ -23,8 +23,9 @@ from app.desktop.translation_config import (
     load_translation_settings,
     save_translation_settings,
 )
-from app.domain.family import FamilyType, PatentFamily
+from app.domain.family import FamilyType, PatentFamily, PatentPublication
 from app.domain.reader import PatentReaderDocument
+from app.library.archive import patent_archive_path
 from app.library.ingest import ingest_download_summary, ingest_family
 from app.library.models import LibraryQuery
 from app.library.root_sync import sync_library_root
@@ -809,22 +810,30 @@ class PatentWorkbenchApp(tk.Tk):
         webbrowser.open(url)
 
     def open_reader_pdf(self) -> None:
-        if self._reader_hit is None:
+        hit = self._reader_hit
+        if hit is None:
             return
-        publication_number = self._reader_hit.publication_number
-        patent = self.runtime.library_store.get_patent(publication_number)
-        if patent is not None:
-            for document in patent.documents:
-                if document.path.exists():
-                    open_local_path(document.path)
-                    self._set_status(f"已打开本地 PDF：{document.path}")
-                    return
         try:
-            publication = normalize_patent_number(publication_number)
+            publication = normalize_patent_number(hit.publication_number)
         except PatentNumberError as exc:
             self._set_status(f"PDF 下载失败：{exc}")
             return
-        destination = self.runtime.paths.root / "reader-cache" / f"{publication.canonical}.pdf"
+
+        local_pdf = self._find_reader_library_pdf(publication.canonical)
+        if local_pdf is not None:
+            self._ensure_reader_pdf_registered(hit, local_pdf)
+            open_local_path(local_pdf)
+            self._set_status(f"已从专利库打开 PDF：{local_pdf}")
+            return
+
+        company_name = self._reader_company_folder_name(hit.applicants)
+        destination = patent_archive_path(
+            self.runtime.library_root,
+            company_name,
+            publication.canonical,
+            hit.title,
+        )
+        self._set_status(f"专利库未找到 PDF，开始下载：{publication.canonical}")
 
         async def task():
             return await self.runtime.family_downloader.manager.download(
@@ -834,14 +843,79 @@ class PatentWorkbenchApp(tk.Tk):
 
         run_async_in_thread(
             task,
-            on_success=self._on_reader_pdf_ready,
+            on_success=lambda result, current_hit=hit: self._on_reader_pdf_ready(
+                result,
+                current_hit,
+            ),
             on_error=lambda exc: self._set_status(f"PDF 下载失败：{exc}"),
             schedule_ui=self._ui_callbacks.submit,
         )
 
-    def _on_reader_pdf_ready(self, result) -> None:
+    def _find_reader_library_pdf(self, publication_number: str):
+        patent = self.runtime.library_store.get_patent(publication_number)
+        if patent is not None:
+            for document in patent.documents:
+                if document.path.is_file():
+                    return document.path
+
+        pattern = f"*{publication_number}*.pdf"
+        for path in self.runtime.library_root.rglob(pattern):
+            if path.is_file():
+                return path
+        return None
+
+    def _reader_company_folder_name(self, applicants: tuple[str, ...]) -> str:
+        registry = (
+            self.runtime.search_service.company_registry
+            if self.runtime.search_service
+            else None
+        )
+        if registry is not None:
+            for name in applicants:
+                try:
+                    return registry.get(name).display_name
+                except KeyError:
+                    continue
+        return applicants[0] if applicants else "待归类"
+
+    def _ensure_reader_pdf_registered(
+        self,
+        hit,
+        path,
+        *,
+        provider: str | None = None,
+        source_url: str | None = None,
+    ) -> None:
+        publication = normalize_patent_number(hit.publication_number)
+        if self.runtime.library_store.get_patent(publication.canonical) is None:
+            self.runtime.library_store.upsert_publication(
+                PatentPublication(
+                    publication_number=publication.canonical,
+                    jurisdiction=publication.jurisdiction,
+                    kind_code=publication.kind_code,
+                    title=hit.title,
+                    publication_date=hit.publication_date,
+                    original_assignees=hit.applicants,
+                ),
+                source=provider or "READER_LIBRARY",
+            )
+        self.runtime.library_store.attach_pdf(
+            publication.canonical,
+            path,
+            provider=provider or "LOCAL_LIBRARY",
+            source_url=source_url,
+        )
+
+    def _on_reader_pdf_ready(self, result, hit) -> None:
+        self._ensure_reader_pdf_registered(
+            hit,
+            result.path,
+            provider=result.provider,
+            source_url=result.source_url,
+        )
         open_local_path(result.path)
-        self._set_status(f"PDF 已打开：{result.path}")
+        self.refresh_library()
+        self._set_status(f"PDF 已归档到专利库并打开：{result.path}")
 
     def _translate_reader_text(self, text: str) -> None:
         if not text.strip():
