@@ -412,9 +412,10 @@ class PatentWorkbenchApp(tk.Tk):
         form.pack(fill="x")
 
         ttk.Label(form, text="检索").grid(row=0, column=0, sticky="w")
-        self.search_query_var = tk.StringVar()
+        self.search_query_var = tk.StringVar(value="输入专利号、关键词或公司名称")
         query_entry = ttk.Entry(form, textvariable=self.search_query_var, width=52)
         query_entry.grid(row=1, column=0, padx=(0, 8), sticky="ew")
+        query_entry.bind("<FocusIn>", self._clear_search_placeholder)
         query_entry.bind("<Return>", lambda _event: self.run_search())
 
         ttk.Label(form, text="公司（可选）").grid(row=0, column=1, sticky="w")
@@ -932,6 +933,19 @@ class PatentWorkbenchApp(tk.Tk):
             command=lambda: self.export_library(".xlsx"),
             style="Ghost.TButton",
         ).pack(side="left", padx=(2, 0))
+        self.library_enrich_button = ttk.Button(
+            toolbar,
+            text="补全元数据",
+            command=self.enrich_library_metadata,
+            style="Quiet.TButton",
+        )
+        self.library_enrich_button.pack(side="left", padx=(6, 0))
+        self.library_enrich_status_var = tk.StringVar(value="元数据补全：未运行")
+        ttk.Label(
+            toolbar,
+            textvariable=self.library_enrich_status_var,
+            style="SurfaceSubtle.TLabel",
+        ).pack(side="left", padx=(10, 0))
 
         library_results = ttk.LabelFrame(self.library_tab, text="专利库", padding=8)
         library_results.pack(fill="both", expand=True, pady=(0, 8))
@@ -1615,6 +1629,10 @@ class PatentWorkbenchApp(tk.Tk):
         linked = record.publication_number or "未关联专利"
         self._set_status(f"证据已保存：{record.evidence_id} · {linked}")
 
+    def _clear_search_placeholder(self, _event=None) -> None:
+        if self.search_query_var.get() == "输入专利号、关键词或公司名称":
+            self.search_query_var.set("")
+
     def run_search(self) -> None:
         service = self.runtime.search_service
         if service is None:
@@ -1622,7 +1640,18 @@ class PatentWorkbenchApp(tk.Tk):
             return
 
         query = self.search_query_var.get().strip()
+        if query == "输入专利号、关键词或公司名称":
+            query = ""
         company = self.search_company_var.get().strip() or None
+        if company:
+            try:
+                company = service.company_registry.get(company).display_name
+            except KeyError:
+                messagebox.showerror(
+                    "公司未识别",
+                    "请输入公司下拉列表中的公司，或直接在检索框输入公司名称。",
+                )
+                return
         scope = self.search_scope_var.get().strip()
         jurisdictions = tuple(
             item.strip().upper()
@@ -2033,6 +2062,39 @@ class PatentWorkbenchApp(tk.Tk):
             )
         if hasattr(self, "status_var"):
             self._set_status(f"本地库：{len(patents)} 条")
+
+    def enrich_library_metadata(self) -> None:
+        service = self.runtime.library_enrichment_service
+        if service is None:
+            messagebox.showwarning("不可用", "本地库补全服务当前不可用。")
+            return
+        self.library_enrich_button.state(["disabled"])
+        self.library_enrich_status_var.set("元数据补全：运行中…")
+        self._set_status("正在补全 LocalLibrary 元数据…")
+
+        async def task():
+            return await service.enrich_incomplete(limit=500)
+
+        def success(summary) -> None:
+            self.library_enrich_button.state(["!disabled"])
+            self.library_enrich_status_var.set(
+                f"补全 {summary.enriched} · 失败 {summary.failed} · "
+                f"无变化 {summary.unchanged}"
+            )
+            self.refresh_library()
+            self._set_status(f"LocalLibrary 元数据补全完成：{summary.enriched} 条更新")
+
+        def failed(exc: Exception) -> None:
+            self.library_enrich_button.state(["!disabled"])
+            self.library_enrich_status_var.set("元数据补全：失败")
+            self._network_error("本地库补全失败", exc)
+
+        run_async_in_thread(
+            task,
+            on_success=success,
+            on_error=failed,
+            schedule_ui=self._ui_callbacks.submit,
+        )
 
     def export_library(self, suffix: str) -> None:
         default_name = f"patent-library{suffix}"
