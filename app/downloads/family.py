@@ -133,7 +133,7 @@ class FamilyDownloader:
             destination = (
                 folder
                 / member.jurisdiction.upper()
-                / patent_pdf_filename(publication.canonical)
+                / patent_pdf_filename(publication.canonical, member.title)
             )
 
             try:

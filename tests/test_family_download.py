@@ -43,6 +43,7 @@ def _family():
             PatentPublication(
                 publication_number="JP2024000123A",
                 jurisdiction="JP",
+                title="Adaptive damper valve",
                 priorities=(priority,),
             ),
             PatentPublication(
@@ -62,7 +63,9 @@ def test_family_downloader_writes_country_folders_and_manifest(tmp_path):
 
     assert summary.succeeded == 2
     assert summary.failed == 0
-    assert (summary.family_folder / "JP" / "JP2024000123A.pdf").is_file()
+    assert (
+        summary.family_folder / "JP" / "JP2024000123A_Adaptive damper valve.pdf"
+    ).is_file()
     assert (summary.family_folder / "US" / "US20240123456A1.pdf").is_file()
 
     payload = json.loads(summary.manifest_path.read_text(encoding="utf-8"))
