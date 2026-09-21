@@ -19,6 +19,7 @@ import httpx
 
 from app.core.patent_number import PatentNumber, PatentNumberError, normalize_patent_number
 from app.domain.family import FamilyType, PatentFamily, PatentPublication
+from app.domain.reader import PatentFigure, PatentReaderDocument
 from app.domain.search import SearchExpression, SearchHit, SearchPage
 from app.providers.base import (
     ProviderCapability,
@@ -48,6 +49,9 @@ class _PatentPageParser(HTMLParser):
         "publicationDate",
         "filingDate",
         "grantDate",
+        "abstract",
+        "classificationCpc",
+        "classificationIpc",
     }
 
     def __init__(self) -> None:
@@ -55,7 +59,11 @@ class _PatentPageParser(HTMLParser):
         self.values: dict[str, list[str]] = {}
         self.named_meta: dict[str, list[str]] = {}
         self.family_members: list[tuple[str, str | None]] = []
+        self.sections: dict[str, list[str]] = {"claims": [], "description": []}
+        self.figures: list[PatentFigure] = []
+        self._current_figure: dict[str, str] | None = None
         self._captures: list[dict[str, object]] = []
+        self._section_stack: list[tuple[str, str]] = []
         self._in_docdb_family = False
         self._family_current: dict[str, str] = {}
 
@@ -70,6 +78,27 @@ class _PatentPageParser(HTMLParser):
         if tag == "tr" and itemprop == "docdbFamily":
             self._in_docdb_family = True
             self._family_current = {}
+
+        if tag == "li" and itemprop == "images":
+            self._current_figure = {}
+        if self._current_figure is not None:
+            if tag == "img" and itemprop == "thumbnail" and values.get("src"):
+                self._current_figure["thumbnail"] = str(values["src"])
+            if tag == "meta" and itemprop == "full" and values.get("content"):
+                self._current_figure["full"] = str(values["content"])
+
+        if itemprop in self.sections:
+            self._section_stack.append((tag, itemprop))
+
+        if self._section_stack and tag in {"p", "div", "li"}:
+            self._captures.append(
+                {
+                    "tag": tag,
+                    "prop": f"__section__:{self._section_stack[-1][1]}",
+                    "data": [],
+                    "family": False,
+                }
+            )
 
         if tag == "meta":
             content = values.get("content")
@@ -112,9 +141,25 @@ class _PatentPageParser(HTMLParser):
             text = _clean_text("".join(str(item) for item in buffer))
             if text:
                 prop = str(capture["prop"])
-                family = bool(capture["family"])
-                self._store(prop, text, family=family)
+                if prop.startswith("__section__:"):
+                    section = prop.split(":", 1)[1]
+                    self.sections.setdefault(section, []).append(text)
+                else:
+                    family = bool(capture["family"])
+                    self._store(prop, text, family=family)
             break
+
+        if self._section_stack and tag == self._section_stack[-1][0]:
+            self._section_stack.pop()
+
+        if tag == "li" and self._current_figure is not None:
+            thumbnail = self._current_figure.get("thumbnail")
+            full = self._current_figure.get("full")
+            if thumbnail and full:
+                self.figures.append(
+                    PatentFigure(thumbnail_url=thumbnail, full_url=full)
+                )
+            self._current_figure = None
 
         if tag == "tr" and self._in_docdb_family:
             publication = self._family_current.get("publicationNumber")
@@ -224,12 +269,20 @@ def _page_hit(parser: _PatentPageParser, requested: PatentNumber) -> SearchHit:
             or parser.values.get("assigneeOriginal", [])
         )
     )
+    classifications = tuple(
+        dict.fromkeys(
+            parser.values.get("classificationCpc", [])
+            + parser.values.get("classificationIpc", [])
+        )
+    )
     return SearchHit(
         publication_number=canonical,
         jurisdiction=jurisdiction,
         kind_code=kind,
         title=_first(parser.values, "title"),
+        abstract=_first(parser.values, "abstract"),
         applicants=applicants,
+        classifications=classifications,
         publication_date=_parse_date(_first(parser.values, "publicationDate")),
         source="GOOGLE_PATENTS",
     )
@@ -273,6 +326,34 @@ class GooglePatentsSearchProvider:
                 range_begin=1,
                 range_end=1,
             )
+
+    async def get_reader_document(
+        self,
+        publication: PatentNumber,
+    ) -> PatentReaderDocument:
+        url = f"{GOOGLE_PATENT_URL}/{publication.canonical}/en"
+        async with httpx.AsyncClient(
+            timeout=self.timeout_seconds,
+            follow_redirects=True,
+            headers={"User-Agent": self.user_agent},
+        ) as client:
+            response = await self._get(client, url, allow_not_found=True)
+            if response is None:
+                raise ProviderResponseError(
+                    f"Google Patents did not find {publication.canonical}."
+                )
+        parser = _PatentPageParser()
+        parser.feed(response.text)
+        hit = _page_hit(parser, publication)
+        return PatentReaderDocument(
+            publication_number=hit.publication_number,
+            title=hit.title,
+            abstract=hit.abstract,
+            claims="\n\n".join(parser.sections.get("claims", ())),
+            description="\n\n".join(parser.sections.get("description", ())),
+            classifications=hit.classifications,
+            figures=tuple(parser.figures),
+        )
 
     async def search_publications(
         self,

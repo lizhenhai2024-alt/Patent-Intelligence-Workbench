@@ -127,7 +127,9 @@ def _publication_from_docdb_container(container: ET.Element) -> PatentPublicatio
         jurisdiction=country,
         kind_code=kind,
         application_number=_application_number(container),
+        title=_extract_title(container),
         publication_date=publication_date,
+        original_assignees=_extract_applicants(container),
         priorities=_priority_claims(container),
     )
 
@@ -165,6 +167,35 @@ def _extract_applicants(container: ET.Element) -> tuple[str, ...]:
     return tuple(names)
 
 
+def _extract_abstract(container: ET.Element) -> str | None:
+    paragraphs: list[str] = []
+    for node in container.iter():
+        if _local_name(node.tag) != "abstract":
+            continue
+        for child in node.iter():
+            if _local_name(child.tag) != "p" or not child.text:
+                continue
+            value = " ".join(child.text.split())
+            if value:
+                paragraphs.append(value)
+        if paragraphs:
+            break
+    return " ".join(paragraphs) or None
+
+
+def _extract_classifications(container: ET.Element) -> tuple[str, ...]:
+    values: list[str] = []
+    for node in container.iter():
+        local = _local_name(node.tag)
+        if local not in {"classification-ipcr", "classification-cpc"}:
+            continue
+        value = _first_child_text(node, "text") or " ".join(node.itertext()).strip()
+        value = "".join(value.split()).upper()
+        if value and value not in values:
+            values.append(value)
+    return tuple(values)
+
+
 def _search_hit_from_exchange_document(container: ET.Element) -> SearchHit | None:
     publication = _publication_from_docdb_container(container)
     if publication is None:
@@ -174,7 +205,9 @@ def _search_hit_from_exchange_document(container: ET.Element) -> SearchHit | Non
         jurisdiction=publication.jurisdiction,
         kind_code=publication.kind_code,
         title=_extract_title(container),
+        abstract=_extract_abstract(container),
         applicants=_extract_applicants(container),
+        classifications=_extract_classifications(container),
         publication_date=publication.publication_date,
         source="EPO_OPS",
     )

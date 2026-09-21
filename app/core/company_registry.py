@@ -23,14 +23,31 @@ class CompanyGroup:
     display_name: str
     core_watch: bool
     entities: tuple[RegisteredEntity, ...]
+    archive_name: str | None = None
+    aliases: tuple[str, ...] = ()
 
-    def applicant_names(self, *, technology_context: bool) -> tuple[str, ...]:
+    @property
+    def archive_folder_name(self) -> str:
+        return self.archive_name or self.display_name
+
+    def applicant_names(
+        self,
+        *,
+        portfolio_scope: str | None = None,
+        technology_context: bool = False,
+    ) -> tuple[str, ...]:
         names: list[str] = []
         for entity in self.entities:
             if not include_in_default_group_search(entity.relation):
                 continue
-            if entity.scope and not technology_context:
-                continue
+            if entity.scope:
+                normalized_scope = entity.scope.casefold()
+                include_scoped = technology_context or (
+                    portfolio_scope is not None
+                    and portfolio_scope.casefold() in normalized_scope
+                )
+                if not include_scoped:
+                    continue
             if entity.name not in names:
                 names.append(entity.name)
         if not names:
@@ -60,6 +77,8 @@ class CompanyRegistry:
                     display_name=item["display_name"],
                     core_watch=bool(item.get("core_watch", False)),
                     entities=entities,
+                    archive_name=item.get("archive_name"),
+                    aliases=tuple(item.get("aliases", ())),
                 )
             )
         return cls(tuple(groups))
@@ -85,6 +104,17 @@ class CompanyRegistry:
                 return group
             if _normalize_company_key(group.display_name) == needle:
                 return group
+            if (
+                group.archive_name
+                and _normalize_company_key(group.archive_name) == needle
+            ):
+                return group
+            if any(_normalize_company_key(alias) == needle for alias in group.aliases):
+                return group
+            for entity in group.entities:
+                entity_key = _normalize_company_key(entity.name)
+                if entity_key == needle:
+                    return group
         raise KeyError(f"Unknown company group: {value}")
 
 

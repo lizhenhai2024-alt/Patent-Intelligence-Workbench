@@ -4,25 +4,74 @@
   "companies": [
     {
       "group_id": "astemo",
-      "display_name": "Hitachi Astemo",
+      "display_name": "ASTEMO",
       "core_watch": true,
       "entities": [
-        {"name": "Hitachi Astemo, Ltd.", "relation": "SAME_ENTITY"},
-        {"name": "Hitachi Automotive Systems, Ltd.", "relation": "PREDECESSOR"},
-        {"name": "Showa Corporation", "relation": "TECHNOLOGY_PREDECESSOR"},
-        {"name": "Tokico Ltd.", "relation": "TECHNOLOGY_PREDECESSOR"}
-      ]
+        {
+          "name": "Hitachi Astemo, Ltd.",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "Hitachi Automotive Systems, Ltd.",
+          "relation": "PREDECESSOR"
+        },
+        {
+          "name": "Showa Corporation",
+          "relation": "TECHNOLOGY_PREDECESSOR"
+        },
+        {
+          "name": "Tokico Ltd.",
+          "relation": "TECHNOLOGY_PREDECESSOR"
+        }
+      ],
+      "archive_name": "ASTEMO"
     },
-    {"group_id": "kyb", "display_name": "KYB", "core_watch": true, "entities": []},
+    {
+      "group_id": "kyb",
+      "display_name": "KYB",
+      "core_watch": true,
+      "entities": [
+        {
+          "name": "KYB Corporation",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "KYB"
+    },
     {
       "group_id": "tenneco",
       "display_name": "Tenneco / Monroe",
       "core_watch": true,
       "entities": [
-        {"name": "Tenneco Automotive Operating Company Inc.", "relation": "SAME_ENTITY"},
-        {"name": "Tenneco Automotive Inc.", "relation": "PREVIOUS_NAME"},
-        {"name": "Monroe Auto Equipment Company", "relation": "TECHNOLOGY_PREDECESSOR"},
-        {"name": "Advanced Suspension Technology LLC", "relation": "IP_HOLDING_ENTITY"}
+        {
+          "name": "Tenneco Automotive Operating Company Inc.",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "Tenneco Automotive Inc.",
+          "relation": "PREVIOUS_NAME"
+        },
+        {
+          "name": "Monroe Auto Equipment Company",
+          "relation": "TECHNOLOGY_PREDECESSOR"
+        },
+        {
+          "name": "Advanced Suspension Technology LLC",
+          "relation": "IP_HOLDING_ENTITY"
+        }
+      ],
+      "archive_name": "Tenneco",
+      "aliases": [
+        "Advanced Suspension Technology Co ltd",
+        "Tenneco Automotive Operating Co Inc",
+        "Driv Automotive Inc",
+        "DRiV Automotive Inc.",
+        "De Lei Wei Automobile Co ltd",
+        "DREWE AUTOMOTIVE CO LTD",
+        "德雷威汽车股份有限公司",
+        "TIANNAC AUTOMOBILE MAN LIMITED COMPANY",
+        "天纳克汽车经营有限公司",
+        "先进悬挂技术有限责任公司"
       ]
     },
     {
@@ -30,30 +79,468 @@
       "display_name": "ZF / Sachs",
       "core_watch": true,
       "entities": [
-        {"name": "ZF Friedrichshafen AG", "relation": "SAME_ENTITY"},
-        {"name": "ZF Sachs AG", "relation": "PREDECESSOR"},
-        {"name": "Mannesmann Sachs AG", "relation": "TECHNOLOGY_PREDECESSOR"}
+        {
+          "name": "ZF Friedrichshafen AG",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "ZF Sachs AG",
+          "relation": "PREDECESSOR"
+        },
+        {
+          "name": "Mannesmann Sachs AG",
+          "relation": "TECHNOLOGY_PREDECESSOR"
+        }
+      ],
+      "archive_name": "ZF",
+      "aliases": [
+        "Fichtel_Sachs",
+        "Fichtel Sachs"
       ]
     },
-    {"group_id": "bwi", "display_name": "BWI", "core_watch": true, "entities": []},
-    {"group_id": "hl_mando", "display_name": "HL Mando", "core_watch": true, "entities": []},
-    {"group_id": "bilstein", "display_name": "thyssenkrupp BILSTEIN", "core_watch": true, "entities": []},
-    {"group_id": "multimatic", "display_name": "Multimatic", "core_watch": true, "entities": []},
-    {"group_id": "ohlins", "display_name": "Öhlins", "core_watch": true, "entities": []},
+    {
+      "group_id": "bwi",
+      "display_name": "BWI",
+      "core_watch": true,
+      "entities": [
+        {
+          "name": "BWI Group",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "BeijingWest Industries Co., Ltd.",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "BWI"
+    },
+    {
+      "group_id": "hl_mando",
+      "display_name": "HL Mando",
+      "core_watch": true,
+      "entities": [
+        {
+          "name": "HL Mando Corporation",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "Mando Corporation",
+          "relation": "PREVIOUS_NAME"
+        }
+      ],
+      "archive_name": "MANDO"
+    },
+    {
+      "group_id": "bilstein",
+      "display_name": "thyssenkrupp BILSTEIN",
+      "core_watch": true,
+      "entities": [
+        {
+          "name": "thyssenkrupp Bilstein GmbH",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "ThyssenKrupp Bilstein GmbH",
+          "relation": "PREVIOUS_NAME"
+        }
+      ],
+      "archive_name": "BILSTEIN"
+    },
+    {
+      "group_id": "multimatic",
+      "display_name": "Multimatic",
+      "core_watch": true,
+      "entities": [
+        {
+          "name": "Multimatic Inc.",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "Multimatic"
+    },
+    {
+      "group_id": "ohlins",
+      "display_name": "Öhlins",
+      "core_watch": true,
+      "entities": [
+        {
+          "name": "Öhlins Racing AB",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "Ohlins Racing AB",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "Öhlins",
+      "aliases": [
+        "OEHLINS GROUP AB [SE]",
+        "ÖHLINS GROUP AB",
+        "Öhlins Group AB"
+      ]
+    },
     {
       "group_id": "clearmotion",
       "display_name": "ClearMotion",
       "core_watch": true,
       "entities": [
-        {"name": "ClearMotion, Inc.", "relation": "SAME_ENTITY"},
-        {"name": "Levant Power Corporation", "relation": "PREVIOUS_NAME"},
-        {"name": "ClearMotion Acquisition I LLC", "relation": "IP_HOLDING_ENTITY"},
+        {
+          "name": "ClearMotion, Inc.",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "Levant Power Corporation",
+          "relation": "PREVIOUS_NAME"
+        },
+        {
+          "name": "ClearMotion Acquisition I LLC",
+          "relation": "IP_HOLDING_ENTITY"
+        },
         {
           "name": "Bose Corporation",
           "relation": "ACQUIRED_PATENT_PORTFOLIO",
           "scope": "suspension portfolio only"
         }
+      ],
+      "archive_name": "ClearMotion"
+    },
+    {
+      "group_id": "mobis",
+      "display_name": "Hyundai MOBIS",
+      "core_watch": true,
+      "entities": [
+        {
+          "name": "Hyundai Mobis Co., Ltd.",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "MOBIS"
+    },
+    {
+      "group_id": "aisin",
+      "display_name": "AISIN",
+      "core_watch": true,
+      "entities": [
+        {
+          "name": "Aisin Corporation",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "Aisin Seiki Co., Ltd.",
+          "relation": "PREVIOUS_NAME"
+        }
+      ],
+      "archive_name": "AISIN"
+    },
+    {
+      "group_id": "schaeffler",
+      "display_name": "Schaeffler",
+      "core_watch": true,
+      "entities": [
+        {
+          "name": "Schaeffler Technologies AG & Co. KG",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "Schaeffler AG",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "Schaeffler"
+    },
+    {
+      "group_id": "ftl",
+      "display_name": "富奥东机工 / 一汽东机工",
+      "core_watch": true,
+      "entities": [
+        {
+          "name": "富奥东机工减振器有限公司",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "一汽东机工减振器有限公司",
+          "relation": "PREVIOUS_NAME"
+        },
+        {
+          "name": "富奥东机工",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "一汽东机工",
+          "relation": "PREVIOUS_NAME"
+        }
+      ],
+      "archive_name": "富奥东机工"
+    },
+    {
+      "group_id": "bmw",
+      "display_name": "BMW",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "Bayerische Motoren Werke AG",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "BMW"
+    },
+    {
+      "group_id": "audi",
+      "display_name": "Audi",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "Audi AG",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "Audi"
+    },
+    {
+      "group_id": "volkswagen",
+      "display_name": "Volkswagen",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "Volkswagen AG",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "Volkswagen"
+    },
+    {
+      "group_id": "porsche",
+      "display_name": "Porsche",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "Dr. Ing. h.c. F. Porsche AG",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "Porsche"
+    },
+    {
+      "group_id": "toyota",
+      "display_name": "Toyota",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "Toyota Motor Corporation",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "Toyota"
+    },
+    {
+      "group_id": "honda",
+      "display_name": "Honda",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "Honda Motor Co., Ltd.",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "Honda"
+    },
+    {
+      "group_id": "ford",
+      "display_name": "Ford",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "Ford Motor Company",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "Ford Global Technologies, LLC",
+          "relation": "IP_HOLDING_ENTITY"
+        }
+      ],
+      "archive_name": "Ford"
+    },
+    {
+      "group_id": "gm",
+      "display_name": "General Motors",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "General Motors LLC",
+          "relation": "SAME_ENTITY"
+        },
+        {
+          "name": "GM Global Technology Operations LLC",
+          "relation": "IP_HOLDING_ENTITY"
+        }
+      ],
+      "archive_name": "GM",
+      "aliases": [
+        "GM"
       ]
+    },
+    {
+      "group_id": "rapa",
+      "display_name": "RAPA",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "RAPA"
+    },
+    {
+      "group_id": "borgwarner",
+      "display_name": "BorgWarner",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "BorgWarner Inc.",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "博格华纳",
+      "aliases": [
+        "博格华纳",
+        "博格华纳天津"
+      ]
+    },
+    {
+      "group_id": "byd",
+      "display_name": "BYD / 比亚迪",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "BYD Company Limited",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "比亚迪",
+      "aliases": [
+        "BYD",
+        "比亚迪"
+      ]
+    },
+    {
+      "group_id": "dongfeng",
+      "display_name": "东风汽车",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "东风汽车",
+      "aliases": [
+        "Dongfeng",
+        "东风"
+      ]
+    },
+    {
+      "group_id": "baic",
+      "display_name": "北汽",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "北汽",
+      "aliases": [
+        "BAIC"
+      ]
+    },
+    {
+      "group_id": "jac",
+      "display_name": "江淮汽车",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "江淮汽车",
+      "aliases": [
+        "JAC",
+        "JAC Motors"
+      ]
+    },
+    {
+      "group_id": "nio",
+      "display_name": "蔚来汽车",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "蔚来汽车",
+      "aliases": [
+        "NIO",
+        "蔚来"
+      ]
+    },
+    {
+      "group_id": "great_wall",
+      "display_name": "长城汽车",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "Great Wall Motor Company Limited",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "长城汽车",
+      "aliases": [
+        "Great Wall Motor",
+        "GWM"
+      ]
+    },
+    {
+      "group_id": "changan",
+      "display_name": "长安汽车",
+      "core_watch": false,
+      "entities": [
+        {
+          "name": "Chongqing Changan Automobile Co., Ltd.",
+          "relation": "SAME_ENTITY"
+        }
+      ],
+      "archive_name": "长安汽车",
+      "aliases": [
+        "Changan",
+        "Changan Automobile"
+      ]
+    },
+    {
+      "group_id": "shanghai_lindun",
+      "display_name": "上海琳顿汽车底盘件制造有限公司",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "上海琳顿汽车底盘件制造有限公司"
+    },
+    {
+      "group_id": "shanghai_xunbo",
+      "display_name": "上海迅铂科技有限公司",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "上海迅铂科技有限公司"
+    },
+    {
+      "group_id": "gold_suspension",
+      "display_name": "浙江戈尔德智能悬架股份有限公司",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "浙江戈尔德智能悬架股份有限公司"
+    },
+    {
+      "group_id": "xijian",
+      "display_name": "淅减",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "淅减"
+    },
+    {
+      "group_id": "fulin_precision",
+      "display_name": "绵阳富临精工股份有限公司",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "绵阳富临精工股份有限公司"
+    },
+    {
+      "group_id": "suzhou_zhixing_youdao",
+      "display_name": "苏州智行有道汽车科技有限公司",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "苏州智行有道汽车科技有限公司"
+    },
+    {
+      "group_id": "lanxun_air_suspension",
+      "display_name": "蓝讯汽车空气悬架系统（滁州）有限公司",
+      "core_watch": false,
+      "entities": [],
+      "archive_name": "蓝讯汽车空气悬架系统（滁州）有限公司"
     }
   ]
 }

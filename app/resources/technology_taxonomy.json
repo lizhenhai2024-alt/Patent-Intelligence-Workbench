@@ -1,0 +1,1876 @@
+{
+  "schema_version": 3,
+  "nodes": [
+    {
+      "id": "suspension",
+      "name": "Suspension",
+      "children": [
+        {
+          "id": "passive_damper",
+          "name": "Passive Damper",
+          "search_terms": [
+            "passive damper",
+            "passive shock absorber",
+            "被动减振器",
+            "传统液压减振器"
+          ],
+          "children": [
+            {
+              "id": "valving",
+              "name": "Valving",
+              "search_terms": [
+                "damper valving",
+                "damping valve mechanism",
+                "damping force generating mechanism",
+                "阀系",
+                "阻尼阀",
+                "阻尼力发生机构",
+                "valve body",
+                "阀体",
+                "可调阀"
+              ],
+              "children": [
+                {
+                  "id": "piston_valve",
+                  "name": "Piston Valve",
+                  "search_terms": [
+                    "piston valve",
+                    "damper piston valve"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "base_valve",
+                  "name": "Base Valve",
+                  "search_terms": [
+                    "base valve",
+                    "foot valve",
+                    "bottom valve"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "disc_stack",
+                  "name": "Disc Stack",
+                  "search_terms": [
+                    "shim stack",
+                    "disc valve",
+                    "valve disc"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "rebound_valve",
+                  "name": "Rebound Valve",
+                  "search_terms": [
+                    "rebound valve",
+                    "extension valve"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "compression_valve",
+                  "name": "Compression Valve",
+                  "search_terms": [
+                    "compression valve",
+                    "bump valve"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "blowoff_relief",
+                  "name": "Blow-off / Relief Valve",
+                  "search_terms": [
+                    "blow off valve",
+                    "relief valve",
+                    "pressure relief valve",
+                    "pressure relief poppet",
+                    "relief poppet",
+                    "poppet valve",
+                    "泄压阀",
+                    "溢流阀",
+                    "泄压结构",
+                    "pressure relief"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "check_valve",
+                  "name": "Check Valve",
+                  "search_terms": [
+                    "check valve",
+                    "non return valve",
+                    "one way valve",
+                    "单向阀",
+                    "止回阀"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "orifice_bleed",
+                  "name": "Orifice / Bleed",
+                  "search_terms": [
+                    "orifice",
+                    "bleed passage",
+                    "bleed valve",
+                    "variable bleed",
+                    "adjustable bleed",
+                    "节流孔",
+                    "节流通道",
+                    "泄流孔"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "preload_spring",
+                  "name": "Preload / Spring",
+                  "search_terms": [
+                    "valve spring",
+                    "spring preload",
+                    "preload valve"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "valve_seat_flow",
+                  "name": "Valve Seat / Flow Path",
+                  "search_terms": [
+                    "valve seat",
+                    "flow passage",
+                    "valve flow path",
+                    "damper flow path",
+                    "intake flow",
+                    "auxiliary flow",
+                    "阀座",
+                    "流道",
+                    "流路",
+                    "补油路径"
+                  ],
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "fsd",
+              "name": "FSD / Frequency Selective Damping",
+              "search_terms": [
+                "frequency selective damping",
+                "frequency selective damper",
+                "frequency dependent damping",
+                "frequency dependent electronic damping",
+                "frequency sensitive damper",
+                "frequency dependent valve",
+                "frequency selective",
+                "频率选择",
+                "频率依赖",
+                "频率响应",
+                "频率选择减振器"
+              ],
+              "children": [
+                {
+                  "id": "frequency_selective_valve",
+                  "name": "Frequency Selective Valve",
+                  "search_terms": [
+                    "frequency selective valve",
+                    "frequency dependent valve",
+                    "frequency sensitive valve"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "hydraulic_delay",
+                  "name": "Hydraulic Delay / Time Constant",
+                  "search_terms": [
+                    "hydraulic delay damper",
+                    "hydraulic time constant damping",
+                    "delay chamber damper"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "fsd_aux_chamber",
+                  "name": "Auxiliary Chamber",
+                  "search_terms": [
+                    "frequency selective auxiliary chamber",
+                    "damper auxiliary chamber",
+                    "control chamber frequency damping"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "fsd_bypass_flow",
+                  "name": "Bypass Flow",
+                  "search_terms": [
+                    "frequency selective bypass",
+                    "damper bypass flow",
+                    "bypass passage damping"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "fsd_pressure_switching",
+                  "name": "Pressure-controlled Switching",
+                  "search_terms": [
+                    "pressure controlled switching damper",
+                    "pressure switching valve damper",
+                    "pressure responsive damping valve"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "fsd_inertial_switching",
+                  "name": "Mechanical / Inertial Switching",
+                  "search_terms": [
+                    "inertial valve damper",
+                    "mechanical frequency selective damper",
+                    "inertia controlled damping valve"
+                  ],
+                  "children": []
+                }
+              ],
+              "level": "technology",
+              "aliases": [
+                "FSD"
+              ],
+              "classifications": [
+                "F16F9/46"
+              ],
+              "include_terms": [
+                "frequency dependent damping",
+                "frequency sensitive damper"
+              ],
+              "exclude_terms": [
+                "frequency selective filter"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "semi_active",
+          "name": "Semi-active",
+          "search_terms": [
+            "semi active suspension",
+            "electronically controlled damper",
+            "variable damping damper",
+            "variable damping valve",
+            "proportional solenoid valve",
+            "electromagnetic damping valve",
+            "damping force adjusting",
+            "adjustable damping force",
+            "damping force control",
+            "damping force variable",
+            "damper with solenoid valve",
+            "continuously semi active",
+            "电控减振器",
+            "可变阻尼力",
+            "可调阻尼力",
+            "阻尼力可调",
+            "阻尼力调整",
+            "阻尼力控制",
+            "可调阻尼阀",
+            "外置可调阀",
+            "电磁阀减振器",
+            "controllable valve",
+            "control valves",
+            "external active valve",
+            "可调阀",
+            "外置可调液压减振器"
+          ],
+          "children": [
+            {
+              "id": "cdc_cvsa",
+              "name": "CDC / CVSA",
+              "search_terms": [
+                "continuous damping control",
+                "continuously variable semi active",
+                "continuously semi active",
+                "electronically controlled damper",
+                "cv valve",
+                "cvsa",
+                "cdc damper",
+                "电控减振器",
+                "连续可变阻尼",
+                "阻尼力连续可调"
+              ],
+              "children": []
+            },
+            {
+              "id": "pilot_valve",
+              "name": "Pilot Valve",
+              "search_terms": [
+                "pilot valve",
+                "pilot operated valve",
+                "pilot controlled damper valve",
+                "pilot-control valve",
+                "pilot control valve",
+                "pilot operated damping valve",
+                "pilot chamber",
+                "pilot main",
+                "servo valve",
+                "先导阀",
+                "前级阀",
+                "先导室"
+              ],
+              "children": [],
+              "level": "component",
+              "aliases": [
+                "pilot operated valve"
+              ],
+              "classifications": [
+                "F16F9/46"
+              ],
+              "include_terms": [
+                "pilot pressure chamber",
+                "pilot controlled damper valve"
+              ],
+              "exclude_terms": [
+                "fuel pilot valve",
+                "steam pilot valve"
+              ]
+            },
+            {
+              "id": "external_solenoid_valve",
+              "name": "External Solenoid Valve",
+              "search_terms": [
+                "external solenoid valve",
+                "external control valve",
+                "externally mounted damper valve",
+                "externally mounted control valve",
+                "side mounted solenoid valve",
+                "外置电磁阀",
+                "外置控制阀",
+                "外部电磁阀"
+              ],
+              "children": []
+            },
+            {
+              "id": "internal_solenoid_valve",
+              "name": "Internal Solenoid Valve",
+              "search_terms": [
+                "internal solenoid valve",
+                "internal control valve",
+                "built in damper valve",
+                "built-in control valve",
+                "piston integrated solenoid valve",
+                "内置电磁阀",
+                "内置控制阀",
+                "活塞集成电磁阀"
+              ],
+              "children": []
+            },
+            {
+              "id": "back_pressure_control",
+              "name": "Back-pressure Control",
+              "search_terms": [
+                "back pressure control",
+                "back pressure chamber",
+                "pilot pressure chamber",
+                "背压控制",
+                "背压腔",
+                "先导压力腔",
+                "控制腔"
+              ],
+              "children": []
+            },
+            {
+              "id": "floating_piston",
+              "name": "Floating Piston",
+              "search_terms": [
+                "floating piston",
+                "free piston",
+                "floating valve piston",
+                "浮动活塞",
+                "控制浮动活塞",
+                "阀浮动活塞"
+              ],
+              "children": [],
+              "level": "component",
+              "aliases": [
+                "floating valve piston"
+              ],
+              "classifications": [
+                "F16F9/46"
+              ],
+              "include_terms": [
+                "control floating piston",
+                "pilot floating piston"
+              ],
+              "exclude_terms": [
+                "gas separating piston",
+                "oil gas separating piston"
+              ]
+            },
+            {
+              "id": "fail_safe_valve",
+              "name": "Fail-safe Valve",
+              "search_terms": [
+                "fail safe valve",
+                "fail safe",
+                "failsafe valve",
+                "emergency damping valve",
+                "emergency operation valve",
+                "故障安全",
+                "失效安全",
+                "紧急操作阀",
+                "紧急阀"
+              ],
+              "children": []
+            },
+            {
+              "id": "solenoid_actuator",
+              "name": "Solenoid Actuator / Magnetic Circuit",
+              "search_terms": [
+                "solenoid actuator",
+                "electromagnetic actuator",
+                "magnetic circuit",
+                "magnetic flux",
+                "solenoid coil",
+                "armature",
+                "permanent magnet",
+                "电磁执行器",
+                "电磁铁",
+                "磁路",
+                "磁通",
+                "衔铁",
+                "电磁线圈",
+                "永磁体"
+              ],
+              "children": []
+            },
+            {
+              "id": "digital_valve",
+              "name": "Digital Valve",
+              "search_terms": [
+                "digital valve",
+                "digital damping valve",
+                "digitally controlled valve",
+                "数字阀",
+                "数字式阀"
+              ],
+              "children": []
+            },
+            {
+              "id": "control_electronics",
+              "name": "Control Electronics / PCB",
+              "search_terms": [
+                "electronic circuit",
+                "control electronics",
+                "control circuit",
+                "circuit board",
+                "printed circuit board",
+                "integrated electronic circuit",
+                "电子电路",
+                "控制电路",
+                "电路板",
+                "印刷电路板",
+                "集成电子电路"
+              ],
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "active_suspension",
+          "name": "Active Suspension",
+          "search_terms": [
+            "active suspension",
+            "active damper",
+            "hydraulic active suspension",
+            "主动悬架",
+            "全主动悬架",
+            "主动减振器"
+          ],
+          "children": [
+            {
+              "id": "hydraulic_active",
+              "name": "Hydraulic Active",
+              "search_terms": [
+                "hydraulic active suspension",
+                "hydraulic active damper",
+                "hydraulic suspension actuator"
+              ],
+              "children": []
+            },
+            {
+              "id": "electromechanical_active",
+              "name": "Electromechanical Active",
+              "search_terms": [
+                "electromechanical active suspension",
+                "electromechanical damper",
+                "electric suspension actuator"
+              ],
+              "children": []
+            },
+            {
+              "id": "hydraulic_pump",
+              "name": "Hydraulic Pump",
+              "search_terms": [
+                "suspension hydraulic pump",
+                "active suspension pump",
+                "hydraulic pump suspension"
+              ],
+              "children": []
+            },
+            {
+              "id": "accumulator",
+              "name": "Accumulator",
+              "search_terms": [
+                "suspension accumulator",
+                "hydraulic accumulator suspension",
+                "active suspension accumulator"
+              ],
+              "children": []
+            },
+            {
+              "id": "active_actuator",
+              "name": "Actuator",
+              "search_terms": [
+                "active suspension actuator",
+                "active damper actuator",
+                "suspension force actuator"
+              ],
+              "children": []
+            },
+            {
+              "id": "pressure_control",
+              "name": "Pressure Control",
+              "search_terms": [
+                "active suspension pressure control",
+                "hydraulic pressure control suspension",
+                "pressure regulating valve suspension"
+              ],
+              "children": []
+            },
+            {
+              "id": "energy_recovery",
+              "name": "Energy Recovery",
+              "search_terms": [
+                "regenerative suspension",
+                "energy recovery damper",
+                "energy harvesting suspension"
+              ],
+              "children": []
+            },
+            {
+              "id": "active_fail_safe",
+              "name": "Fail-safe",
+              "search_terms": [
+                "active suspension fail safe",
+                "fail safe active damper",
+                "fallback damping mode"
+              ],
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "air_suspension",
+          "name": "Air Suspension",
+          "search_terms": [
+            "air suspension",
+            "air spring"
+          ],
+          "children": [
+            {
+              "id": "air_spring",
+              "name": "Air Spring",
+              "search_terms": [
+                "air spring",
+                "pneumatic spring",
+                "air suspension spring"
+              ],
+              "children": []
+            },
+            {
+              "id": "air_supply_unit",
+              "name": "Air Supply Unit",
+              "search_terms": [
+                "air suspension supply unit",
+                "air supply module suspension",
+                "pneumatic supply unit vehicle"
+              ],
+              "children": []
+            },
+            {
+              "id": "compressor",
+              "name": "Compressor",
+              "search_terms": [
+                "air suspension compressor",
+                "pneumatic suspension compressor",
+                "vehicle suspension compressor"
+              ],
+              "children": []
+            },
+            {
+              "id": "reservoir",
+              "name": "Reservoir",
+              "search_terms": [
+                "air suspension reservoir",
+                "compressed air reservoir suspension",
+                "air tank suspension"
+              ],
+              "children": []
+            },
+            {
+              "id": "valve_block",
+              "name": "Valve Block",
+              "search_terms": [
+                "air suspension valve block",
+                "pneumatic valve manifold suspension",
+                "air distribution valve suspension"
+              ],
+              "children": []
+            },
+            {
+              "id": "height_control",
+              "name": "Height Control",
+              "search_terms": [
+                "air suspension height control",
+                "ride height control",
+                "level control suspension"
+              ],
+              "children": []
+            },
+            {
+              "id": "ride_height_sensor",
+              "name": "Ride Height Sensor",
+              "search_terms": [
+                "ride height sensor",
+                "suspension height sensor",
+                "vehicle level sensor"
+              ],
+              "children": []
+            },
+            {
+              "id": "air_dryer",
+              "name": "Dryer",
+              "search_terms": [
+                "air suspension dryer",
+                "compressed air dryer suspension",
+                "pneumatic dryer vehicle"
+              ],
+              "children": []
+            },
+            {
+              "id": "air_fail_safe",
+              "name": "Fail-safe",
+              "search_terms": [
+                "air suspension fail safe",
+                "air suspension emergency mode",
+                "air suspension fallback mode"
+              ],
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "active_anti_roll",
+          "name": "Active Anti-roll",
+          "search_terms": [
+            "active anti roll",
+            "active stabilizer",
+            "active stabilizer bar",
+            "active roll control",
+            "roll control system",
+            "single axle roll control",
+            "single axle roll control system"
+          ],
+          "children": [
+            {
+              "id": "aar_hydraulic_actuator",
+              "name": "Hydraulic Actuator",
+              "search_terms": [
+                "active stabilizer hydraulic actuator",
+                "hydraulic anti roll actuator",
+                "hydraulic roll control actuator"
+              ],
+              "children": []
+            },
+            {
+              "id": "aar_electromechanical_actuator",
+              "name": "Electromechanical Actuator",
+              "search_terms": [
+                "active stabilizer electromechanical actuator",
+                "electric anti roll actuator",
+                "electromechanical roll control actuator"
+              ],
+              "children": []
+            },
+            {
+              "id": "aar_rotary_actuator",
+              "name": "Rotary Actuator",
+              "search_terms": [
+                "active stabilizer rotary actuator",
+                "rotary anti roll actuator",
+                "rotary roll control actuator"
+              ],
+              "children": []
+            },
+            {
+              "id": "aar_decoupling",
+              "name": "Decoupling / Disconnect",
+              "search_terms": [
+                "stabilizer decoupling",
+                "anti roll bar disconnect",
+                "active stabilizer clutch"
+              ],
+              "children": []
+            },
+            {
+              "id": "aar_roll_control",
+              "name": "Roll Control",
+              "search_terms": [
+                "active roll control",
+                "vehicle roll control",
+                "active stabilizer control"
+              ],
+              "children": []
+            },
+            {
+              "id": "aar_pressure_control",
+              "name": "Pressure Control",
+              "search_terms": [
+                "active stabilizer pressure control",
+                "hydraulic roll pressure control",
+                "anti roll hydraulic pressure control"
+              ],
+              "children": []
+            },
+            {
+              "id": "aar_transmission",
+              "name": "Gear / Transmission",
+              "search_terms": [
+                "active stabilizer gearbox",
+                "anti roll gear transmission",
+                "stabilizer actuator transmission"
+              ],
+              "children": []
+            },
+            {
+              "id": "aar_sensor_control",
+              "name": "Sensor / Control",
+              "search_terms": [
+                "active stabilizer sensor",
+                "roll control sensor",
+                "active anti roll control unit"
+              ],
+              "children": []
+            },
+            {
+              "id": "aar_fail_safe",
+              "name": "Fail-safe",
+              "search_terms": [
+                "active stabilizer fail safe",
+                "active anti roll fail safe",
+                "roll control fallback mode"
+              ],
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "suspension_spring",
+          "name": "Suspension Spring",
+          "search_terms": [
+            "suspension spring",
+            "coil spring suspension"
+          ],
+          "children": [
+            {
+              "id": "coil_spring",
+              "name": "Coil Spring",
+              "search_terms": [
+                "coil spring suspension",
+                "helical suspension spring"
+              ],
+              "children": []
+            },
+            {
+              "id": "composite_spring",
+              "name": "Composite Spring",
+              "search_terms": [
+                "composite suspension spring",
+                "fiber reinforced suspension spring"
+              ],
+              "children": []
+            },
+            {
+              "id": "variable_rate_spring",
+              "name": "Progressive / Variable-rate Spring",
+              "search_terms": [
+                "progressive suspension spring",
+                "variable rate spring suspension",
+                "dual rate suspension spring"
+              ],
+              "children": []
+            },
+            {
+              "id": "auxiliary_spring",
+              "name": "Auxiliary Spring",
+              "search_terms": [
+                "auxiliary suspension spring",
+                "helper spring suspension"
+              ],
+              "children": []
+            },
+            {
+              "id": "spring_seat",
+              "name": "Spring Seat",
+              "search_terms": [
+                "spring seat",
+                "suspension spring seat",
+                "coil spring seat",
+                "upper spring seat",
+                "lower spring seat",
+                "spring perch"
+              ],
+              "children": [],
+              "level": "component",
+              "aliases": [
+                "spring perch"
+              ],
+              "classifications": [
+                "B60G11"
+              ],
+              "include_terms": [
+                "upper spring seat",
+                "lower spring seat"
+              ],
+              "exclude_terms": [
+                "valve spring seat"
+              ]
+            },
+            {
+              "id": "spring_isolator",
+              "name": "Spring Isolator",
+              "search_terms": [
+                "spring isolator",
+                "coil spring isolator",
+                "spring pad suspension"
+              ],
+              "children": []
+            },
+            {
+              "id": "jounce_bumper_spring",
+              "name": "Bump Stop / Jounce Bumper",
+              "search_terms": [
+                "jounce bumper",
+                "bump stop suspension",
+                "compression stop bumper"
+              ],
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "travel_control",
+          "name": "Travel Control / End Stop",
+          "search_terms": [
+            "suspension end stop",
+            "damper travel control",
+            "hydraulic stop damper",
+            "hydraulic end stop",
+            "hydraulic end stops",
+            "行程末端缓冲",
+            "行程控制",
+            "液压限位",
+            "端部缓冲"
+          ],
+          "children": [
+            {
+              "id": "hrs",
+              "name": "Hydraulic Rebound Stop (HRS)",
+              "search_terms": [
+                "hydraulic rebound stop",
+                "hydraulic rebound buffer",
+                "hydraulic extension stop damper",
+                "液压复原缓冲",
+                "液压复原限位",
+                "复原缓冲"
+              ],
+              "children": [],
+              "level": "technology",
+              "aliases": [
+                "HRS"
+              ],
+              "classifications": [],
+              "include_terms": [
+                "hydraulic rebound buffer",
+                "hydraulic extension stop"
+              ],
+              "exclude_terms": [
+                "hydraulic compression stop"
+              ]
+            },
+            {
+              "id": "hcs",
+              "name": "Hydraulic Compression Stop (HCS)",
+              "search_terms": [
+                "hydraulic compression stop",
+                "hydraulic bump stop",
+                "hydraulic jounce stop damper",
+                "液压压缩缓冲",
+                "液压压缩限位",
+                "压缩缓冲"
+              ],
+              "children": [],
+              "level": "technology",
+              "aliases": [
+                "HCS"
+              ],
+              "classifications": [],
+              "include_terms": [
+                "hydraulic compression buffer",
+                "hydraulic jounce stop"
+              ],
+              "exclude_terms": [
+                "hydraulic rebound stop"
+              ]
+            },
+            {
+              "id": "rebound_spring",
+              "name": "Rebound Spring",
+              "search_terms": [
+                "rebound spring",
+                "rebound stop spring",
+                "extension stop spring",
+                "rebound buffer spring",
+                "tension stop spring",
+                "damper rebound spring"
+              ],
+              "children": [],
+              "level": "component",
+              "aliases": [
+                "extension stop spring"
+              ],
+              "classifications": [],
+              "include_terms": [
+                "rebound stop spring",
+                "rebound buffer spring"
+              ],
+              "exclude_terms": [
+                "rebound valve spring"
+              ]
+            },
+            {
+              "id": "mechanical_rebound_stop",
+              "name": "Mechanical Rebound Stop",
+              "search_terms": [
+                "mechanical rebound stop",
+                "extension stop damper"
+              ],
+              "children": []
+            },
+            {
+              "id": "compression_bump_stop",
+              "name": "Compression Bump Stop",
+              "search_terms": [
+                "compression bump stop",
+                "compression stop damper",
+                "jounce stop damper"
+              ],
+              "children": []
+            },
+            {
+              "id": "end_stop_valve",
+              "name": "End-stop Valve",
+              "search_terms": [
+                "end stop valve damper",
+                "travel stop valve suspension",
+                "hydraulic stop valve damper"
+              ],
+              "children": []
+            },
+            {
+              "id": "progressive_end_stop",
+              "name": "Progressive End-stop Control",
+              "search_terms": [
+                "progressive end stop suspension",
+                "progressive hydraulic stop damper"
+              ],
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "suspension_structure",
+          "name": "Suspension Structure / Linkage",
+          "search_terms": [
+            "vehicle suspension linkage",
+            "suspension structure"
+          ],
+          "children": [
+            {
+              "id": "macpherson_strut",
+              "name": "MacPherson Strut",
+              "search_terms": [
+                "macpherson strut",
+                "macpherson suspension strut"
+              ],
+              "children": []
+            },
+            {
+              "id": "double_wishbone",
+              "name": "Double Wishbone",
+              "search_terms": [
+                "double wishbone suspension",
+                "double control arm suspension"
+              ],
+              "children": []
+            },
+            {
+              "id": "multi_link",
+              "name": "Multi-link",
+              "search_terms": [
+                "multi link suspension",
+                "multilink suspension"
+              ],
+              "children": []
+            },
+            {
+              "id": "control_arm",
+              "name": "Control Arm",
+              "search_terms": [
+                "suspension control arm",
+                "wishbone control arm"
+              ],
+              "children": []
+            },
+            {
+              "id": "trailing_arm",
+              "name": "Trailing Arm",
+              "search_terms": [
+                "trailing arm suspension",
+                "semi trailing arm suspension"
+              ],
+              "children": []
+            },
+            {
+              "id": "knuckle_carrier",
+              "name": "Knuckle / Wheel Carrier",
+              "search_terms": [
+                "suspension knuckle",
+                "wheel carrier suspension",
+                "steering knuckle suspension"
+              ],
+              "children": []
+            },
+            {
+              "id": "subframe",
+              "name": "Subframe",
+              "search_terms": [
+                "suspension subframe",
+                "vehicle suspension subframe"
+              ],
+              "children": []
+            },
+            {
+              "id": "damper_fork",
+              "name": "Damper Fork / Clevis",
+              "search_terms": [
+                "damper fork",
+                "shock absorber clevis",
+                "strut fork mounting"
+              ],
+              "children": []
+            },
+            {
+              "id": "strut_mounting_interface",
+              "name": "Strut / Damper Mounting Interface",
+              "search_terms": [
+                "strut mounting interface",
+                "damper mounting interface",
+                "shock absorber mounting bracket"
+              ],
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "mount_bushing",
+          "name": "Mount / Bushing",
+          "search_terms": [
+            "suspension mount",
+            "suspension bushing"
+          ],
+          "children": [
+            {
+              "id": "top_mount",
+              "name": "Top Mount / Strut Mount",
+              "search_terms": [
+                "strut top mount",
+                "strut mount",
+                "suspension top mount"
+              ],
+              "children": []
+            },
+            {
+              "id": "strut_bearing",
+              "name": "Strut Bearing",
+              "search_terms": [
+                "strut bearing",
+                "suspension strut bearing"
+              ],
+              "children": []
+            },
+            {
+              "id": "rubber_bushing",
+              "name": "Rubber Bushing",
+              "search_terms": [
+                "suspension rubber bushing",
+                "elastomer bushing suspension"
+              ],
+              "children": []
+            },
+            {
+              "id": "hydraulic_bushing",
+              "name": "Hydraulic Bushing",
+              "search_terms": [
+                "hydraulic bushing suspension",
+                "hydro bushing suspension"
+              ],
+              "children": []
+            },
+            {
+              "id": "control_arm_bushing",
+              "name": "Control Arm Bushing",
+              "search_terms": [
+                "control arm bushing",
+                "wishbone bushing"
+              ],
+              "children": []
+            },
+            {
+              "id": "subframe_mount",
+              "name": "Subframe Mount",
+              "search_terms": [
+                "subframe mount",
+                "subframe bushing"
+              ],
+              "children": []
+            },
+            {
+              "id": "damper_eye_bushing",
+              "name": "Damper Eye Bushing",
+              "search_terms": [
+                "damper eye bushing",
+                "shock absorber eye bushing"
+              ],
+              "children": []
+            },
+            {
+              "id": "vibration_isolator",
+              "name": "Vibration Isolator",
+              "search_terms": [
+                "suspension vibration isolator",
+                "damper isolator mounting"
+              ],
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "seal_friction_guidance",
+          "name": "Seal / Friction / Guidance",
+          "search_terms": [
+            "damper seal friction guide",
+            "shock absorber seal guide",
+            "减振器密封",
+            "密封导向",
+            "摩擦控制",
+            "活塞杆密封",
+            "导向器"
+          ],
+          "children": [
+            {
+              "id": "rod_seal",
+              "name": "Rod Seal",
+              "search_terms": [
+                "damper rod seal",
+                "shock absorber rod seal"
+              ],
+              "children": []
+            },
+            {
+              "id": "seal_package",
+              "name": "Oil Seal / Seal Package",
+              "search_terms": [
+                "damper oil seal",
+                "shock absorber seal package"
+              ],
+              "children": []
+            },
+            {
+              "id": "dust_seal",
+              "name": "Dust Seal / Scraper",
+              "search_terms": [
+                "damper dust seal",
+                "rod scraper shock absorber"
+              ],
+              "children": []
+            },
+            {
+              "id": "o_ring",
+              "name": "O-ring",
+              "search_terms": [
+                "damper o ring",
+                "shock absorber o-ring seal"
+              ],
+              "children": []
+            },
+            {
+              "id": "rod_guide",
+              "name": "Rod Guide",
+              "search_terms": [
+                "damper rod guide",
+                "shock absorber rod guide"
+              ],
+              "children": []
+            },
+            {
+              "id": "guide_bushing",
+              "name": "Guide Bushing",
+              "search_terms": [
+                "damper guide bushing",
+                "rod guide bushing shock absorber"
+              ],
+              "children": []
+            },
+            {
+              "id": "piston_band",
+              "name": "Piston Band",
+              "search_terms": [
+                "damper piston band",
+                "shock absorber piston band"
+              ],
+              "children": []
+            },
+            {
+              "id": "ptfe_band",
+              "name": "PTFE Band / Wear Ring",
+              "search_terms": [
+                "ptfe piston band damper",
+                "wear ring shock absorber",
+                "ptfe guide ring damper"
+              ],
+              "children": []
+            },
+            {
+              "id": "low_friction_coating",
+              "name": "Low-friction Coating",
+              "search_terms": [
+                "low friction coating damper",
+                "friction reducing coating shock absorber"
+              ],
+              "children": []
+            },
+            {
+              "id": "friction_control",
+              "name": "Friction Control",
+              "search_terms": [
+                "damper friction control",
+                "shock absorber friction reduction"
+              ],
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "damper_hardware",
+          "name": "Damper Structure / Hardware",
+          "search_terms": [
+            "shock absorber structure",
+            "damper hardware",
+            "damper assembly",
+            "减振器结构",
+            "减振器总成",
+            "液压减振器结构",
+            "减振器安装"
+          ],
+          "children": [
+            {
+              "id": "piston_rod",
+              "name": "Piston Rod",
+              "search_terms": [
+                "shock absorber piston rod",
+                "damper piston rod"
+              ],
+              "children": []
+            },
+            {
+              "id": "damper_piston",
+              "name": "Piston",
+              "search_terms": [
+                "shock absorber piston",
+                "damper piston"
+              ],
+              "children": []
+            },
+            {
+              "id": "pressure_tube",
+              "name": "Pressure Tube / Working Cylinder",
+              "search_terms": [
+                "shock absorber pressure tube",
+                "damper working cylinder"
+              ],
+              "children": []
+            },
+            {
+              "id": "reservoir_tube",
+              "name": "Reservoir Tube",
+              "search_terms": [
+                "shock absorber reservoir tube",
+                "damper outer tube"
+              ],
+              "children": []
+            },
+            {
+              "id": "rod_guide_housing",
+              "name": "Rod Guide Housing",
+              "search_terms": [
+                "rod guide housing damper",
+                "shock absorber guide housing"
+              ],
+              "children": []
+            },
+            {
+              "id": "end_cap",
+              "name": "End Cap / Closure",
+              "search_terms": [
+                "damper end cap",
+                "shock absorber closure cap"
+              ],
+              "children": []
+            },
+            {
+              "id": "gas_chamber",
+              "name": "Gas Chamber",
+              "search_terms": [
+                "damper gas chamber",
+                "shock absorber gas chamber"
+              ],
+              "children": []
+            },
+            {
+              "id": "separating_piston",
+              "name": "Separating Piston",
+              "search_terms": [
+                "separating piston damper",
+                "gas oil separating piston shock absorber"
+              ],
+              "children": [],
+              "level": "component",
+              "aliases": [
+                "gas separating piston"
+              ],
+              "classifications": [],
+              "include_terms": [
+                "oil gas separating piston",
+                "separator piston damper"
+              ],
+              "exclude_terms": [
+                "pilot valve",
+                "control floating piston"
+              ]
+            },
+            {
+              "id": "external_reservoir",
+              "name": "External Reservoir",
+              "search_terms": [
+                "external reservoir damper",
+                "remote reservoir shock absorber"
+              ],
+              "children": []
+            },
+            {
+              "id": "bottom_base_assembly",
+              "name": "Bottom / Base Assembly",
+              "search_terms": [
+                "damper base assembly",
+                "shock absorber bottom assembly"
+              ],
+              "children": []
+            },
+            {
+              "id": "mounting_eye",
+              "name": "Mounting Eye",
+              "search_terms": [
+                "shock absorber mounting eye",
+                "damper eye mount"
+              ],
+              "children": []
+            },
+            {
+              "id": "damper_bracket",
+              "name": "Bracket",
+              "search_terms": [
+                "shock absorber bracket",
+                "damper mounting bracket"
+              ],
+              "children": []
+            },
+            {
+              "id": "clevis_fork",
+              "name": "Clevis / Fork",
+              "search_terms": [
+                "shock absorber clevis",
+                "damper fork mount"
+              ],
+              "children": []
+            },
+            {
+              "id": "strut_knuckle_clamp",
+              "name": "Strut Knuckle Clamp",
+              "search_terms": [
+                "strut knuckle clamp",
+                "macpherson strut clamp",
+                "strut steering knuckle connection"
+              ],
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "nvh_noise",
+          "name": "NVH / Noise",
+          "search_terms": [
+            "shock absorber noise",
+            "damper noise",
+            "suspension nvh",
+            "减振器噪声",
+            "减振器异响",
+            "悬架噪声",
+            "阀噪声"
+          ],
+          "children": [
+            {
+              "id": "valve_noise",
+              "name": "Valve Noise",
+              "search_terms": [
+                "damper valve noise",
+                "shock absorber valve noise"
+              ],
+              "children": [
+                {
+                  "id": "valve_chatter",
+                  "name": "Valve Chatter",
+                  "search_terms": [
+                    "damper valve chatter",
+                    "valve flutter shock absorber"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "valve_buzz",
+                  "name": "Valve Buzz",
+                  "search_terms": [
+                    "damper valve buzz",
+                    "solenoid damper buzz"
+                  ],
+                  "children": [],
+                  "level": "failure_mode",
+                  "aliases": [
+                    "buzz noise"
+                  ],
+                  "classifications": [
+                    "F16F9/46"
+                  ],
+                  "include_terms": [
+                    "valve buzzing",
+                    "solenoid buzz"
+                  ],
+                  "exclude_terms": []
+                },
+                {
+                  "id": "switching_impact_noise",
+                  "name": "Switching / Impact Noise",
+                  "search_terms": [
+                    "damper switching noise",
+                    "valve impact noise shock absorber"
+                  ],
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "flow_induced_noise",
+              "name": "Flow-induced Noise",
+              "search_terms": [
+                "flow induced noise damper",
+                "hydraulic flow noise shock absorber"
+              ],
+              "children": [
+                {
+                  "id": "jet_shear_noise",
+                  "name": "Jet / Shear-layer Noise",
+                  "search_terms": [
+                    "jet noise hydraulic valve",
+                    "shear layer noise damper valve"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "cavity_resonance",
+                  "name": "Cavity Resonance",
+                  "search_terms": [
+                    "valve cavity resonance damper",
+                    "hydraulic cavity resonance shock absorber"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "helmholtz_resonance",
+                  "name": "Helmholtz Resonance",
+                  "search_terms": [
+                    "helmholtz resonance damper valve",
+                    "hydraulic helmholtz resonance shock absorber"
+                  ],
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "cavitation",
+              "name": "Cavitation",
+              "search_terms": [
+                "damper cavitation",
+                "shock absorber cavitation",
+                "cavitation",
+                "anti cavitation",
+                "空化",
+                "气蚀"
+              ],
+              "children": []
+            },
+            {
+              "id": "aeration",
+              "name": "Aeration / Foaming",
+              "search_terms": [
+                "damper aeration",
+                "shock absorber foaming",
+                "hydraulic oil aeration damper"
+              ],
+              "children": []
+            },
+            {
+              "id": "hydraulic_pulsation",
+              "name": "Hydraulic Pulsation",
+              "search_terms": [
+                "damper pressure pulsation",
+                "hydraulic pulsation shock absorber"
+              ],
+              "children": []
+            },
+            {
+              "id": "stick_slip_noise",
+              "name": "Friction / Stick-slip Noise",
+              "search_terms": [
+                "damper stick slip noise",
+                "shock absorber friction noise"
+              ],
+              "children": []
+            },
+            {
+              "id": "knock_noise",
+              "name": "Knock / Mechanical Impact",
+              "search_terms": [
+                "shock absorber knock noise",
+                "damper mechanical impact noise"
+              ],
+              "children": []
+            },
+            {
+              "id": "structure_borne_noise",
+              "name": "Structure-borne Noise",
+              "search_terms": [
+                "suspension structure borne noise",
+                "damper structure borne noise"
+              ],
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "materials_manufacturing",
+          "name": "Materials / Manufacturing",
+          "search_terms": [
+            "shock absorber manufacturing",
+            "damper material",
+            "structure packaging",
+            "integrated packaging",
+            "结构封装",
+            "一体封装",
+            "加工难度"
+          ],
+          "children": [
+            {
+              "id": "materials",
+              "name": "Materials",
+              "search_terms": [
+                "damper material",
+                "shock absorber material"
+              ],
+              "children": [
+                {
+                  "id": "spring_steel",
+                  "name": "Valve Disc / Spring Steel",
+                  "search_terms": [
+                    "valve disc spring steel",
+                    "shim steel damper"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "piston_rod_material",
+                  "name": "Piston Rod Material",
+                  "search_terms": [
+                    "piston rod material shock absorber",
+                    "damper rod steel"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "tube_material",
+                  "name": "Tube Material",
+                  "search_terms": [
+                    "shock absorber tube material",
+                    "damper cylinder material"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "aluminum_alloy",
+                  "name": "Aluminum Alloy",
+                  "search_terms": [
+                    "aluminum damper",
+                    "aluminum shock absorber component"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "rubber_elastomer",
+                  "name": "Rubber / Elastomer",
+                  "search_terms": [
+                    "damper rubber elastomer",
+                    "suspension elastomer material"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "ptfe_material",
+                  "name": "PTFE / Wear Material",
+                  "search_terms": [
+                    "ptfe damper wear ring",
+                    "ptfe shock absorber band"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "engineering_plastic",
+                  "name": "Engineering Plastics",
+                  "search_terms": [
+                    "engineering plastic damper",
+                    "polymer shock absorber component"
+                  ],
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "surface_engineering",
+              "name": "Surface Engineering",
+              "search_terms": [
+                "damper surface treatment",
+                "shock absorber coating"
+              ],
+              "children": [
+                {
+                  "id": "hard_chrome",
+                  "name": "Hard Chrome Plating",
+                  "search_terms": [
+                    "piston rod hard chrome",
+                    "hard chrome shock absorber rod"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "dlc_coating",
+                  "name": "DLC / Low-friction Coating",
+                  "search_terms": [
+                    "dlc coating damper",
+                    "low friction coating piston rod"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "nitriding",
+                  "name": "Nitriding",
+                  "search_terms": [
+                    "nitriding damper component",
+                    "nitrided piston rod"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "phosphating",
+                  "name": "Phosphating",
+                  "search_terms": [
+                    "phosphate coating damper",
+                    "phosphating shock absorber"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "corrosion_protection",
+                  "name": "Corrosion Protection",
+                  "search_terms": [
+                    "shock absorber corrosion protection",
+                    "damper anti corrosion coating"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "surface_roughness",
+                  "name": "Surface Roughness / Texture",
+                  "search_terms": [
+                    "damper surface roughness",
+                    "shock absorber sealing surface roughness"
+                  ],
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "manufacturing",
+              "name": "Manufacturing",
+              "search_terms": [
+                "damper manufacturing process",
+                "shock absorber production process"
+              ],
+              "children": [
+                {
+                  "id": "stamping_fine_blanking",
+                  "name": "Stamping / Fine Blanking",
+                  "search_terms": [
+                    "damper valve stamping",
+                    "fine blanking valve disc"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "machining",
+                  "name": "Machining",
+                  "search_terms": [
+                    "damper machining",
+                    "shock absorber machining process"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "grinding",
+                  "name": "Grinding",
+                  "search_terms": [
+                    "piston rod grinding",
+                    "damper grinding process"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "welding",
+                  "name": "Welding",
+                  "search_terms": [
+                    "shock absorber welding",
+                    "damper tube welding"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "crimping_caulking",
+                  "name": "Crimping / Caulking",
+                  "search_terms": [
+                    "shock absorber crimping",
+                    "damper caulking process"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "press_fit",
+                  "name": "Press Fit",
+                  "search_terms": [
+                    "damper press fit",
+                    "shock absorber interference fit"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "tube_forming",
+                  "name": "Tube Forming",
+                  "search_terms": [
+                    "shock absorber tube forming",
+                    "damper tube forming"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "injection_rubber_molding",
+                  "name": "Injection / Rubber Molding",
+                  "search_terms": [
+                    "damper rubber molding",
+                    "suspension bushing injection molding"
+                  ],
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "cleanliness",
+              "name": "Cleanliness / Contamination",
+              "search_terms": [
+                "damper cleanliness",
+                "shock absorber contamination"
+              ],
+              "children": [
+                {
+                  "id": "particle_control",
+                  "name": "Particle Control",
+                  "search_terms": [
+                    "damper particle contamination",
+                    "shock absorber particle control"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "component_cleaning",
+                  "name": "Component Cleaning",
+                  "search_terms": [
+                    "damper component cleaning",
+                    "valve disc cleaning shock absorber"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "residual_contamination",
+                  "name": "Residual Contamination",
+                  "search_terms": [
+                    "residual contamination damper",
+                    "shock absorber cleanliness residue"
+                  ],
+                  "children": []
+                },
+                {
+                  "id": "assembly_cleanliness",
+                  "name": "Assembly Cleanliness",
+                  "search_terms": [
+                    "shock absorber assembly cleanliness",
+                    "damper clean assembly"
+                  ],
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

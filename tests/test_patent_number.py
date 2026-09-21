@@ -10,6 +10,7 @@ from app.core.patent_number import PatentNumberError, normalize_patent_number
         ("CN115123456A", "CN115123456A", "CN", "A"),
         ("JP 2024-123456 A", "JP2024123456A", "JP", "A"),
         ("EP 4 123 456 A1", "EP4123456A1", "EP", "A1"),
+        ("DE 11 2020 003355 T5", "DE112020003355T5", "DE", "T5"),
         ("US 2024/0123456 A1", "US20240123456A1", "US", "A1"),
         ("US 11,234,567 B2", "US11234567B2", "US", "B2"),
         ("WO 2024/123456 A1", "WO2024123456A1", "WO", "A1"),

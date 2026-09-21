@@ -1,0 +1,73 @@
+"""Hierarchical engineering taxonomy for suspension patent intelligence."""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from importlib import resources
+
+
+@dataclass(frozen=True, slots=True)
+class TechnologyNode:
+    node_id: str
+    name: str
+    search_terms: tuple[str, ...] = ()
+    level: str = ""
+    aliases: tuple[str, ...] = ()
+    classifications: tuple[str, ...] = ()
+    include_terms: tuple[str, ...] = ()
+    exclude_terms: tuple[str, ...] = ()
+    children: tuple[TechnologyNode, ...] = ()
+
+
+class TechnologyTaxonomy:
+    def __init__(self, roots: tuple[TechnologyNode, ...]):
+        self.roots = roots
+
+    @classmethod
+    def from_dict(cls, payload: dict) -> TechnologyTaxonomy:
+        def build(item: dict) -> TechnologyNode:
+            return TechnologyNode(
+                node_id=item["id"],
+                name=item["name"],
+                search_terms=tuple(item.get("search_terms", ())),
+                level=item.get("level", ""),
+                aliases=tuple(item.get("aliases", ())),
+                classifications=tuple(item.get("classifications", ())),
+                include_terms=tuple(item.get("include_terms", ())),
+                exclude_terms=tuple(item.get("exclude_terms", ())),
+                children=tuple(build(child) for child in item.get("children", [])),
+            )
+        return cls(tuple(build(item) for item in payload.get("nodes", [])))
+
+    @classmethod
+    def default(cls) -> TechnologyTaxonomy:
+        text = (
+            resources.files("app.resources")
+            .joinpath("technology_taxonomy.json")
+            .read_text(encoding="utf-8")
+        )
+        return cls.from_dict(json.loads(text))
+
+    def find(self, node_id: str) -> TechnologyNode:
+        path = self.path(node_id)
+        return path[-1]
+
+    def path(self, node_id: str) -> tuple[TechnologyNode, ...]:
+        def walk(
+            nodes: tuple[TechnologyNode, ...],
+            parents: tuple[TechnologyNode, ...] = (),
+        ) -> tuple[TechnologyNode, ...] | None:
+            for node in nodes:
+                current = (*parents, node)
+                if node.node_id == node_id:
+                    return current
+                found = walk(node.children, current)
+                if found is not None:
+                    return found
+            return None
+
+        result = walk(self.roots)
+        if result is None:
+            raise KeyError(node_id)
+        return result

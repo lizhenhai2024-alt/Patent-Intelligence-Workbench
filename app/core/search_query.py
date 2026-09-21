@@ -19,6 +19,11 @@ def _or_group(clauses: list[str]) -> str:
     return "(" + " or ".join(clauses) + ")"
 
 
+def _classification_clause(code: str) -> str:
+    clean = "".join(code.upper().split())
+    return f'cl={_cql_quote(clean)}'
+
+
 def _technology_clause(term: str) -> str:
     normalized = " ".join(term.split())
     if " " in normalized:
@@ -48,6 +53,22 @@ def compile_epo_cql(expression: SearchExpression) -> str:
         clauses = [_technology_clause(term) for term in text_group if term.strip()]
         if clauses:
             groups.append(_or_group(clauses))
+
+    for classification_group in expression.classification_groups:
+        clauses = [_classification_clause(code) for code in classification_group if code.strip()]
+        if clauses:
+            groups.append(_or_group(clauses))
+
+    portfolio_clauses = [
+        *[_technology_clause(term) for term in expression.portfolio_terms if term.strip()],
+        *[
+            _classification_clause(code)
+            for code in expression.portfolio_classifications
+            if code.strip()
+        ],
+    ]
+    if portfolio_clauses:
+        groups.append(_or_group(portfolio_clauses))
 
     if expression.jurisdictions:
         groups.append(

@@ -1,0 +1,46 @@
+import pytest
+
+from app.desktop.app import PatentWorkbenchApp
+from app.desktop.runtime import DesktopRuntime
+from app.desktop.tk_runtime import can_run_tk_tests
+from app.domain.search import SearchHit
+
+pytestmark = pytest.mark.skipif(
+    not can_run_tk_tests(),
+    reason="Tk UI tests require a usable Tcl/Tk runtime",
+)
+
+
+def test_reader_opens_selected_search_hit():
+    runtime = DesktopRuntime.create()
+    app = PatentWorkbenchApp(runtime)
+    app.withdraw()
+    hit = SearchHit(
+        publication_number="US20240003399A1",
+        jurisdiction="US",
+        title="Pilot controlled damper",
+        abstract="A pilot valve controls a floating piston.",
+        classifications=("F16F9/46",),
+    )
+    app._search_hits_by_number[hit.publication_number] = hit
+    app.search_tree.insert(
+        "",
+        "end",
+        iid=hit.publication_number,
+        values=(hit.publication_number, "US", hit.title, "", "", ""),
+    )
+    app.search_tree.selection_set(hit.publication_number)
+    app._open_selected_in_reader()
+
+    assert app.reader_number_var.get() == hit.publication_number
+    assert "Pilot controlled damper" in app.reader_source_text.get("1.0", "end")
+    assert "Cambria" in str(app.reader_source_text.cget("font"))
+    assert int(app.reader_source_text.cget("spacing3")) == 7
+    assert "F16F9/46" in app.reader_classification_var.get()
+    assert app._pages["reader"].winfo_manager() == "pack"
+
+    app.translate_reader_abstract()
+    translated = app.reader_translation_text.get("1.0", "end").strip()
+    assert "正在翻译" in translated
+    app.destroy()
+    runtime.close()

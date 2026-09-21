@@ -2,6 +2,18 @@
   "schema_version": 1,
   "topics": [
     {
+      "topic_id": "suspension_portfolio",
+      "display_name": "悬架与减振器组合",
+      "aliases": {
+        "zh": ["悬架与减振器", "悬架减振器", "悬架组合"],
+        "en": ["suspension portfolio", "suspension and damper"]
+      },
+      "provider_terms": {
+        "EPO_OPS": ["suspension", "shock absorber", "damper", "strut", "active suspension", "semi active suspension", "stabilizer", "anti roll"],
+        "DEFAULT": ["suspension", "shock absorber", "damper", "strut", "active suspension", "semi active suspension", "stabilizer", "anti roll"]
+      }
+    },
+    {
       "topic_id": "damper",
       "display_name": "减振器",
       "aliases": {

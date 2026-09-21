@@ -49,6 +49,7 @@ class SearchService:
         query: str,
         *,
         company: str | None = None,
+        portfolio_scope: str | None = None,
         technology_terms: tuple[str, ...] = (),
         jurisdictions: tuple[str, ...] = (),
         published_from: date | None = None,
@@ -71,21 +72,62 @@ class SearchService:
                 normalized_query=publication.canonical,
             )
 
+        if not company and raw:
+            try:
+                group = self.company_registry.get(raw)
+            except KeyError:
+                group = None
+            if group is not None:
+                company = group.group_id
+                raw = ""
+
         if company:
             group = self.company_registry.get(company)
             terms = technology_terms or ((raw,) if raw else ())
             technology_context = bool(terms)
-            applicants = group.applicant_names(technology_context=technology_context)
+            portfolio_context = bool(portfolio_scope) and not technology_context
+            applicants = group.applicant_names(
+                portfolio_scope=portfolio_scope,
+                technology_context=technology_context,
+            )
             expanded_groups = self._expand_text(terms)
+            if portfolio_context:
+                portfolio_groups = self._expand_text((portfolio_scope,))
+                if portfolio_groups:
+                    expanded_groups = portfolio_groups
+                elif portfolio_scope:
+                    terms = (portfolio_scope,)
+            portfolio_terms: tuple[str, ...] = ()
+            portfolio_classifications: tuple[str, ...] = ()
+            if portfolio_context:
+                portfolio_terms = tuple(
+                    term
+                    for group_terms in expanded_groups
+                    for term in group_terms
+                )
+                expanded_groups = ()
+                portfolio_classifications = (
+                    "B60G13", "B60G15", "B60G17", "B60G21",
+                    "F16F9/00", "F16F9/10", "F16F9/16", "F16F9/18",
+                    "F16F9/32", "F16F9/34", "F16F9/44", "F16F9/46",
+                    "F16F9/50", "F16F9/512",
+                )
             expression = SearchExpression(
                 applicants=applicants,
-                text_terms=terms if not expanded_groups else (),
+                text_terms=terms if not expanded_groups and not portfolio_context else (),
                 text_groups=expanded_groups,
+                portfolio_terms=portfolio_terms,
+                portfolio_classifications=portfolio_classifications,
                 jurisdictions=jurisdictions,
                 published_from=published_from,
                 published_to=published_to,
             )
-            mode = SearchMode.COMPANY_TECHNOLOGY if technology_context else SearchMode.COMPANY
+            if technology_context:
+                mode = SearchMode.COMPANY_TECHNOLOGY
+            elif portfolio_context:
+                mode = SearchMode.COMPANY_PORTFOLIO
+            else:
+                mode = SearchMode.COMPANY
             page = await self.provider.search_publications(
                 expression,
                 page_size=page_size,

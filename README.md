@@ -43,6 +43,18 @@ JTEKT is not part of the default core damper watch list.
 5. Keep provider adapters replaceable; downloading must support source fallback.
 6. All release builds must pass automated tests.
 
+## AI maintenance contract
+
+AI-assisted development must follow `AGENTS.md` and `docs/AI_PRODUCT_SPEC.md`.
+Run the deterministic full audit before treating a repair as complete:
+
+```bash
+python scripts/ai_self_audit.py --full
+```
+
+The AI contract separates UI display names, filesystem archive names and legal assignee metadata,
+and defines LocalLibrary, company/entity, filename and autonomous-repair invariants.
+
 ## Development
 
 ```bash

@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 from app.acquisition import AcquisitionEngine, default_engine
 from app.core.company_registry import CompanyRegistry
 from app.core.technology_dictionary import TechnologyDictionary
 from app.desktop.credentials import CredentialStore, DesktopCredentialStore, EpoOpsCredentials
+from app.desktop.library_config import load_library_folder, save_library_folder
 from app.desktop.paths import AppPaths
 from app.downloads.factory import build_default_download_manager
 from app.downloads.family import FamilyDownloader
+from app.library.enrichment import LibraryEnrichmentService
 from app.library.service import PatentLibraryService
 from app.library.store import SQLitePatentLibrary
 from app.providers.epo_ops import EpoOpsProvider
@@ -36,9 +39,11 @@ class DesktopRuntime:
     acquisition_engine: AcquisitionEngine | None = None
     search_service: SearchService | None = None
     family_resolver: FamilyResolver | None = None
+    library_enrichment_service: LibraryEnrichmentService | None = None
     watch_scheduler: PatentWatchScheduler | None = None
     search_status: str = "公开搜索可用 · EPO OPS 未配置（可选增强）"
     credential_source: str | None = None
+    library_root: Path | None = None
 
     @classmethod
     def create(
@@ -56,6 +61,12 @@ class DesktopRuntime:
                 default_v1_watch_templates(),
             )
 
+        config_path = resolved_paths.root / "settings.json"
+        library_root = load_library_folder(
+            config_path,
+            resolved_paths.downloads,
+        ).root
+        library_root.mkdir(parents=True, exist_ok=True)
         runtime = cls(
             paths=resolved_paths,
             library_store=library_store,
@@ -64,6 +75,7 @@ class DesktopRuntime:
             family_downloader=FamilyDownloader(build_default_download_manager()),
             credential_store=credential_store or DesktopCredentialStore(),
             acquisition_engine=default_engine(),
+            library_root=library_root,
         )
         runtime.reload_network_services()
         return runtime
@@ -71,6 +83,13 @@ class DesktopRuntime:
     def reload_network_services(self) -> None:
         credentials = self.credential_store.load_epo_ops()
         self._configure_services(credentials)
+
+    def set_library_root(self, root: str | Path) -> Path:
+        resolved = Path(root).expanduser()
+        resolved.mkdir(parents=True, exist_ok=True)
+        save_library_folder(self.paths.root / "settings.json", resolved)
+        self.library_root = resolved
+        return resolved
 
     def save_epo_credentials(
         self,
@@ -118,6 +137,10 @@ class DesktopRuntime:
             technology_dictionary=TechnologyDictionary.default(),
         )
         self.family_resolver = FamilyResolver(family_providers)
+        self.library_enrichment_service = LibraryEnrichmentService(
+            self.library_store,
+            self.search_service.provider,
+        )
 
         def archive_watch_event(rule, event) -> None:
             self.library_service.ingest_watch_event(

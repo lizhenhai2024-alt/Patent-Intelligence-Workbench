@@ -95,3 +95,16 @@ def test_parse_direct_publication_biblio_xml():
     assert page.total_result_count == 1
     assert page.hits[0].publication_number == "EP1000000A1"
     assert page.hits[0].title == "Example patent"
+
+
+def test_parse_biblio_search_extracts_abstract_and_classification():
+    xml = SEARCH_XML.replace(
+        '<invention-title lang="en">Active suspension damper</invention-title>',
+        '<invention-title lang="en">Active suspension damper</invention-title>'
+        '<classifications-ipcr><classification-ipcr><text>B60G11/16</text>'
+        '</classification-ipcr></classifications-ipcr>'
+        '<abstract lang="en"><p>Upper spring seat for a vehicle suspension.</p></abstract>',
+    )
+    hit = parse_biblio_search_xml(xml).hits[0]
+    assert hit.abstract == "Upper spring seat for a vehicle suspension."
+    assert hit.classifications == ("B60G11/16",)

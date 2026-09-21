@@ -14,8 +14,22 @@ def safe_component(value: str, *, fallback: str = "unknown") -> str:
     return cleaned or fallback
 
 
-def patent_pdf_filename(publication_number: str) -> str:
-    return f"{safe_component(publication_number)}.pdf"
+def patent_pdf_filename(
+    publication_number: str,
+    title: str | None = None,
+    *,
+    year: int | None = None,
+    assignee: str | None = None,
+) -> str:
+    parts: list[str] = []
+    if year:
+        parts.append(str(year))
+    parts.append(safe_component(publication_number))
+    if title:
+        parts.append(safe_component(title)[:100])
+    if assignee:
+        parts.append(safe_component(assignee)[:80])
+    return "-".join(parts) + ".pdf"
 
 
 def family_folder_name(

@@ -153,3 +153,67 @@ def test_multilingual_dictionary_expands_chinese_company_technology_query():
         "external control valve",
     ) in expression.text_groups
     assert ("back pressure", "back pressure chamber") in expression.text_groups
+
+
+def test_typed_company_name_routes_to_company_search():
+    provider = FakeProvider()
+    service = SearchService(provider=provider, company_registry=_registry())
+
+    result = asyncio.run(service.search("ClearMotion"))
+
+    expression = provider.search_calls[0][0]
+    assert result.mode.value == "COMPANY"
+    assert result.company_group_id == "clearmotion"
+    assert expression.applicants == ("ClearMotion, Inc.",)
+    assert expression.text_terms == ()
+
+
+def test_company_portfolio_search_uses_suspension_scope_and_scoped_entity():
+    provider = FakeEpoProvider()
+    service = SearchService(
+        provider=provider,
+        company_registry=_registry(),
+        technology_dictionary=TechnologyDictionary.default(),
+    )
+
+    result = asyncio.run(
+        service.search(
+            "",
+            company="ClearMotion",
+            portfolio_scope="suspension portfolio",
+        )
+    )
+
+    expression = provider.search_calls[0][0]
+    assert result.mode.value == "COMPANY_PORTFOLIO"
+    assert expression.applicants == ("ClearMotion, Inc.", "Bose Corporation")
+    assert expression.text_terms == ()
+    assert expression.text_groups == ()
+    assert "suspension" in expression.portfolio_terms
+    assert "shock absorber" in expression.portfolio_terms
+    assert "B60G13" in expression.portfolio_classifications
+    assert "F16F9/46" in expression.portfolio_classifications
+    # portfolio is one broad OR package, not multiple AND groups
+    assert expression.portfolio_terms == (
+        "suspension",
+        "shock absorber",
+        "damper",
+        "strut",
+        "active suspension",
+        "semi active suspension",
+        "stabilizer",
+        "anti roll",
+    )
+
+def test_default_registry_routes_ftl_alias_to_company_search():
+    provider = FakeProvider()
+    service = SearchService(
+        provider=provider,
+        company_registry=CompanyRegistry.default(),
+    )
+    result = asyncio.run(service.search("一汽东机工"))
+    expression = provider.search_calls[0][0]
+    assert result.mode.value == "COMPANY"
+    assert result.company_group_id == "ftl"
+    assert "一汽东机工" in expression.applicants
+    assert "富奥东机工" in expression.applicants
