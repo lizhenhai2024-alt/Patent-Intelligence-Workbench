@@ -34,7 +34,7 @@ class CompanyGroup:
         self,
         *,
         portfolio_scope: str | None = None,
-        technology_context: bool = False,
+        include_scoped_portfolio: bool = False,
     ) -> tuple[str, ...]:
         names: list[str] = []
         for entity in self.entities:
@@ -42,7 +42,7 @@ class CompanyGroup:
                 continue
             if entity.scope:
                 normalized_scope = entity.scope.casefold()
-                include_scoped = technology_context or (
+                include_scoped = include_scoped_portfolio or (
                     portfolio_scope is not None
                     and portfolio_scope.casefold() in normalized_scope
                 )

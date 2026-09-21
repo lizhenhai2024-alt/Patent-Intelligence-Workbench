@@ -148,3 +148,72 @@ def test_all_failed_providers_return_aggregated_attempts():
     assert [item.provider for item in attempts] == ["PUBLIC_A", "PUBLIC_B"]
     assert attempts[0].status is SearchAttemptStatus.UNAVAILABLE
     assert attempts[1].status is SearchAttemptStatus.RATE_LIMITED
+
+
+def test_cn_lookup_refreshes_stale_local_metadata_from_remote():
+    local_hit = SearchHit(
+        publication_number="CN117329258A",
+        jurisdiction="CN",
+        title="Pressure relief poppet valve for suspension damper",
+        applicants=("DREWE AUTOMOTIVE CO LTD",),
+        source="LOCAL_LIBRARY",
+    )
+    remote_hit = SearchHit(
+        publication_number="CN117329258A",
+        jurisdiction="CN",
+        title="用于悬架式阻尼器的释压提升阀",
+        applicants=("德雷威汽车股份有限公司",),
+        source="EPO_OPS",
+    )
+    local = FakeProvider(
+        "LOCAL_LIBRARY",
+        lookup_page=SearchPage(hits=(local_hit,), total_result_count=1),
+    )
+    remote = FakeProvider(
+        "EPO_OPS",
+        lookup_page=SearchPage(hits=(remote_hit,), total_result_count=1),
+    )
+    chain = FallbackSearchProvider((local, remote))
+
+    page = asyncio.run(
+        chain.lookup_publication(normalize_patent_number("CN117329258A"))
+    )
+
+    assert page.hits[0].source == "EPO_OPS"
+    assert page.hits[0].title == "用于悬架式阻尼器的释压提升阀"
+    assert page.hits[0].applicants == ("德雷威汽车股份有限公司",)
+    assert remote.lookup_calls == 1
+
+
+def test_search_merge_prefers_remote_metadata_for_duplicate_publication():
+    local_hit = SearchHit(
+        publication_number="CN117329258A",
+        jurisdiction="CN",
+        title="Pressure relief poppet valve for suspension damper",
+        applicants=("DREWE AUTOMOTIVE CO LTD",),
+        source="LOCAL_LIBRARY",
+    )
+    remote_hit = SearchHit(
+        publication_number="CN117329258A",
+        jurisdiction="CN",
+        title="用于悬架式阻尼器的释压提升阀",
+        applicants=("德雷威汽车股份有限公司",),
+        source="EPO_OPS",
+    )
+    local = FakeProvider(
+        "LOCAL_LIBRARY",
+        search_page=SearchPage(hits=(local_hit,), total_result_count=1),
+    )
+    remote = FakeProvider(
+        "EPO_OPS",
+        search_page=SearchPage(hits=(remote_hit,), total_result_count=1),
+    )
+    chain = FallbackSearchProvider((local, remote))
+
+    page = asyncio.run(
+        chain.search_publications(SearchExpression(text_terms=("damper",)))
+    )
+
+    assert len(page.hits) == 1
+    assert page.hits[0].source == "EPO_OPS"
+    assert page.hits[0].title == "用于悬架式阻尼器的释压提升阀"

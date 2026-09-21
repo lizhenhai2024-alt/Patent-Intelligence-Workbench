@@ -25,16 +25,16 @@ def test_company_only_search_excludes_scoped_acquired_portfolio():
     registry = CompanyRegistry.from_dict(PAYLOAD)
     group = registry.get("ClearMotion")
 
-    assert group.applicant_names(technology_context=False) == (
+    assert group.applicant_names() == (
         "ClearMotion, Inc.",
     )
 
 
-def test_company_technology_search_includes_scoped_acquired_portfolio():
+def test_scoped_acquired_portfolio_requires_explicit_include():
     registry = CompanyRegistry.from_dict(PAYLOAD)
     group = registry.get("clearmotion")
 
-    assert group.applicant_names(technology_context=True) == (
+    assert group.applicant_names(include_scoped_portfolio=True) == (
         "ClearMotion, Inc.",
         "Bose Corporation",
     )

@@ -1,6 +1,11 @@
+import asyncio
 from datetime import date
 
+import httpx
+
+from app.domain.search import SearchExpression
 from app.providers.epo_ops import (
+    EpoOpsProvider,
     parse_biblio_search_xml,
     parse_publication_biblio_xml,
 )
@@ -108,3 +113,66 @@ def test_parse_biblio_search_extracts_abstract_and_classification():
     hit = parse_biblio_search_xml(xml).hits[0]
     assert hit.abstract == "Upper spring seat for a vehicle suspension."
     assert hit.classifications == ("B60G11/16",)
+
+
+CN_BIBLIO_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<ops:world-patent-data
+    xmlns:ops="http://ops.epo.org"
+    xmlns="http://www.epo.org/exchange">
+  <ops:exchange-documents>
+    <exchange-document country="CN" doc-number="117329258" kind="A">
+      <bibliographic-data>
+        <publication-reference>
+          <document-id document-id-type="docdb">
+            <country>CN</country>
+            <doc-number>117329258</doc-number>
+            <kind>A</kind>
+            <date>20240102</date>
+          </document-id>
+        </publication-reference>
+        <parties>
+          <applicants>
+            <applicant>
+              <applicant-name><name>DREWE AUTOMOTIVE CO LTD</name></applicant-name>
+            </applicant>
+            <applicant>
+              <applicant-name><name>德雷威汽车股份有限公司</name></applicant-name>
+            </applicant>
+          </applicants>
+        </parties>
+        <invention-title lang="en">
+          Pressure relief poppet valve for suspension damper
+        </invention-title>
+        <invention-title lang="ol">用于悬架式阻尼器的释压提升阀</invention-title>
+      </bibliographic-data>
+    </exchange-document>
+  </ops:exchange-documents>
+</ops:world-patent-data>
+"""
+
+
+def test_cn_biblio_prefers_chinese_title_and_applicant():
+    page = parse_publication_biblio_xml(CN_BIBLIO_XML)
+
+    hit = page.hits[0]
+    assert hit.publication_number == "CN117329258A"
+    assert hit.title == "用于悬架式阻尼器的释压提升阀"
+    assert hit.applicants == ("德雷威汽车股份有限公司",)
+
+
+class NotFoundEpoProvider(EpoOpsProvider):
+    async def _access_token(self, client):
+        return "token"
+
+    async def _authorized_get(self, client, url, **kwargs):
+        return httpx.Response(404, request=httpx.Request("GET", url))
+
+
+def test_epo_search_404_is_empty_result_not_provider_failure():
+    provider = NotFoundEpoProvider("key", "secret")
+    page = asyncio.run(
+        provider.search_publications(SearchExpression(text_terms=("no-match",)))
+    )
+
+    assert page.hits == ()
+    assert page.total_result_count == 0

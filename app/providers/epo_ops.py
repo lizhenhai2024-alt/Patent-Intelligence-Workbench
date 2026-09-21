@@ -122,20 +122,34 @@ def _publication_from_docdb_container(container: ET.Element) -> PatentPublicatio
     if not country or not number:
         return None
 
+    prefer_chinese = country.upper() == "CN"
     return PatentPublication(
         publication_number=f"{country}{number}{kind or ''}",
         jurisdiction=country,
         kind_code=kind,
         application_number=_application_number(container),
-        title=_extract_title(container),
+        title=_extract_title(container, prefer_chinese=prefer_chinese),
         publication_date=publication_date,
-        original_assignees=_extract_applicants(container),
+        original_assignees=_extract_applicants(
+            container,
+            prefer_chinese=prefer_chinese,
+        ),
         priorities=_priority_claims(container),
     )
 
 
-def _extract_title(container: ET.Element) -> str | None:
+def _contains_cjk(value: str) -> bool:
+    return any("\u3400" <= char <= "\u9fff" for char in value)
+
+
+def _extract_title(
+    container: ET.Element,
+    *,
+    prefer_chinese: bool = False,
+) -> str | None:
     english: str | None = None
+    chinese: str | None = None
+    original: str | None = None
     fallback: str | None = None
     for node in container.iter():
         if _local_name(node.tag) != "invention-title" or not node.text:
@@ -148,22 +162,38 @@ def _extract_title(container: ET.Element) -> str | None:
             or node.attrib.get("{http://www.w3.org/XML/1998/namespace}lang")
             or ""
         ).lower()
+        if _contains_cjk(value) and language in {"zh", "zho", "chi", "ol"}:
+            chinese = chinese or value
         if language == "en":
-            english = value
-            break
+            english = english or value
+        if language == "ol":
+            original = original or value
         if fallback is None:
             fallback = value
-    return english or fallback
+    if prefer_chinese and chinese:
+        return chinese
+    return english or original or fallback
 
 
-def _extract_applicants(container: ET.Element) -> tuple[str, ...]:
+def _extract_applicants(
+    container: ET.Element,
+    *,
+    prefer_chinese: bool = False,
+) -> tuple[str, ...]:
     names: list[str] = []
+    chinese_names: list[str] = []
     for applicant in container.iter():
         if _local_name(applicant.tag) != "applicant":
             continue
         name = _first_child_text(applicant, "name")
-        if name and name not in names:
+        if not name:
+            continue
+        if name not in names:
             names.append(name)
+        if _contains_cjk(name) and name not in chinese_names:
+            chinese_names.append(name)
+    if prefer_chinese and chinese_names:
+        return tuple(chinese_names)
     return tuple(names)
 
 
@@ -204,9 +234,9 @@ def _search_hit_from_exchange_document(container: ET.Element) -> SearchHit | Non
         publication_number=publication.publication_number,
         jurisdiction=publication.jurisdiction,
         kind_code=publication.kind_code,
-        title=_extract_title(container),
+        title=publication.title,
         abstract=_extract_abstract(container),
-        applicants=_extract_applicants(container),
+        applicants=publication.original_assignees,
         classifications=_extract_classifications(container),
         publication_date=publication.publication_date,
         source="EPO_OPS",
@@ -447,6 +477,7 @@ class EpoOpsProvider:
         token: str,
         params: dict[str, str] | None = None,
         headers: dict[str, str] | None = None,
+        allow_not_found: bool = False,
     ) -> httpx.Response:
         request_headers = {
             "Authorization": f"Bearer {token}",
@@ -469,6 +500,8 @@ class EpoOpsProvider:
             raise ProviderAuthenticationError(
                 f"EPO OPS rejected authentication for {url}."
             )
+        if response.status_code == 404 and allow_not_found:
+            return response
         if response.status_code == 429:
             raise ProviderRateLimitError(
                 f"EPO OPS rate limit reached for {url} (HTTP 429)."
@@ -491,7 +524,14 @@ class EpoOpsProvider:
                 f"{OPS_BASE_URL}/published-data/publication/docdb/"
                 f"{docdb}/biblio"
             )
-            response = await self._authorized_get(client, url, token=token)
+            response = await self._authorized_get(
+                client,
+                url,
+                token=token,
+                allow_not_found=True,
+            )
+            if response.status_code == 404:
+                return SearchPage(hits=(), total_result_count=0)
             return parse_publication_biblio_xml(response.text)
 
     async def search_publications(
@@ -518,7 +558,10 @@ class EpoOpsProvider:
                 token=token,
                 params={"q": cql},
                 headers={"X-OPS-Range": f"{page_start}-{page_end}"},
+                allow_not_found=True,
             )
+            if response.status_code == 404:
+                return SearchPage(hits=(), total_result_count=0)
             return parse_biblio_search_xml(response.text)
 
     async def get_family(

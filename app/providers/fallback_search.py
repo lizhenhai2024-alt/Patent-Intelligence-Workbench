@@ -68,6 +68,7 @@ class FallbackSearchProvider:
     async def lookup_publication(self, publication: PatentNumber) -> SearchPage:
         attempts: list[SearchProviderAttempt] = []
         saw_remote_no_results = False
+        local_fallback: SearchPage | None = None
 
         for provider in self.providers:
             if ProviderCapability.PUBLICATION_LOOKUP not in provider.info.capabilities:
@@ -85,6 +86,12 @@ class FallbackSearchProvider:
                 attempts.append(_attempt_from_error(provider.info.name, exc))
                 continue
             if page.hits:
+                if (
+                    provider.info.name == "LOCAL_LIBRARY"
+                    and _cn_page_needs_localization(page)
+                ):
+                    local_fallback = page
+                    continue
                 return page
             attempts.append(
                 SearchProviderAttempt(
@@ -95,6 +102,8 @@ class FallbackSearchProvider:
             if provider.info.name != "LOCAL_LIBRARY":
                 saw_remote_no_results = True
 
+        if local_fallback is not None:
+            return local_fallback
         if saw_remote_no_results:
             return SearchPage(hits=(), total_result_count=0)
         raise SearchExhaustedError(tuple(attempts))
@@ -157,6 +166,21 @@ class FallbackSearchProvider:
         raise SearchExhaustedError(tuple(attempts))
 
 
+def _contains_cjk(value: str | None) -> bool:
+    return bool(value) and any("\u3400" <= char <= "\u9fff" for char in value)
+
+
+def _cn_page_needs_localization(page: SearchPage) -> bool:
+    for hit in page.hits:
+        if hit.jurisdiction.upper() != "CN":
+            continue
+        if not _contains_cjk(hit.title):
+            return True
+        if not hit.applicants or not any(_contains_cjk(name) for name in hit.applicants):
+            return True
+    return False
+
+
 def _attempt_from_error(
     provider: str,
     exc: ProviderError,
@@ -181,7 +205,9 @@ def _merge_pages(
 ) -> SearchPage:
     merged: list[SearchHit] = []
     seen: set[str] = set()
-    for hit in (*local_hits, *remote_page.hits):
+    # Remote bibliographic metadata wins on duplicates so localized
+    # CN titles/applicants can refresh stale English-only local cache rows.
+    for hit in (*remote_page.hits, *local_hits):
         if hit.publication_number in seen:
             continue
         seen.add(hit.publication_number)

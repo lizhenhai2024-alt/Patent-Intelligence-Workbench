@@ -239,6 +239,14 @@ def _expression_text(expression: SearchExpression) -> str:
             continue
         terms = " OR ".join(_quoted_term(term) for term in group)
         parts.append(f"({terms})" if len(group) > 1 else terms)
+
+    if expression.portfolio_terms:
+        terms = " OR ".join(
+            _quoted_term(term) for term in expression.portfolio_terms
+        )
+        parts.append(
+            f"({terms})" if len(expression.portfolio_terms) > 1 else terms
+        )
     return " ".join(parts)
 
 
