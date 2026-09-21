@@ -443,7 +443,7 @@ class PatentWorkbenchApp(tk.Tk):
         query_entry.bind("<FocusIn>", self._clear_search_placeholder)
         query_entry.bind("<Return>", lambda _event: self.run_search())
 
-        ttk.Label(form, text="公司（可选）").grid(row=0, column=1, sticky="w")
+        ttk.Label(form, text="公司（可直接输入或下拉选择）").grid(row=0, column=1, sticky="w")
         self.search_company_var = tk.StringVar()
         companies = [
             group.display_name
@@ -2208,11 +2208,9 @@ class PatentWorkbenchApp(tk.Tk):
             try:
                 company = service.company_registry.get(company).display_name
             except KeyError:
-                messagebox.showerror(
-                    "公司未识别",
-                    "请输入公司下拉列表中的公司，或直接在检索框输入公司名称。",
-                )
-                return
+                # Keep arbitrary user-entered company names as exact applicant
+                # searches. Registry matches still benefit from entity aliases.
+                pass
         scope = self.search_scope_var.get().strip()
         jurisdictions = tuple(
             item.strip().upper()

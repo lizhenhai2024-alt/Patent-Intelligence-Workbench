@@ -4,9 +4,11 @@ import httpx
 import pytest
 
 from app.core.patent_number import normalize_patent_number
+from app.domain.search import SearchExpression
 from app.providers.base import ProviderRateLimitError
 from app.providers.google_patents_search import (
     GooglePatentsSearchProvider,
+    _expression_text,
     _page_hit,
     _PatentPageParser,
     _search_hit_from_json,
@@ -109,3 +111,21 @@ def test_google_throttle_retries_then_succeeds():
 
     assert response is success
     assert client.calls == 2
+
+
+def test_google_expression_includes_portfolio_terms():
+    expression = SearchExpression(
+        applicants=("Bose Corporation",),
+        portfolio_terms=(
+            "vehicle suspension",
+            "shock absorber",
+            "active suspension",
+        ),
+    )
+
+    text = _expression_text(expression)
+
+    assert '"vehicle suspension"' in text
+    assert '"shock absorber"' in text
+    assert '"active suspension"' in text
+    assert " OR " in text

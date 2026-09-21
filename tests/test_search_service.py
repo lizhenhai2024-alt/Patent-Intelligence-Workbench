@@ -4,7 +4,7 @@ from app.core.company_registry import CompanyRegistry
 from app.core.technology_dictionary import TechnologyDictionary
 from app.domain.search import SearchHit, SearchPage
 from app.providers.base import ProviderCapability, ProviderInfo
-from app.services.search_service import SearchService
+from app.services.search_service import SearchService, _filter_scoped_suspension_page
 
 
 class FakeProvider:
@@ -108,9 +108,13 @@ def test_company_only_query_does_not_include_scoped_portfolio():
     assert expression.applicants == ("ClearMotion, Inc.",)
 
 
-def test_company_technology_query_includes_scoped_portfolio():
+def test_company_technology_query_does_not_unlock_scoped_portfolio():
     provider = FakeProvider()
-    service = SearchService(provider=provider, company_registry=_registry())
+    service = SearchService(
+        provider=provider,
+        company_registry=_registry(),
+        technology_dictionary=TechnologyDictionary.default(),
+    )
 
     result = asyncio.run(
         service.search(
@@ -122,11 +126,33 @@ def test_company_technology_query_includes_scoped_portfolio():
 
     expression = provider.search_calls[0][0]
     assert result.mode.value == "COMPANY_TECHNOLOGY"
-    assert expression.applicants == (
-        "ClearMotion, Inc.",
-        "Bose Corporation",
+    assert expression.applicants == ("ClearMotion, Inc.",)
+    assert expression.text_terms == ()
+    assert expression.text_groups
+    assert expression.text_groups[0][0] == "active suspension"
+
+
+def test_company_unknown_technology_does_not_unlock_scoped_portfolio():
+    provider = FakeProvider()
+    service = SearchService(
+        provider=provider,
+        company_registry=_registry(),
+        technology_dictionary=TechnologyDictionary.default(),
     )
-    assert expression.text_terms == ("active suspension",)
+
+    result = asyncio.run(
+        service.search(
+            "speaker",
+            company="ClearMotion",
+            technology_terms=("speaker",),
+        )
+    )
+
+    expression = provider.search_calls[0][0]
+    assert result.mode.value == "COMPANY_TECHNOLOGY"
+    assert expression.applicants == ("ClearMotion, Inc.",)
+    assert expression.text_terms == ()
+    assert expression.text_groups == (("speaker",),)
 
 
 def test_multilingual_dictionary_expands_chinese_company_technology_query():
@@ -168,6 +194,21 @@ def test_typed_company_name_routes_to_company_search():
     assert expression.text_terms == ()
 
 
+def test_arbitrary_company_name_is_searched_as_exact_applicant():
+    provider = FakeProvider()
+    service = SearchService(provider=provider, company_registry=_registry())
+
+    result = asyncio.run(
+        service.search("", company="Example Automotive Technology Co., Ltd.")
+    )
+
+    expression = provider.search_calls[0][0]
+    assert result.mode.value == "COMPANY"
+    assert result.company_group_id is None
+    assert expression.applicants == ("Example Automotive Technology Co., Ltd.",)
+    assert expression.text_terms == ()
+
+
 def test_company_portfolio_search_uses_suspension_scope_and_scoped_entity():
     provider = FakeEpoProvider()
     service = SearchService(
@@ -189,20 +230,21 @@ def test_company_portfolio_search_uses_suspension_scope_and_scoped_entity():
     assert expression.applicants == ("ClearMotion, Inc.", "Bose Corporation")
     assert expression.text_terms == ()
     assert expression.text_groups == ()
-    assert "suspension" in expression.portfolio_terms
+    assert "vehicle suspension" in expression.portfolio_terms
     assert "shock absorber" in expression.portfolio_terms
+    assert "suspension" not in expression.portfolio_terms
+    assert "damper" not in expression.portfolio_terms
     assert "B60G13" in expression.portfolio_classifications
     assert "F16F9/46" in expression.portfolio_classifications
-    # portfolio is one broad OR package, not multiple AND groups
     assert expression.portfolio_terms == (
-        "suspension",
-        "shock absorber",
-        "damper",
-        "strut",
+        "vehicle suspension",
+        "automotive suspension",
         "active suspension",
         "semi active suspension",
-        "stabilizer",
-        "anti roll",
+        "shock absorber",
+        "suspension damper",
+        "anti roll bar",
+        "active stabilizer",
     )
 
 def test_default_registry_routes_ftl_alias_to_company_search():
@@ -217,3 +259,37 @@ def test_default_registry_routes_ftl_alias_to_company_search():
     assert result.company_group_id == "ftl"
     assert "一汽东机工" in expression.applicants
     assert "富奥东机工" in expression.applicants
+
+
+def test_scoped_suspension_filter_rejects_bose_acoustic_false_positive():
+    page = SearchPage(
+        hits=(
+            SearchHit(
+                publication_number="US2023188895A1",
+                jurisdiction="US",
+                title="Balanced acoustic device with passive radiators",
+                applicants=("Bose Corporation",),
+            ),
+            SearchHit(
+                publication_number="US2016129749A1",
+                jurisdiction="US",
+                title="Variable Tracking Active Suspension System",
+                applicants=("Bose Corporation",),
+                classifications=("B60G17/016",),
+            ),
+            SearchHit(
+                publication_number="WO2026169591A1",
+                jurisdiction="WO",
+                title="Motion primitive framework for multimedia integration",
+                applicants=("ClearMotion, Inc.",),
+            ),
+        ),
+        total_result_count=3,
+    )
+
+    filtered = _filter_scoped_suspension_page(page)
+
+    assert [hit.publication_number for hit in filtered.hits] == [
+        "US2016129749A1",
+        "WO2026169591A1",
+    ]

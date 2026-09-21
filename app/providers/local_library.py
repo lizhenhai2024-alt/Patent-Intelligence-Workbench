@@ -107,6 +107,17 @@ def _matches_expression(
 
 def _patent_to_hit(patent: LibraryPatent) -> SearchHit:
     applicants = patent.current_assignees or patent.original_assignees
+    if patent.jurisdiction.upper() == "CN":
+        all_names = tuple(
+            dict.fromkeys((*patent.current_assignees, *patent.original_assignees))
+        )
+        chinese_names = tuple(
+            name
+            for name in all_names
+            if any("\u3400" <= char <= "\u9fff" for char in name)
+        )
+        if chinese_names:
+            applicants = chinese_names
     return SearchHit(
         publication_number=patent.publication_number,
         jurisdiction=patent.jurisdiction,
