@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import base64
+import os
 import tkinter as tk
 import webbrowser
 from dataclasses import replace
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
+from urllib.parse import unquote, urlparse
+from urllib.request import url2pathname
 
 import httpx
 
@@ -34,7 +37,6 @@ from app.library.archive import company_folder, patent_archive_path
 from app.library.ingest import ingest_download_summary, ingest_family
 from app.library.models import LibraryQuery
 from app.library.root_sync import sync_library_root
-from app.providers.google_patents_search import GooglePatentsSearchProvider
 
 
 class PatentWorkbenchApp(tk.Tk):
@@ -58,6 +60,8 @@ class PatentWorkbenchApp(tk.Tk):
         self._reader_figure_photo = None
         self._reader_figure_loading_url: str | None = None
         self._reader_figure_zoom_level = 0
+        self._watch_run_active = False
+        self._watch_poll_after_id: str | None = None
 
         self.title("Patent Intelligence Workbench")
         self.geometry("1460x900")
@@ -69,6 +73,7 @@ class PatentWorkbenchApp(tk.Tk):
         self._build_shell()
         self.refresh_library()
         self.refresh_watch()
+        self._schedule_watch_auto_poll(initial=True)
 
     def _configure_style(self) -> None:
         style = ttk.Style(self)
@@ -631,6 +636,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.reader_number_var = tk.StringVar(value="尚未选择专利")
         self.reader_title_var = tk.StringVar(value="")
         self.reader_classification_var = tk.StringVar(value="CPC/IPC —")
+        self.reader_content_source_var = tk.StringVar(value="内容源：尚未加载")
         ttk.Label(
             header,
             textvariable=self.reader_number_var,
@@ -643,6 +649,11 @@ class PatentWorkbenchApp(tk.Tk):
             style="SurfaceSubtle.TLabel",
         ).pack(anchor="w", pady=(4, 0))
         ttk.Label(header, textvariable=self.reader_classification_var).pack(anchor="w", pady=(4, 0))
+        ttk.Label(
+            header,
+            textvariable=self.reader_content_source_var,
+            style="SurfaceSubtle.TLabel",
+        ).pack(anchor="w", pady=(4, 0))
         actions = ttk.Frame(header, style="Surface.TFrame")
         actions.pack(fill="x", pady=(8, 0))
         ttk.Button(
@@ -808,14 +819,19 @@ class PatentWorkbenchApp(tk.Tk):
     def _load_reader_document(self) -> None:
         if self._reader_hit is None:
             return
+        service = self.runtime.reader_service
+        if service is None:
+            self._set_status("Reader 服务未配置。")
+            return
         try:
             publication = normalize_patent_number(self._reader_hit.publication_number)
         except PatentNumberError:
             return
-        provider = GooglePatentsSearchProvider()
+        seed = self._reader_document
+        self.reader_content_source_var.set("内容源：正在加载全文 / PDF / 同族兜底…")
 
         async def task():
-            return await provider.get_reader_document(publication)
+            return await service.load(publication, seed=seed)
 
         run_async_in_thread(
             task,
@@ -826,8 +842,30 @@ class PatentWorkbenchApp(tk.Tk):
 
     def _on_reader_document_loaded(self, document: PatentReaderDocument) -> None:
         self._reader_document = document
+        sources = []
+        if document.claims_source:
+            sources.append(f"权利要求 {document.claims_source}")
+        if document.description_source:
+            sources.append(f"说明书 {document.description_source}")
+        if document.figures_source:
+            sources.append(f"附图 {document.figures_source}")
+        self.reader_content_source_var.set(
+            "内容源：" + (" · ".join(sources) if sources else "未取得全文内容")
+        )
         self._render_reader_section()
-        self._set_status(f"Reader 全文已加载：{document.publication_number}")
+        missing = []
+        if not document.claims:
+            missing.append("权利要求")
+        if not document.description:
+            missing.append("说明书")
+        if not document.figures:
+            missing.append("附图")
+        if missing:
+            self._set_status(
+                f"Reader 已加载，但仍缺少：{', '.join(missing)}。"
+            )
+        else:
+            self._set_status(f"Reader 全文已加载：{document.publication_number}")
 
     def _show_reader_text_view(self) -> None:
         self.reader_figure_frame.pack_forget()
@@ -878,6 +916,12 @@ class PatentWorkbenchApp(tk.Tk):
             return
 
         async def task():
+            parsed = urlparse(url)
+            if parsed.scheme == "file":
+                raw_path = unquote(parsed.path)
+                if os.name == "nt" and raw_path.startswith("/"):
+                    raw_path = raw_path[1:]
+                return Path(url2pathname(raw_path)).read_bytes()
             async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
                 response = await client.get(url)
                 response.raise_for_status()
@@ -1287,6 +1331,13 @@ class PatentWorkbenchApp(tk.Tk):
             style="Accent.TButton",
         )
         self.run_watch_button.pack(side="left", padx=(8, 0))
+        self.run_selected_watch_button = ttk.Button(
+            toolbar,
+            text="立即运行选中规则",
+            command=self.run_selected_watch_rule,
+            style="Ghost.TButton",
+        )
+        self.run_selected_watch_button.pack(side="left", padx=(6, 0))
 
         ttk.Separator(toolbar, orient="vertical").pack(
             side="left",
@@ -2536,8 +2587,13 @@ class PatentWorkbenchApp(tk.Tk):
         rules = self.runtime.watch_store.list_rules()
         recent_runs = self.runtime.watch_store.recent_runs(limit=30)
         enabled_count = sum(1 for rule in rules if rule.enabled)
+        scheduler = self.runtime.watch_scheduler
+        due_count = len(scheduler.due_rules()) if scheduler is not None else 0
+        auto_label = "Auto ON" if scheduler is not None else "Auto OFF"
         self.watch_summary_var.set(
-            f"Enabled {enabled_count}   ·   Disabled {len(rules) - enabled_count}"
+            f"{auto_label}   ·   Enabled {enabled_count}"
+            f"   ·   Due {due_count}"
+            f"   ·   Disabled {len(rules) - enabled_count}"
             f"   ·   Recent runs {len(recent_runs)}"
         )
         for rule in rules:
@@ -2611,25 +2667,123 @@ class PatentWorkbenchApp(tk.Tk):
         if scheduler is None:
             messagebox.showwarning("未配置", self.runtime.search_status)
             return
-        self.run_watch_button.state(["disabled"])
-        self._set_status("正在运行到期监控规则…")
+        due = scheduler.due_rules()
+        if not due:
+            self._set_status("Patent Watch：当前没有到期规则，自动监控保持运行。")
+            self.refresh_watch()
+            return
+        if self._watch_run_active:
+            self._set_status("Patent Watch：已有监控任务正在运行。")
+            return
+        self._watch_run_active = True
+        self._set_watch_buttons_enabled(False)
+        self._set_status(f"正在运行 {len(due)} 条到期监控规则…")
 
         def task():
             return scheduler.run_due()
 
-        def success(result) -> None:
-            self.run_watch_button.state(["!disabled"])
-            self.refresh_watch()
-            event_count = sum(len(run.events) for run in result.runs)
-            self._set_status(
-                f"监控完成：{len(result.runs)} 成功，"
-                f"{len(result.failures)} 失败，{event_count} 个事件"
-            )
+        run_async_in_thread(
+            task,
+            on_success=lambda result: self._finish_watch_run(result, automatic=False),
+            on_error=lambda exc: self._finish_watch_error(exc, automatic=False),
+            schedule_ui=self._ui_callbacks.submit,
+        )
+
+    def run_selected_watch_rule(self) -> None:
+        scheduler = self.runtime.watch_scheduler
+        if scheduler is None:
+            messagebox.showwarning("未配置", self.runtime.search_status)
+            return
+        selection = self.watch_rule_tree.selection()
+        if not selection:
+            messagebox.showinfo("未选择规则", "请先选择一条 Patent Watch 规则。")
+            return
+        rule = self.runtime.watch_store.get_rule(selection[0])
+        if rule is None:
+            return
+        if not rule.enabled:
+            messagebox.showinfo("规则已禁用", "请先启用该 Patent Watch 规则。")
+            return
+        if self._watch_run_active:
+            self._set_status("Patent Watch：已有监控任务正在运行。")
+            return
+        self._watch_run_active = True
+        self._set_watch_buttons_enabled(False)
+        self._set_status(f"正在立即运行：{rule.name}")
+
+        def task():
+            return scheduler.run_rule_now(rule.rule_id)
 
         run_async_in_thread(
             task,
-            on_success=success,
-            on_error=lambda exc: self._network_error("监控失败", exc),
+            on_success=lambda result: self._finish_watch_run(result, automatic=False),
+            on_error=lambda exc: self._finish_watch_error(exc, automatic=False),
+            schedule_ui=self._ui_callbacks.submit,
+        )
+
+    def _set_watch_buttons_enabled(self, enabled: bool) -> None:
+        state = ["!disabled"] if enabled else ["disabled"]
+        self.run_watch_button.state(state)
+        self.run_selected_watch_button.state(state)
+
+    def _finish_watch_run(self, result, *, automatic: bool) -> None:
+        self._watch_run_active = False
+        self._set_watch_buttons_enabled(True)
+        self.refresh_watch()
+        event_count = sum(len(run.events) for run in result.runs)
+        hit_count = sum(run.searched_hits for run in result.runs)
+        prefix = "自动监控" if automatic else "监控"
+        message = (
+            f"{prefix}完成：{len(result.runs)} 成功，"
+            f"{len(result.failures)} 失败，{hit_count} 个命中，"
+            f"{event_count} 个事件"
+        )
+        if result.failures:
+            message += f"；首个失败：{result.failures[0].error}"
+        self._set_status(message)
+        self._schedule_watch_auto_poll()
+
+    def _finish_watch_error(self, exc: Exception, *, automatic: bool) -> None:
+        self._watch_run_active = False
+        self._set_watch_buttons_enabled(True)
+        self.refresh_watch()
+        prefix = "自动监控" if automatic else "监控"
+        self._set_status(f"{prefix}运行异常：{exc}")
+        if not automatic:
+            messagebox.showerror(f"{prefix}失败", str(exc))
+        self._schedule_watch_auto_poll()
+
+    def _schedule_watch_auto_poll(self, *, initial: bool = False) -> None:
+        if self._watch_poll_after_id is not None:
+            try:
+                self.after_cancel(self._watch_poll_after_id)
+            except tk.TclError:
+                pass
+        delay_ms = 5000 if initial else 60000
+        self._watch_poll_after_id = self.after(delay_ms, self._poll_watch_scheduler)
+
+    def _poll_watch_scheduler(self) -> None:
+        self._watch_poll_after_id = None
+        scheduler = self.runtime.watch_scheduler
+        if scheduler is None or self._watch_run_active:
+            self._schedule_watch_auto_poll()
+            return
+        due = scheduler.due_rules()
+        if not due:
+            self.refresh_watch()
+            self._schedule_watch_auto_poll()
+            return
+        self._watch_run_active = True
+        self._set_watch_buttons_enabled(False)
+        self._set_status(f"Patent Watch 自动运行：{len(due)} 条到期规则…")
+
+        def task():
+            return scheduler.run_due()
+
+        run_async_in_thread(
+            task,
+            on_success=lambda result: self._finish_watch_run(result, automatic=True),
+            on_error=lambda exc: self._finish_watch_error(exc, automatic=True),
             schedule_ui=self._ui_callbacks.submit,
         )
 
@@ -2789,6 +2943,9 @@ class PatentWorkbenchApp(tk.Tk):
         if hasattr(self, "family_download_button"):
             self.family_download_button.state(["!disabled"])
         self.run_watch_button.state(["!disabled"])
+        if hasattr(self, "run_selected_watch_button"):
+            self.run_selected_watch_button.state(["!disabled"])
+        self._watch_run_active = False
         self._set_status(f"{title}: {exc}")
         messagebox.showerror(title, str(exc))
 
@@ -2796,6 +2953,12 @@ class PatentWorkbenchApp(tk.Tk):
         self.status_var.set(text)
 
     def _on_close(self) -> None:
+        if self._watch_poll_after_id is not None:
+            try:
+                self.after_cancel(self._watch_poll_after_id)
+            except tk.TclError:
+                pass
+            self._watch_poll_after_id = None
         self._ui_callbacks.close()
         self.runtime.close()
         self.destroy()

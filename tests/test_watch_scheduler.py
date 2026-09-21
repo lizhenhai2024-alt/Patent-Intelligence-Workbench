@@ -116,3 +116,48 @@ def test_watch_rule_cadence_can_be_updated_and_persisted(tmp_path):
         assert updated.cadence_hours == 6
     finally:
         store.close()
+
+
+def test_failed_rule_obeys_retry_backoff(tmp_path):
+    store = SQLiteWatchStateStore(tmp_path / "watch.db")
+    now = datetime(2026, 9, 20, 8, 0, tzinfo=UTC)
+    rule = WatchRule("retry", "Retry", "a", cadence_hours=24)
+    store.upsert_rule(rule)
+    store.record_failure(
+        rule.rule_id,
+        started_at=now - timedelta(minutes=31),
+        completed_at=now - timedelta(minutes=30),
+        error="temporary outage",
+    )
+    scheduler = PatentWatchScheduler(
+        FakeEngine(store),
+        store,
+        failure_retry_hours=1,
+    )
+
+    assert scheduler.due_rules(now=now) == ()
+    assert [item.rule_id for item in scheduler.due_rules(
+        now=now + timedelta(minutes=31)
+    )] == ["retry"]
+    store.close()
+
+
+def test_run_rule_now_ignores_cadence_but_requires_enabled_rule(tmp_path):
+    store = SQLiteWatchStateStore(tmp_path / "watch.db")
+    now = datetime(2026, 9, 20, 8, 0, tzinfo=UTC)
+    rule = WatchRule("manual", "Manual", "a", cadence_hours=24)
+    store.upsert_rule(rule)
+    store.mark_run(rule.rule_id, now)
+    engine = FakeEngine(store)
+    scheduler = PatentWatchScheduler(engine, store)
+
+    result = asyncio.run(
+        scheduler.run_rule_now(
+            rule.rule_id,
+            now=now + timedelta(minutes=1),
+        )
+    )
+
+    assert result.due_rule_ids == ("manual",)
+    assert engine.calls == ["manual"]
+    store.close()
