@@ -8,6 +8,30 @@ from dataclasses import dataclass
 
 from .technology_taxonomy import TechnologyNode, TechnologyTaxonomy
 
+_DOMAIN_TEXT_TERMS = (
+    "damper",
+    "shock absorber",
+    "suspension",
+    "strut",
+    "air spring",
+    "anti roll",
+    "stabilizer bar",
+    "stabiliser bar",
+    "ride height",
+    "rebound stop",
+    "compression stop",
+    "减振器",
+    "减震器",
+    "悬架",
+    "空气弹簧",
+    "稳定杆",
+    "防倾杆",
+    "复原缓冲",
+    "压缩缓冲",
+    "阻尼力",
+)
+_DOMAIN_CLASS_PREFIXES = ("B60G", "F16F9")
+
 
 @dataclass(frozen=True, slots=True)
 class TechnologyMatch:
@@ -28,9 +52,15 @@ class TechnologyClassifier:
         text: str,
         classifications: tuple[str, ...] = (),
         min_score: int = 2,
+        require_domain_context: bool = True,
     ) -> tuple[TechnologyMatch, ...]:
         haystack = self._normalize_text(text)
         normalized_classes = tuple(code.upper() for code in classifications)
+        if require_domain_context and not self._has_domain_context(
+            haystack,
+            normalized_classes,
+        ):
+            return ()
         matches: list[TechnologyMatch] = []
         for node in self._iter_nodes(self.taxonomy.roots):
             if node.children and not node.search_terms and not node.include_terms:
@@ -65,8 +95,25 @@ class TechnologyClassifier:
     @staticmethod
     def _normalize_text(value: str) -> str:
         normalized = unicodedata.normalize("NFKC", value).casefold()
+        normalized = normalized.replace("_", " ")
         normalized = re.sub(r"[^\w]+", " ", normalized, flags=re.UNICODE)
         return " ".join(normalized.split())
+
+    @staticmethod
+    def _has_domain_context(
+        haystack: str,
+        classifications: tuple[str, ...],
+    ) -> bool:
+        if any(
+            value.startswith(prefix)
+            for value in classifications
+            for prefix in _DOMAIN_CLASS_PREFIXES
+        ):
+            return True
+        return any(
+            TechnologyClassifier._normalize_text(term) in haystack
+            for term in _DOMAIN_TEXT_TERMS
+        )
 
     @staticmethod
     def _candidate_terms(node: TechnologyNode) -> tuple[str, ...]:

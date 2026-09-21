@@ -6,6 +6,7 @@ import base64
 import tkinter as tk
 import webbrowser
 from dataclasses import replace
+from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
 import httpx
@@ -1376,6 +1377,12 @@ class PatentWorkbenchApp(tk.Tk):
             text="选择目录",
             command=self.choose_library_root,
             style="Quiet.TButton",
+        ).pack(side="left", padx=(0, 4))
+        ttk.Button(
+            toolbar,
+            text="扫描预览",
+            command=self.preview_library_root,
+            style="Quiet.TButton",
         ).pack(side="left", padx=(0, 8))
 
         self.library_query_var = tk.StringVar()
@@ -2277,13 +2284,7 @@ class PatentWorkbenchApp(tk.Tk):
         for hit in response.page.hits:
             self._search_hits_by_number[hit.publication_number] = hit
             classification_text = " ".join(
-                part
-                for part in (
-                    hit.title or "",
-                    hit.abstract or "",
-                    " ".join(hit.applicants),
-                )
-                if part
+                part for part in (hit.title or "", hit.abstract or "") if part
             )
             matches = self.technology_classifier.classify(
                 text=classification_text,
@@ -2665,6 +2666,43 @@ class PatentWorkbenchApp(tk.Tk):
         if hasattr(self, "status_var"):
             self._set_status(f"本地库：{len(patents)} 条")
 
+    def preview_library_root(self) -> None:
+        raw = self.library_root_var.get().strip()
+        if not raw:
+            return
+        root = Path(raw)
+        registry = (
+            self.runtime.search_service.company_registry
+            if self.runtime.search_service
+            else None
+        )
+        self._set_status("正在扫描 LocalLibrary（仅预览，不写入）…")
+
+        async def task():
+            return sync_library_root(
+                self.runtime.library_store,
+                root,
+                registry,
+                dry_run=True,
+            )
+
+        run_async_in_thread(
+            task,
+            on_success=self._on_library_preview_ready,
+            on_error=lambda exc: self._set_status(f"扫描预览失败：{exc}"),
+            schedule_ui=self._ui_callbacks.submit,
+        )
+
+    def _on_library_preview_ready(self, summary) -> None:
+        message = (
+            f"扫描预览（未写入）：{summary.folders} 个公司目录 · "
+            f"{summary.imported} 条专利 · {summary.attached_pdfs} 个 PDF · "
+            f"{summary.classified} 条已分类 · 跳过 {summary.skipped}"
+        )
+        if summary.unknown_folders:
+            message += f" · 待核目录 {len(summary.unknown_folders)}"
+        self._set_status(message)
+
     def choose_library_root(self) -> None:
         selected = filedialog.askdirectory(
             initialdir=self.library_root_var.get() or self.runtime.paths.downloads,
@@ -2684,7 +2722,8 @@ class PatentWorkbenchApp(tk.Tk):
         self.refresh_library()
         message = (
             f"LocalLibrary 已同步：{summary.folders} 个公司目录 · "
-            f"{summary.imported} 条专利 · {summary.attached_pdfs} 个 PDF"
+            f"{summary.imported} 条专利 · {summary.attached_pdfs} 个 PDF · "
+            f"{summary.classified} 条已分类 · 跳过 {summary.skipped}"
         )
         if summary.unknown_folders:
             message += f" · 待核目录 {len(summary.unknown_folders)}"
