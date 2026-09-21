@@ -1,6 +1,15 @@
+import os
+
+import pytest
+
 from app.desktop.app import PatentWorkbenchApp
 from app.desktop.runtime import DesktopRuntime
 from app.domain.search import SearchHit, SearchMode, SearchPage, SearchResponse
+
+pytestmark = pytest.mark.skipif(
+    os.name != "nt" and not os.environ.get("DISPLAY"),
+    reason="Tk UI tests require a display",
+)
 
 
 def test_search_classifier_uses_abstract_and_classification():

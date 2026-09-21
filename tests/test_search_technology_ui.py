@@ -1,4 +1,12 @@
+import os
 from datetime import date
+
+import pytest
+
+pytestmark = pytest.mark.skipif(
+    os.name != "nt" and not os.environ.get("DISPLAY"),
+    reason="Tk UI tests require a display",
+)
 
 from app.desktop.app import PatentWorkbenchApp
 from app.desktop.runtime import DesktopRuntime
