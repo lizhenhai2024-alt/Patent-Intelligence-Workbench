@@ -95,6 +95,23 @@ def _matches_expression(
         if group and not any(term.casefold() in haystack for term in group):
             return False
 
+    if expression.portfolio_terms or expression.portfolio_classifications:
+        term_match = any(
+            term.casefold() in haystack
+            for term in expression.portfolio_terms
+        )
+        classification_codes = tuple(
+            "".join(item.code.upper().split())
+            for item in patent.classifications
+        )
+        classification_match = any(
+            code.startswith("".join(prefix.upper().split()))
+            for code in classification_codes
+            for prefix in expression.portfolio_classifications
+        )
+        if not term_match and not classification_match:
+            return False
+
     if expression.published_from and patent.publication_date:
         if patent.publication_date < expression.published_from:
             return False
