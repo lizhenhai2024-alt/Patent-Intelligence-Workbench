@@ -646,7 +646,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.reader_section_box = ttk.Combobox(
             actions,
             textvariable=self.reader_section_var,
-            values=("摘要", "权利要求", "说明书"),
+            values=("摘要", "权利要求", "说明书", "附图"),
             state="readonly",
             width=10,
         )
@@ -665,6 +665,16 @@ class PatentWorkbenchApp(tk.Tk):
             text="翻译选中文本",
             command=self.translate_reader_selection,
         ).pack(side="left", padx=(6, 0))
+        ttk.Button(actions, text="上一张", command=self.reader_previous_figure).pack(
+            side="left", padx=(12, 0)
+        )
+        ttk.Button(actions, text="下一张", command=self.reader_next_figure).pack(
+            side="left", padx=(4, 0)
+        )
+        ttk.Button(actions, text="打开原图", command=self.open_reader_figure).pack(
+            side="left", padx=(4, 0)
+        )
+        self.reader_figure_index = 0
         body = ttk.Panedwindow(self.reader_tab, orient="horizontal")
         body.pack(fill="both", expand=True)
         left = ttk.LabelFrame(body, text="原文 / 预览", padding=8)
@@ -739,6 +749,9 @@ class PatentWorkbenchApp(tk.Tk):
         if document is None:
             return
         section = self.reader_section_var.get()
+        if section == "附图":
+            self._render_reader_figure()
+            return
         text = {
             "摘要": document.abstract or "暂无摘要。",
             "权利要求": document.claims or "暂无权利要求文本。",
@@ -746,6 +759,43 @@ class PatentWorkbenchApp(tk.Tk):
         }.get(section, document.abstract or "")
         self.reader_source_text.delete("1.0", "end")
         self.reader_source_text.insert("1.0", text)
+
+    def _render_reader_figure(self) -> None:
+        document = self._reader_document
+        if document is None or not document.figures:
+            text = "暂无附图。"
+        else:
+            self.reader_figure_index %= len(document.figures)
+            figure = document.figures[self.reader_figure_index]
+            text = (
+                f"Figure {self.reader_figure_index + 1}/{len(document.figures)}\n\n"
+                f"缩略图：{figure.thumbnail_url}\n\n原图：{figure.full_url}"
+            )
+        self.reader_source_text.delete("1.0", "end")
+        self.reader_source_text.insert("1.0", text)
+
+    def reader_previous_figure(self) -> None:
+        document = self._reader_document
+        if document is None or not document.figures:
+            return
+        self.reader_figure_index = (self.reader_figure_index - 1) % len(document.figures)
+        self.reader_section_var.set("附图")
+        self._render_reader_figure()
+
+    def reader_next_figure(self) -> None:
+        document = self._reader_document
+        if document is None or not document.figures:
+            return
+        self.reader_figure_index = (self.reader_figure_index + 1) % len(document.figures)
+        self.reader_section_var.set("附图")
+        self._render_reader_figure()
+
+    def open_reader_figure(self) -> None:
+        document = self._reader_document
+        if document is None or not document.figures:
+            return
+        self.reader_figure_index %= len(document.figures)
+        webbrowser.open(document.figures[self.reader_figure_index].full_url)
 
     def _set_reader_translation(self, text: str) -> None:
         self.reader_translation_text.configure(state="normal")

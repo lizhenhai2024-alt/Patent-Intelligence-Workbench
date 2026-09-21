@@ -19,7 +19,7 @@ import httpx
 
 from app.core.patent_number import PatentNumber, PatentNumberError, normalize_patent_number
 from app.domain.family import FamilyType, PatentFamily, PatentPublication
-from app.domain.reader import PatentReaderDocument
+from app.domain.reader import PatentFigure, PatentReaderDocument
 from app.domain.search import SearchExpression, SearchHit, SearchPage
 from app.providers.base import (
     ProviderCapability,
@@ -60,6 +60,8 @@ class _PatentPageParser(HTMLParser):
         self.named_meta: dict[str, list[str]] = {}
         self.family_members: list[tuple[str, str | None]] = []
         self.sections: dict[str, list[str]] = {"claims": [], "description": []}
+        self.figures: list[PatentFigure] = []
+        self._current_figure: dict[str, str] | None = None
         self._captures: list[dict[str, object]] = []
         self._section_stack: list[tuple[str, str]] = []
         self._in_docdb_family = False
@@ -76,6 +78,14 @@ class _PatentPageParser(HTMLParser):
         if tag == "tr" and itemprop == "docdbFamily":
             self._in_docdb_family = True
             self._family_current = {}
+
+        if tag == "li" and itemprop == "images":
+            self._current_figure = {}
+        if self._current_figure is not None:
+            if tag == "img" and itemprop == "thumbnail" and values.get("src"):
+                self._current_figure["thumbnail"] = str(values["src"])
+            if tag == "meta" and itemprop == "full" and values.get("content"):
+                self._current_figure["full"] = str(values["content"])
 
         if itemprop in self.sections:
             self._section_stack.append((tag, itemprop))
@@ -141,6 +151,15 @@ class _PatentPageParser(HTMLParser):
 
         if self._section_stack and tag == self._section_stack[-1][0]:
             self._section_stack.pop()
+
+        if tag == "li" and self._current_figure is not None:
+            thumbnail = self._current_figure.get("thumbnail")
+            full = self._current_figure.get("full")
+            if thumbnail and full:
+                self.figures.append(
+                    PatentFigure(thumbnail_url=thumbnail, full_url=full)
+                )
+            self._current_figure = None
 
         if tag == "tr" and self._in_docdb_family:
             publication = self._family_current.get("publicationNumber")
@@ -333,6 +352,7 @@ class GooglePatentsSearchProvider:
             claims="\n\n".join(parser.sections.get("claims", ())),
             description="\n\n".join(parser.sections.get("description", ())),
             classifications=hit.classifications,
+            figures=tuple(parser.figures),
         )
 
     async def search_publications(

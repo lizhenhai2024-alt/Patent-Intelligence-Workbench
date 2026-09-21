@@ -6,6 +6,12 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True, slots=True)
+class PatentFigure:
+    thumbnail_url: str
+    full_url: str
+
+
+@dataclass(frozen=True, slots=True)
 class PatentReaderDocument:
     publication_number: str
     title: str | None = None
@@ -13,3 +19,4 @@ class PatentReaderDocument:
     claims: str = ""
     description: str = ""
     classifications: tuple[str, ...] = ()
+    figures: tuple[PatentFigure, ...] = ()

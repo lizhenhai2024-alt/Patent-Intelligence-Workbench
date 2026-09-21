@@ -12,6 +12,15 @@ def test_patent_page_parser_extracts_claims_and_description():
         <div><p>1. A suspension damper comprising a pilot valve.</p></div>
         <div><p>2. The damper of claim 1 comprising a floating piston.</p></div>
       </section>
+      <section>
+        <h2>Images</h2>
+        <ul>
+          <li itemprop="images">
+            <img itemprop="thumbnail" src="https://example.com/thumb.png">
+            <meta itemprop="full" content="https://example.com/full.png">
+          </li>
+        </ul>
+      </section>
     </body></html>
     """
     parser = _PatentPageParser()
@@ -25,3 +34,5 @@ def test_patent_page_parser_extracts_claims_and_description():
         "1. A suspension damper comprising a pilot valve.",
         "2. The damper of claim 1 comprising a floating piston.",
     ]
+    assert parser.figures[0].thumbnail_url == "https://example.com/thumb.png"
+    assert parser.figures[0].full_url == "https://example.com/full.png"
