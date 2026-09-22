@@ -1,6 +1,6 @@
 # Patent Intelligence Workbench
 
-面向工程师的全球专利搜索、专利族分析、批量下载与竞争对手新专利监控工具。
+面向悬架与减振器研发工程师的专利情报工作台：从技术问题出发，形成可追溯到专利族、原始文献和工程证据的分析结果。
 
 ## V1.0 scope
 
@@ -12,6 +12,24 @@
 - Company Entity Graph: 历史申请人、IP holding entity、并购/技术前身、专利权属关系
 
 正式 Prior Art / 查新、X/Y/A、Claim Chart 和 FTO 不进入 V1.0。
+
+## Planned engineering-intelligence workflows
+
+The workflows below are **product direction, not implemented V1 features**. They build on the existing Search → Reader/Family → Download → Watch → LocalLibrary → Export loop.
+
+| Priority | Workflow | Intended output |
+| --- | --- | --- |
+| 1 | 专利全景分析 | Family-level filing trends, companies, jurisdictions, technology branches, representative publications, and traceable counts. |
+| 2 | 公司技术画像 | One exactly resolved company group's suspension-technology routes, key families, changes over time, and evidence. |
+| 3 | 竞争格局与技术路线对比 | Shared and distinct technical approaches across defined companies or routes, with source records and open questions. |
+| 4 | 工程问题检索 | Editable multilingual terms and search scope derived from an engineering problem, followed by patent-backed solution leads. |
+| 5 | 监控简报 | New-family and new-member events grouped into a reviewable, annotatable action list. |
+
+The first milestone is **专利全景分析**. A user should be able to define a topic, jurisdictions, and time window; generate an offline-readable report; inspect the patents behind every chart or count; and see the query, data source, date, and counting method. Family counts and national-publication counts must remain distinct.
+
+Each workflow should state its purpose, suitable use, required inputs, outputs, data sources and as-of date, method, example questions, and review limits. Materials and engineering knowledge may help explain mechanisms or frame a search, but a patent-data view alone cannot establish product performance, supply capacity, or market share.
+
+Product-feature-to-claim evidence mapping, DFMEA, validation planning, and R&D initiation are later extensions that require additional product, design, or test evidence. Automated infringement, FTO, validity, novelty, or other formal legal conclusions remain outside the workbench.
 
 ## Core jurisdictions
 
@@ -105,3 +123,4 @@ Release-candidate documentation:
 ## License
 
 MIT
+
