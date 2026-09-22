@@ -3,8 +3,14 @@ from datetime import UTC, date, datetime
 import pytest
 
 from app.domain.family import FamilyType, PatentFamily, PatentPublication
+from app.intelligence.ai_interpreter import (
+    AIInterpretationSettings,
+    OpenAICompatibleInterpreter,
+)
 from app.intelligence.ai_packet import build_ai_prompt
 from app.intelligence.analysis import AnalysisScope, AnalysisService
+from app.intelligence.guidance import validate_task_inputs, workflow_guide
+from app.intelligence.readiness import assess_library_readiness
 from app.intelligence.report import render_html, save_html
 from app.intelligence.search_plan import plan_search
 from app.intelligence.watch_review import WatchReviewStore
@@ -151,3 +157,61 @@ def test_ai_packet_keeps_sources_scope_and_limits_without_model_call(library):
     assert "主动复制" in packet
     with pytest.raises(ValueError):
         build_ai_prompt(report, max_rows_per_section=0)
+
+
+def test_guidance_validates_task_specific_inputs_and_library_readiness(library, tmp_path):
+    company = workflow_guide("公司技术画像")
+    assert assess_library_readiness(library, company).level == "ready"
+    with pytest.raises(ValueError, match="至少 1 家"):
+        validate_task_inputs(company, topic="", companies=(), routes=())
+    competition = workflow_guide("竞争格局分析")
+    with pytest.raises(ValueError, match="不同公司组"):
+        validate_task_inputs(competition, topic="", companies=("astemo", "astemo"), routes=())
+    problem = workflow_guide("工程问题检索")
+    assert assess_library_readiness(library, problem).level == "not-required"
+
+    empty = SQLitePatentLibrary(tmp_path / "empty.db")
+    try:
+        readiness = assess_library_readiness(empty, workflow_guide("专利全景分析"))
+        assert (readiness.level, readiness.next_action, readiness.can_run) == (
+            "empty",
+            "search",
+            False,
+        )
+    finally:
+        empty.close()
+
+
+def test_opt_in_ai_interpreter_sends_only_report_evidence(library, monkeypatch):
+    report = AnalysisService(library).landscape(AnalysisScope(topic="pilot_valve"))
+    captured = {}
+
+    class Response:
+        def raise_for_status(self):
+            return None
+
+        @staticmethod
+        def json():
+            return {"choices": [{"message": {"content": "需要复核 EP4000001A1。"}}]}
+
+    def fake_post(endpoint, *, headers, json, timeout):
+        captured.update(endpoint=endpoint, headers=headers, payload=json, timeout=timeout)
+        return Response()
+
+    monkeypatch.setattr("app.intelligence.ai_interpreter.httpx.post", fake_post)
+    settings = AIInterpretationSettings(
+        endpoint="https://ai.example.test/v1/chat/completions",
+        model="test-model",
+        api_key="test-secret",
+        consent=True,
+    )
+    assert OpenAICompatibleInterpreter(settings).interpret(report) == "需要复核 EP4000001A1。"
+    assert captured["headers"] == {"Authorization": "Bearer test-secret"}
+    assert captured["payload"]["model"] == "test-model"
+    assert "US20240000001A1" in captured["payload"]["messages"][0]["content"]
+    with pytest.raises(ValueError, match="确认"):
+        AIInterpretationSettings(
+            endpoint="https://ai.example.test/v1/chat/completions",
+            model="test-model",
+            api_key="test-secret",
+        )

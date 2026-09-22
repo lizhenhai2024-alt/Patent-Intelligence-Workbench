@@ -7,6 +7,7 @@ from app.desktop.intelligence_tab import copy_ai_prompt, run_task, send_to_searc
 from app.desktop.paths import AppPaths
 from app.desktop.runtime import DesktopRuntime
 from app.desktop.tk_runtime import can_run_tk_tests
+from app.domain.family import PatentPublication
 from app.intelligence.analysis import AnalysisScope, AnalysisService
 
 pytestmark = pytest.mark.skipif(
@@ -22,6 +23,8 @@ def test_intelligence_tab_previews_editable_engineering_search(tmp_path, monkeyp
         assert "intelligence" in app._pages
         app._show_page("intelligence")
         app.intelligence_workflow_var.set("工程问题检索")
+        assert "把工程问题转换" in app.intelligence_task_context_var.get()
+        assert not app._intelligence_field_frames["companies"].winfo_ismapped()
         app.intelligence_topic_var.set("CDC 减振器低温响应变慢")
         run_task(app)
         assert app.intelligence_query_var.get()
@@ -30,6 +33,16 @@ def test_intelligence_tab_previews_editable_engineering_search(tmp_path, monkeyp
         send_to_search(app)
         assert app.search_query_var.get() == "pilot valve"
         assert app._pages["search"].winfo_manager() == "pack"
+        app.intelligence_workflow_var.set("专利全景分析")
+        run_task(app)
+        assert "本地库尚无已索引公开件" in app.intelligence_preview.get("1.0", "end")
+        runtime.library_store.upsert_publication(
+            PatentPublication(
+                publication_number="US20240000001A1",
+                jurisdiction="US",
+                title="Suspension damper pilot valve",
+            )
+        )
         app._intelligence_report = AnalysisService(runtime.library_store).landscape(AnalysisScope())
         copy_ai_prompt(app)
         assert "只基于列出的数据" in app.clipboard_get()
@@ -37,7 +50,6 @@ def test_intelligence_tab_previews_editable_engineering_search(tmp_path, monkeyp
         monkeypatch.setattr(
             "app.desktop.intelligence_tab.messagebox.showerror", lambda *args: errors.append(args)
         )
-        app.intelligence_workflow_var.set("专利全景分析")
         run_task(app)
         deadline = time.monotonic() + 3
         while app._intelligence_report is None and not errors and time.monotonic() < deadline:
