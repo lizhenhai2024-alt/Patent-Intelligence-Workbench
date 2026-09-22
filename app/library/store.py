@@ -791,6 +791,23 @@ class SQLitePatentLibrary:
         ).fetchall()
         return self._batched_patents(rows)
 
+    def get_family_members(self, family_key: str) -> tuple[LibraryPatent, ...]:
+        rows = self.connection.execute(
+            """
+            SELECT p.*, f.family_type, f.source AS family_source,
+                   f.source_family_id, f.earliest_priority_number,
+                   f.earliest_priority_date
+            FROM library_publication p
+            LEFT JOIN library_family f ON f.family_key = p.family_key
+            WHERE p.family_key = ?
+            ORDER BY
+                COALESCE(p.publication_date, '') ASC,
+                p.publication_number
+            """,
+            (family_key,),
+        ).fetchall()
+        return self._batched_patents(rows)
+
     def list_families(self, limit: int = 500) -> tuple[LibraryFamilySummary, ...]:
         if limit < 1:
             raise ValueError("limit must be >= 1")
