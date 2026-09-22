@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.0rc5 — Guided engineering intelligence workspace
+
+### Product readiness
+
+- Add guided task cards that state each workflow's purpose, required inputs, evidence-backed outputs and explicit boundaries.
+- Evaluate Local Library readiness before analysis; an empty or weak library now directs the user to Search/Library instead of presenting a misleading empty analysis.
+- Make workflow inputs task-specific and validate company, topic and route-comparison requests before running.
+
+### Optional AI interpretation
+
+- Add an explicit, opt-in OpenAI-compatible interpretation request for completed local evidence reports.
+- Endpoint, model, API key and consent are required for each session; credentials are not persisted and raw evidence output remains visible.
+
+### Validation
+
+- Full deterministic audit, real Tk desktop smoke and GitHub Windows build passed for the guided intelligence workflow.
+
 ## 1.0.0rc4 — Reader/Watch restoration, LocalLibrary workbench and engineering intelligence
 
 ### Search and portfolio quality
