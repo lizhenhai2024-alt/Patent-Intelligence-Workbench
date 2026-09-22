@@ -1,129 +1,86 @@
-# Patent Intelligence Workbench
+# 专利情报工作台
 
-面向悬架与减振器研发工程师的专利情报工作台：从技术问题出发，形成可追溯到专利族、原始文献和工程证据的分析结果。
+面向悬架与减振器研发工程师的 Windows 桌面工具。它把公开专利、本地 PDF 和工程证据组织成可追溯的研究链路：
 
-## V1.0 scope
-
-- Patent Search: 文字、专利号、公司 + 技术
-- Patent Family: priority、Simple/INPADOC family、CN/JP/EP/US/WO/KR family members
-- Download Center: 单件、整族、批量 PDF 下载与失败重试
-- Patent Watch: 公司、公司 + 技术、新公开、新增 family member
-- Local Library: 收藏、标签、公司/技术分类、Excel/CSV 导出
-- Company Entity Graph: 历史申请人、IP holding entity、并购/技术前身、专利权属关系
-
-正式 Prior Art / 查新、X/Y/A、Claim Chart 和 FTO 不进入 V1.0。
-
-## Engineering-intelligence workflows (RC preview)
-
-The desktop RC includes LocalLibrary-backed entry points for the workflows below. They extend the Search → Reader/Family → Download → Watch → LocalLibrary → Export loop. They are a guided engineering-analysis preview, not a replacement for professional patent, legal or market research.
-
-| Priority | Workflow | Current output |
-| --- | --- | --- |
-| 1 | 专利全景分析 | Family-level filing trends, companies, jurisdictions, technology branches, representative publications, and traceable counts. |
-| 2 | 公司技术画像 | One exactly resolved company group's suspension-technology routes, key families, changes over time, and evidence. |
-| 3 | 竞争格局与技术路线对比 | Shared and distinct technical approaches across defined companies or routes, with source records and open questions. |
-| 4 | 工程问题检索 | Editable multilingual terms and search scope derived from an engineering problem, followed by patent-backed solution leads. |
-| 5 | 监控简报 | New-family and new-member events grouped into a reviewable, annotatable action list. |
-
-Each task now states what it needs, what it will output and its limits before it runs. The workspace also checks the current LocalLibrary and directs an empty or weak collection to Search or Local Library instead of presenting a misleading zero-result report. **专利全景分析** accepts a topic, jurisdictions and time window and generates an offline-readable HTML report with publication receipts, data source, date and counting method. Known-family and national-publication counts remain distinct; missing family keys are shown separately.
-
-AI interpretation is optional: a user must provide an OpenAI-compatible Chat Completions endpoint, a model and a key, then explicitly confirm that the current report's evidence packet may be sent. Keys are not persisted by this feature. No local patent data is sent to an AI service by default.
-
-Each workflow should state its purpose, suitable use, required inputs, outputs, data sources and as-of date, method, example questions, and review limits. Materials and engineering knowledge may help explain mechanisms or frame a search, but a patent-data view alone cannot establish product performance, supply capacity, or market share.
-
-Product-feature-to-claim evidence mapping, DFMEA, validation planning, and R&D initiation are later extensions that require additional product, design, or test evidence. Automated infringement, FTO, validity, novelty, or other formal legal conclusions remain outside the workbench.
-
-See [Engineering Intelligence guide](docs/ENGINEERING_INTELLIGENCE.md) for task inputs, data-readiness limits and the optional AI handoff.
-
-## Core jurisdictions
-
-CN / JP / EP / US / WO / KR
-
-JP is a first-class jurisdiction. The data model reserves IPC, CPC, FI, F-term and Theme Code from the beginning.
-
-## Default monitored damper / suspension companies
-
-- Hitachi Astemo
-- KYB
-- Tenneco / Monroe
-- ZF / Sachs
-- BWI
-- HL Mando
-- thyssenkrupp BILSTEIN
-- Multimatic
-- Öhlins
-- ClearMotion
-
-JTEKT is not part of the default core damper watch list.
-
-## Architecture principles
-
-1. Normalize before search.
-2. Treat a patent family as the primary analysis unit.
-3. Separate original assignee, current assignee and non-technical security interests.
-4. Model company history as an entity graph, not as a flat alias list.
-5. Keep provider adapters replaceable; downloading must support source fallback.
-6. All release builds must pass automated tests.
-
-## AI maintenance contract
-
-AI-assisted development must follow `AGENTS.md` and `docs/AI_PRODUCT_SPEC.md`.
-Run the deterministic full audit before treating a repair as complete:
-
-```bash
-python scripts/ai_self_audit.py --full
+```text
+专利检索 → 专利阅读 / 专利族 → PDF 归档 → 专利监控 → 本地专利库 → 导出与工程情报
 ```
 
-The AI contract separates UI display names, filesystem archive names and legal assignee metadata,
-and defines LocalLibrary, company/entity, filename and autonomous-repair invariants.
+本工具帮助整理和解释公开信息，不自动给出侵权、FTO、无效、有效性、市场份额或法律结论。
 
-## Development
+## 下载与首次运行
+
+请从最新预发布版本下载 [RC.5](https://github.com/lizhenhai2024-alt/Patent-Intelligence-Workbench/releases/tag/v1.0.0-rc.5)：
+
+- `PatentIntelligenceWorkbench.exe`：Windows 单文件程序；
+- `SHA256SUMS.txt`：下载后可用于核验程序校验和；
+- `BUILD_INFO.txt`：本次构建的版本与提交信息。
+
+程序把用户数据保存在可执行文件之外：
+
+```text
+%LOCALAPPDATA%\PatentIntelligenceWorkbench\
+├─ workbench.db
+├─ downloads\
+└─ exports\
+```
+
+旧版的 `patent_library.db` 与 `patent_watch.db` 会继续保留，不会被静默迁移或删除。
+
+## 主要能力
+
+| 页面 | 用途 | 关键结果 |
+| --- | --- | --- |
+| 专利检索 | 按公开号、文本、公司、公司 + 技术或技术主题检索 | 公开件列表、可解释技术分类、进入阅读/专利族/证据的下一步 |
+| 专利阅读 | 阅读标题、摘要、权利要求、说明书、附图与译文 | 原文来源、结构化章节、PDF 与原文入口 |
+| 专利族 | 解析 DOCDB 简单族或 INPADOC 扩展族 | 成员、优先权、国家/地区分布、批量归档与下载状态 |
+| 专利监控 | 监控公司或技术主题的后续公开 | 新专利族、新成员、运行历史与可复核事件 |
+| 本地专利库 | 管理本地元数据和已归档文件 | 标签、项目、收藏、PDF、证据、CSV/XLSX 导出 |
+| 技术分类 | 从悬架与减振器工程分类树选择方向 | 可检索技术节点和确定性分类依据 |
+| 证据中心 | 保存网页、PDF 与 Office 文档的采集结果 | 来源、关联公开件、公司、主题与 Markdown 预览 |
+| 工程情报 | 在 LocalLibrary 上完成可复核的分析任务 | 专利全景、公司画像、竞争格局、路线对比、问题检索、监控简报 |
+
+完整的页面布局与术语原则见 [中文界面与页面布局审计](docs/UI_UX_AUDIT_CN.md)。
+
+## 使用建议
+
+1. 在“专利检索”中输入公开号、公司或工程问题；公司查询采用精确实体解析，不以字符串包含关系猜测公司。
+2. 打开“专利阅读”确认原文、来源和技术分类；需要时转入“专利族”。
+3. 在“专利族”中归档或下载公开件。专利族与各国公开件始终分别保存。
+4. 选择你的 LocalLibrary 目录；目录名称只用于分组，不能替代法定申请人或权利人元数据。
+5. 为重点公司或技术主题启用“专利监控”，首次运行建立基线，后续查看新专利族和新成员。
+6. 数据积累后，在“工程情报”中运行分析。空库或证据不足时，界面会明确引导补充数据，而不是生成误导性的零结果。
+
+## 数据来源与边界
+
+- 本地专利库优先于不必要的远程请求；SQLite 保存索引、来源和最终 PDF 路径，用户选择的 LocalLibrary 根目录是文件浏览与归档的事实来源。
+- 搜索默认使用本地库和可公开访问的数据源；EPO OPS 是可选增强，不配置也可完成基础检索和简单族分析。
+- 下载采用可替换来源策略；不绕过登录、验证码、访问限制或 robots 约束。
+- 公司显示名称、归档目录名、原始/当前申请人是不同概念，界面不会将文件夹名伪造成法律权属。
+
+## 可选外部服务
+
+### EPO OPS
+
+在“设置”中填写 EPO OPS 的 Consumer Key 和 Consumer Secret，可获得更丰富的 EPO 数据和 INPADOC 能力。Windows 上凭据保存在 Credential Manager，不写入 SQLite、JSON 或 Git 仓库。
+
+### 翻译服务
+
+可在“设置”中填写兼容的翻译接口地址与可选 API 密钥。翻译配置由用户本机管理。
+
+### AI 解读
+
+工程情报中的 AI 解读默认关闭。只有在你填写兼容 Chat Completions 的接口地址、模型、API 密钥，并明确勾选确认后，当前报告的证据包才会发送给该服务。该功能不保存 API 密钥，AI 返回内容仍需回到公开件与原始证据复核。
+
+## 开发与验证
 
 ```bash
 python -m pip install -e ".[dev]"
-pytest
-ruff check .
+python scripts/ai_self_audit.py --full
 ```
 
-### Optional acquisition engine
+完整验证覆盖编译、Ruff、单元测试、桌面后端冒烟、离线工作流验收和 `git diff --check`。详见 [快速开始](docs/QUICKSTART.md)、[工程情报指南](docs/ENGINEERING_INTELLIGENCE.md) 与 [变更日志](CHANGELOG.md)。
 
-For public web pages and local files:
-
-```bash
-python -m pip install -e ".[dev,acquisition]"
-python -m playwright install chromium
-```
-
-Routing is intentionally explicit: local files use MarkItDown, normal public web pages use
-Crawl4AI, and Browser Use is an optional separate enhancement for interactive pages. Browser
-automation is not intended to bypass authentication, CAPTCHA, robots policies, or other access
-controls.
-
-## Current status
-
-Core V1 implementation is now end-to-end:
-
-- P1 Foundation: patent-number normalization, entity graph, CI
-- P2 Family Providers: DOCDB simple / INPADOC extended family, EPO OPS, JPO validation client
-- P3 Search: patent number, text, company, company + technology, multilingual terminology
-- P4 Download Center: family PDF batch download, fallback policy, retry/cache/manifest
-- P5 Patent Watch: baseline, new-family/new-member detection, SQLite state, scheduler
-- P6 Local Library: family/publication persistence, favorites, tags, projects, PDFs, provenance, CSV/XLSX
-- P7 Desktop: lightweight Windows UI, secure EPO credentials, editable library details, automatic EXE build
-
-Fresh desktop installations use one local `workbench.db` for Patent Library and Patent Watch tables. Existing legacy database paths are preserved to avoid silent data loss.
-
-Current phase: **P8 V1 Release Candidate hardening** — end-to-end acceptance, release documentation, packaging verification and optional credentialed provider smoke tests.
-
-See `docs/ARCHITECTURE.md` and `docs/DOWNLOAD_SOURCES.md` for the frozen V1 architecture and source policy.
-
-Release-candidate documentation:
-
-- `docs/QUICKSTART.md`
-- `docs/RELEASE_CHECKLIST.md`
-- `CHANGELOG.md`
-
-
-## License
+## 许可证
 
 MIT

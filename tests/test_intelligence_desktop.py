@@ -60,3 +60,26 @@ def test_intelligence_tab_previews_editable_engineering_search(tmp_path, monkeyp
         assert app._intelligence_report.workflow == "landscape"
     finally:
         app._on_close()
+
+
+def test_desktop_uses_chinese_navigation_and_evidence_filters(tmp_path, monkeypatch):
+    runtime = DesktopRuntime.create(paths=AppPaths.for_root(tmp_path / "appdata"))
+    app = PatentWorkbenchApp(runtime)
+    app.withdraw()
+    try:
+        assert app.title() == "专利情报工作台"
+        assert app._nav_buttons["search"].cget("text") == "⌕   专利检索"
+        assert app._nav_buttons["library"].cget("text") == "▤   本地专利库"
+        assert app.evidence_type_var.get() == "全部类型"
+
+        captured = {}
+        monkeypatch.setattr(
+            runtime.library_store,
+            "list_evidence",
+            lambda **kwargs: captured.update(kwargs) or (),
+        )
+        app.evidence_type_var.set("网页")
+        app.refresh_evidence()
+        assert captured["source_type"] == "url"
+    finally:
+        app._on_close()

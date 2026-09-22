@@ -161,7 +161,7 @@ def build_intelligence_tab(app) -> None:
     app.intelligence_ai_consent_var = tk.BooleanVar(value=False)
     for index, (label, variable, secret) in enumerate(
         (
-            ("Chat Completions Endpoint", app.intelligence_ai_endpoint_var, False),
+            ("兼容 Chat Completions 的接口地址", app.intelligence_ai_endpoint_var, False),
             ("模型", app.intelligence_ai_model_var, False),
             ("API Key（仅本次窗口使用）", app.intelligence_ai_key_var, True),
         )
