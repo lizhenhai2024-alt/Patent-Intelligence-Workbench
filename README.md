@@ -7,7 +7,7 @@
 - Patent Search: 文字、专利号、公司 + 技术
 - Patent Family: priority、Simple/INPADOC family、CN/JP/EP/US/WO/KR family members
 - Download Center: 单件、整族、批量 PDF 下载与失败重试
-- Patent Watch: 公司、公司 + 技术、新公开、新增 family member
+- Patent Watch: 公司、公司 + 技术、新公开、新增 family member（预置模板规则以外，可在 Watch 页面直接新建任意公司/技术关键词的自定义监控规则）
 - Local Library: 收藏、标签、公司/技术分类、Excel/CSV 导出
 - Company Entity Graph: 历史申请人、IP holding entity、并购/技术前身、专利权属关系
 
@@ -34,6 +34,8 @@ Each workflow should state its purpose, suitable use, required inputs, outputs, 
 Product-feature-to-claim evidence mapping, DFMEA, validation planning, and R&D initiation are later extensions that require additional product, design, or test evidence. Automated infringement, FTO, validity, novelty, or other formal legal conclusions remain outside the workbench.
 
 See [Engineering Intelligence guide](docs/ENGINEERING_INTELLIGENCE.md) for task inputs, data-readiness limits and the optional AI handoff.
+
+Reader also has optional machine translation for non-English full text (JA/KO/DE and others): a generic LibreTranslate-style HTTP endpoint, or DeepL for stronger JA/KO/DE quality. Configure it in desktop Settings; nothing is sent anywhere until you do.
 
 ## Core jurisdictions
 
@@ -122,6 +124,10 @@ Release-candidate documentation:
 - `docs/QUICKSTART.md`
 - `docs/RELEASE_CHECKLIST.md`
 - `CHANGELOG.md`
+
+## Roadmap
+
+What's shipped, what's next, and what's explicitly not planned lives in one place: [`tasks/ROADMAP.md`](tasks/ROADMAP.md). It links out to each feature's own SPEC/plan/todo set rather than duplicating them here.
 
 
 ## License
