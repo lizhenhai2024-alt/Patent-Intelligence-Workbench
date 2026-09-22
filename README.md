@@ -35,13 +35,13 @@ Product-feature-to-claim evidence mapping, DFMEA, validation planning, and R&D i
 
 See [Engineering Intelligence guide](docs/ENGINEERING_INTELLIGENCE.md) for task inputs, data-readiness limits and the optional AI handoff.
 
-Reader also has optional machine translation for non-English full text (JA/KO/DE and others): a generic LibreTranslate-style HTTP endpoint, or DeepL for stronger JA/KO/DE quality. Configure it in desktop Settings; nothing is sent anywhere until you do.
+Reader also has optional machine translation for non-English full text (JA/KO/DE and others): a generic LibreTranslate-style HTTP endpoint, DeepL for stronger JA/KO/DE quality, or an OpenAI-compatible Chat Completions endpoint you configure yourself. Configure it in desktop Settings; nothing is sent anywhere until you do.
 
 ## Core jurisdictions
 
 CN / JP / EP / US / WO / KR
 
-JP is a first-class jurisdiction. The data model reserves IPC, CPC, FI, F-term and Theme Code from the beginning.
+JP is a first-class jurisdiction. The classification schema is an open system/code model reserved for IPC, CPC, FI, F-term and Theme Code; dedicated JPO FI/F-term/Theme Code parsers are not yet first-class (CPC/IPC are extracted by the current providers).
 
 ## Default monitored damper / suspension companies
 
@@ -55,6 +55,10 @@ JP is a first-class jurisdiction. The data model reserves IPC, CPC, FI, F-term a
 - Multimatic
 - Öhlins
 - ClearMotion
+- Hyundai MOBIS
+- AISIN
+- Schaeffler
+- 富奥东机工 / 一汽东机工
 
 JTEKT is not part of the default core damper watch list.
 
@@ -110,7 +114,7 @@ Core V1 implementation is now end-to-end:
 - P3 Search: patent number, text, company, company + technology, multilingual terminology
 - P4 Download Center: family PDF batch download, fallback policy, retry/cache/manifest
 - P5 Patent Watch: baseline, new-family/new-member detection, SQLite state, scheduler
-- P6 Local Library: family/publication persistence, favorites, tags, projects, PDFs, provenance, CSV/XLSX
+- P6 Local Library: family/publication persistence, favorites, tags, company/technology classification, watch-rule links, PDFs, provenance, CSV/XLSX
 - P7 Desktop: lightweight Windows UI, secure EPO credentials, editable library details, automatic EXE build
 
 Fresh desktop installations use one local `workbench.db` for Patent Library and Patent Watch tables. Existing legacy database paths are preserved to avoid silent data loss.

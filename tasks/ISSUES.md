@@ -7,17 +7,20 @@ login` set up locally, or paste a token and Claude can push them from here.
 
 ## Open
 
-1. **Python 3.12 Tcl/Tk installation on this machine is corrupted.** Multiple `.tcl` files under
-   `C:/Users/lizhe/AppData/Local/Programs/Python/Python312/tcl/tk8.6/` intermittently fail to
-   load (`init.tcl`, `tk.tcl`, various `ttk/*.tcl` theme files — different file each run). This
-   causes random `TclError` when creating a `PatentWorkbenchApp` during full test-suite runs.
-   Symptom: `desktop_smoke` and `offline_release_acceptance` pass; `pytest` fails ~1-2 Tk tests
-   per full run with a different missing file each time. Fix: reinstall Python 3.12 with the
-   Tcl/Tk component checked, or repair the `tcl/` directory from a clean installer. Not a code
-   issue — the 14 tests in `tests/test_issues_verification.py` pass 14/14 when the suite is
-   run without prior Tk-root exhaustion.
+(None.)
 
 ## Resolved (kept for reference)
+
+0. ~~**Python 3.12 Tcl/Tk installation intermittently failed to load `.tcl` files**~~ — Fixed.
+   Symptom: full-suite `pytest` randomly failed 1-2 Tk tests with `couldn't read file …` for a
+   *different* file each run (`init.tcl`, `tk.tcl`, `ttk/sizegrip.tcl`, …), even though the
+   files existed on disk and isolated runs passed. Diagnosis ruled out antivirus (Defender
+   real-time protection off), file corruption (inventory matched a healthy install), and
+   environment variables (setting `TCL_LIBRARY`/`TK_LIBRARY` made things worse and was
+   reverted). Root cause was a damaged Tcl/Tk Support MSI component registration.
+   Fix: `msiexec /fa {75485683-EF03-41E6-BF21-D1491694548C} /qn` (repair of the
+   "Python 3.12.10 Tcl/Tk Support" product). Verified: full suite **6/6 green** and
+   `python scripts/ai_self_audit.py --full` returns `ok: true` (all 9 checks pass).
 
 1. ~~**Reader has no "open by patent number" entry point.**~~ — Fixed. Reader tab now has a
    "按公开号打开" input + button (`open_reader_by_number` in `app/desktop/app.py`); Enter key
@@ -34,9 +37,9 @@ login` set up locally, or paste a token and Claude can push them from here.
 3. ~~**`tasks/todo-product-readiness.md` item 4 status unconfirmed**~~ — Confirmed. Full
    `python scripts/ai_self_audit.py --full` was run on this Windows / Python 3.12 machine.
    Result: `compileall`, `ruff`, `git_diff_check`, `unique_company_group_ids`,
-   `safe_company_archive_names`, `required_ai_contract_docs`, `desktop_smoke`, and
-   `offline_release_acceptance` all pass. The `pytest` leg intermittently fails due to the
-   corrupted Tcl/Tk install (see Open issue 1) — when Tk loads correctly, all 239+ tests pass.
+   `safe_company_archive_names`, `required_ai_contract_docs`, `pytest`, `desktop_smoke`, and
+   `offline_release_acceptance` all pass (`ok: true`). Earlier intermittent `pytest` failures
+   were caused by the Tcl/Tk install issue (see Resolved item 0), since repaired.
 
 4. ~~**Recent fixes need manual verification on Windows / Python 3.12**~~ — Verified. Added
    `tests/test_issues_verification.py` (14 tests) covering:
@@ -48,7 +51,8 @@ login` set up locally, or paste a token and Claude can push them from here.
    - Translation dropdown: switching between auto-filled providers updates the endpoint;
      a user-typed custom endpoint is never overwritten.
    - Reader open-by-number (Issue 1) and empty placeholders (Issue 2).
-   All 14 pass standalone. Full-suite pass rate is limited only by the Tcl/Tk install issue.
+   All 14 pass standalone, and the full suite is now stable after the Tcl/Tk repair
+   (see Resolved item 0).
 
    Note: items 1/2 were originally written under the assumption that Watch shipped with no
    rules — in practice the app seeds preset competitor template rules, so the Watch empty
