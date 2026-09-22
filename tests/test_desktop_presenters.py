@@ -42,6 +42,7 @@ def test_patent_row_formats_library_record():
     assert row[3] == "astemo"
     assert row[4] == "pilot_control_valve"
     assert row[5] == "★"
+    assert row[6] == "PDF"
 
 
 def test_watch_presenters_format_rule_and_history():
