@@ -22,6 +22,7 @@ from app.core.translation import UnconfiguredTranslationProvider
 from app.core.translation_http import CachedTranslationProvider, HttpTranslationProvider
 from app.desktop.async_runner import TkCallbackQueue, run_async_in_thread
 from app.desktop.figure_preview import figure_scale
+from app.desktop.intelligence_tab import build_intelligence_tab
 from app.desktop.opening import open_local_path
 from app.desktop.presenters import patent_row, watch_history_row, watch_rule_row
 from app.desktop.runtime import DesktopRuntime
@@ -352,6 +353,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.library_tab = ttk.Frame(content, padding=14)
         self.technology_tab = ttk.Frame(content, padding=14)
         self.evidence_tab = ttk.Frame(content, padding=14)
+        self.intelligence_tab = ttk.Frame(content, padding=14)
         self.settings_tab = ttk.Frame(content, padding=14)
         self._pages = {
             "search": self.search_tab,
@@ -361,6 +363,7 @@ class PatentWorkbenchApp(tk.Tk):
             "library": self.library_tab,
             "technology": self.technology_tab,
             "evidence": self.evidence_tab,
+            "intelligence": self.intelligence_tab,
             "settings": self.settings_tab,
         }
         self._nav_buttons = {}
@@ -372,6 +375,7 @@ class PatentWorkbenchApp(tk.Tk):
             ("library", "▤   Local Library"),
             ("technology", "⌘   Technology"),
             ("evidence", "◇   Evidence"),
+            ("intelligence", "▥   Intelligence"),
             ("settings", "⚙   Settings"),
         ):
             button = ttk.Button(
@@ -390,6 +394,7 @@ class PatentWorkbenchApp(tk.Tk):
         self._build_library_tab()
         self._build_technology_tab()
         self._build_evidence_tab()
+        build_intelligence_tab(self)
         self._build_settings_tab()
         self._show_page("search")
 
