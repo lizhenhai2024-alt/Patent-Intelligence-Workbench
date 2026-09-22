@@ -37,6 +37,13 @@ from app.library.archive import company_folder, patent_archive_path
 from app.library.ingest import ingest_download_summary, ingest_family
 from app.library.models import LibraryQuery
 from app.library.root_sync import sync_library_root
+from app.library.workbench import (
+    library_metadata_summary,
+    library_patent_to_search_hit,
+    library_patents_to_family,
+    preferred_library_folder,
+    preferred_library_pdf,
+)
 
 
 class PatentWorkbenchApp(tk.Tk):
@@ -785,6 +792,9 @@ class PatentWorkbenchApp(tk.Tk):
         hit = self._search_hits_by_number.get(selection[0])
         if hit is None:
             return
+        self._open_hit_in_reader(hit)
+
+    def _open_hit_in_reader(self, hit) -> None:
         self._reader_hit = hit
         self._reader_document = PatentReaderDocument(
             publication_number=hit.publication_number,
@@ -1477,8 +1487,76 @@ class PatentWorkbenchApp(tk.Tk):
             style="SurfaceSubtle.TLabel",
         ).pack(side="left", padx=(10, 0))
 
+        quick = ttk.Frame(library_toolbar_card, style="Surface.TFrame")
+        quick.pack(fill="x", pady=(8, 0))
+        self.library_favorite_only_var = tk.BooleanVar(value=False)
+        self.library_has_pdf_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            quick,
+            text="仅收藏",
+            variable=self.library_favorite_only_var,
+            command=self.refresh_library,
+        ).pack(side="left")
+        ttk.Checkbutton(
+            quick,
+            text="仅有 PDF",
+            variable=self.library_has_pdf_var,
+            command=self.refresh_library,
+        ).pack(side="left", padx=(10, 0))
+        self.library_result_summary_var = tk.StringVar(value="0 条")
+        ttk.Label(
+            quick,
+            textvariable=self.library_result_summary_var,
+            style="SurfaceSubtle.TLabel",
+        ).pack(side="right")
+
         library_results = ttk.LabelFrame(self.library_tab, text="专利库", padding=8)
         library_results.pack(fill="both", expand=True, pady=(0, 8))
+        library_actions = ttk.Frame(library_results)
+        library_actions.pack(fill="x", pady=(0, 8))
+        ttk.Button(
+            library_actions,
+            text="打开 Reader",
+            command=self.open_selected_library_in_reader,
+            style="Accent.TButton",
+        ).pack(side="left")
+        ttk.Button(
+            library_actions,
+            text="Patent Family",
+            command=self.open_selected_library_family,
+            style="Ghost.TButton",
+        ).pack(side="left", padx=(6, 0))
+        ttk.Button(
+            library_actions,
+            text="打开 PDF",
+            command=self.open_selected_library_pdf,
+            style="Quiet.TButton",
+        ).pack(side="left", padx=(6, 0))
+        ttk.Button(
+            library_actions,
+            text="打开目录",
+            command=self.open_selected_library_folder,
+            style="Quiet.TButton",
+        ).pack(side="left", padx=(4, 0))
+        ttk.Button(
+            library_actions,
+            text="Google Patents",
+            command=self.open_selected_library_source,
+            style="Quiet.TButton",
+        ).pack(side="left", padx=(10, 0))
+        ttk.Button(
+            library_actions,
+            text="复制公开号",
+            command=self.copy_selected_library_number,
+            style="Quiet.TButton",
+        ).pack(side="left", padx=(4, 0))
+        ttk.Button(
+            library_actions,
+            text="切换收藏",
+            command=self.toggle_selected_library_favorite,
+            style="Quiet.TButton",
+        ).pack(side="left", padx=(4, 0))
+
         self.library_tree = ttk.Treeview(
             library_results,
             columns=(
@@ -1488,6 +1566,7 @@ class PatentWorkbenchApp(tk.Tk):
                 "company",
                 "topic",
                 "favorite",
+                "pdf",
             ),
             show="headings",
             height=13,
@@ -1500,6 +1579,7 @@ class PatentWorkbenchApp(tk.Tk):
             ("company", "公司", 180),
             ("topic", "技术主题", 210),
             ("favorite", "收藏", 60),
+            ("pdf", "PDF", 55),
         ):
             self.library_tree.heading(column, text=title)
             self.library_tree.column(column, width=width, anchor="w")
@@ -1507,6 +1587,53 @@ class PatentWorkbenchApp(tk.Tk):
         self.library_tree.bind(
             "<<TreeviewSelect>>",
             self._load_library_detail,
+        )
+        self.library_tree.bind(
+            "<Double-1>",
+            self.open_selected_library_in_reader,
+        )
+        self.library_tree.bind(
+            "<Return>",
+            self.open_selected_library_in_reader,
+        )
+        self.library_tree.bind(
+            "<Control-c>",
+            lambda _event: self.copy_selected_library_number(),
+        )
+        self.library_tree.bind(
+            "<Button-3>",
+            self._show_library_context_menu,
+        )
+        self.library_context_menu = tk.Menu(self, tearoff=False)
+        self.library_context_menu.add_command(
+            label="打开 Reader",
+            command=self.open_selected_library_in_reader,
+        )
+        self.library_context_menu.add_command(
+            label="Patent Family",
+            command=self.open_selected_library_family,
+        )
+        self.library_context_menu.add_separator()
+        self.library_context_menu.add_command(
+            label="打开 PDF",
+            command=self.open_selected_library_pdf,
+        )
+        self.library_context_menu.add_command(
+            label="打开所在目录",
+            command=self.open_selected_library_folder,
+        )
+        self.library_context_menu.add_command(
+            label="Google Patents 原文",
+            command=self.open_selected_library_source,
+        )
+        self.library_context_menu.add_separator()
+        self.library_context_menu.add_command(
+            label="复制公开号",
+            command=self.copy_selected_library_number,
+        )
+        self.library_context_menu.add_command(
+            label="切换收藏",
+            command=self.toggle_selected_library_favorite,
         )
 
         detail = ttk.LabelFrame(
@@ -1518,6 +1645,7 @@ class PatentWorkbenchApp(tk.Tk):
 
         self.library_detail_number_var = tk.StringVar()
         self.library_detail_title_var = tk.StringVar()
+        self.library_metadata_var = tk.StringVar(value="申请人 / Family / CPC / 来源")
         self.library_favorite_var = tk.BooleanVar(value=False)
         self.library_tags_var = tk.StringVar()
         self.library_projects_var = tk.StringVar()
@@ -1540,22 +1668,31 @@ class PatentWorkbenchApp(tk.Tk):
             wraplength=900,
         ).grid(row=1, column=1, columnspan=4, sticky="w", padx=(6, 0))
 
-        ttk.Label(detail, text="标签").grid(row=2, column=0, sticky="w")
+        ttk.Label(detail, text="元数据").grid(row=2, column=0, sticky="nw")
+        ttk.Label(
+            detail,
+            textvariable=self.library_metadata_var,
+            wraplength=1080,
+            justify="left",
+            style="SurfaceSubtle.TLabel",
+        ).grid(row=2, column=1, columnspan=4, sticky="w", padx=(6, 0), pady=(3, 5))
+
+        ttk.Label(detail, text="标签").grid(row=3, column=0, sticky="w")
         ttk.Entry(
             detail,
             textvariable=self.library_tags_var,
-        ).grid(row=2, column=1, columnspan=2, sticky="ew", padx=(6, 14))
+        ).grid(row=3, column=1, columnspan=2, sticky="ew", padx=(6, 14))
 
-        ttk.Label(detail, text="项目").grid(row=2, column=3, sticky="w")
+        ttk.Label(detail, text="项目").grid(row=3, column=3, sticky="w")
         ttk.Entry(
             detail,
             textvariable=self.library_projects_var,
-        ).grid(row=2, column=4, sticky="ew", padx=(6, 0))
+        ).grid(row=3, column=4, sticky="ew", padx=(6, 0))
 
-        ttk.Label(detail, text="备注").grid(row=3, column=0, sticky="nw")
+        ttk.Label(detail, text="备注").grid(row=4, column=0, sticky="nw")
         self.library_note_text = tk.Text(detail, height=3, wrap="word")
         self.library_note_text.grid(
-            row=3,
+            row=5,
             column=1,
             columnspan=4,
             sticky="ew",
@@ -1563,7 +1700,7 @@ class PatentWorkbenchApp(tk.Tk):
             pady=(5, 0),
         )
 
-        ttk.Label(detail, text="本地 PDF").grid(row=4, column=0, sticky="nw")
+        ttk.Label(detail, text="本地 PDF").grid(row=5, column=0, sticky="nw")
         self.library_pdf_list = tk.Listbox(detail, height=3)
         self.library_pdf_list.grid(
             row=4,
@@ -1574,9 +1711,14 @@ class PatentWorkbenchApp(tk.Tk):
             pady=(5, 0),
         )
 
-        ttk.Label(detail, text="关联证据").grid(row=5, column=0, sticky="nw")
+        self.library_pdf_list.bind(
+            "<Double-1>",
+            lambda _event: self.open_selected_library_pdf(),
+        )
+
+        ttk.Label(detail, text="关联证据").grid(row=6, column=0, sticky="nw")
         evidence_panel = ttk.Frame(detail)
-        evidence_panel.grid(row=5, column=1, columnspan=4, sticky="ew", padx=(6, 0), pady=(5, 0))
+        evidence_panel.grid(row=6, column=1, columnspan=4, sticky="ew", padx=(6, 0), pady=(5, 0))
         self.library_evidence_list = tk.Listbox(
             evidence_panel,
             height=6,
@@ -1608,7 +1750,7 @@ class PatentWorkbenchApp(tk.Tk):
         self._library_evidence_records = ()
 
         actions = ttk.Frame(detail)
-        actions.grid(row=6, column=1, columnspan=4, sticky="w", pady=(8, 0))
+        actions.grid(row=7, column=1, columnspan=4, sticky="w", pady=(8, 0))
         ttk.Button(
             actions,
             text="保存详情",
@@ -2065,16 +2207,32 @@ class PatentWorkbenchApp(tk.Tk):
         else:
             self.search_company_box.configure(values=())
 
-    def _load_library_detail(self, _event=None) -> None:
+    def _selected_library_patent(self):
         selection = self.library_tree.selection()
         if not selection:
+            return None
+        return self.runtime.library_store.get_patent(selection[0])
+
+    def _show_library_context_menu(self, event) -> None:
+        row = self.library_tree.identify_row(event.y)
+        if not row:
             return
-        patent = self.runtime.library_store.get_patent(selection[0])
+        self.library_tree.selection_set(row)
+        self.library_tree.focus(row)
+        self._load_library_detail()
+        try:
+            self.library_context_menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            self.library_context_menu.grab_release()
+
+    def _load_library_detail(self, _event=None) -> None:
+        patent = self._selected_library_patent()
         if patent is None:
             return
 
         self.library_detail_number_var.set(patent.publication_number)
         self.library_detail_title_var.set(patent.title or "")
+        self.library_metadata_var.set(library_metadata_summary(patent))
         self.library_favorite_var.set(patent.favorite)
         self.library_tags_var.set(", ".join(patent.tags))
         self.library_projects_var.set(", ".join(patent.projects))
@@ -2148,27 +2306,127 @@ class PatentWorkbenchApp(tk.Tk):
             self._load_library_detail()
         self._set_status(f"已保存 {number} 的本地库信息")
 
-    def open_selected_library_pdf(self) -> None:
-        selection = self.library_pdf_list.curselection()
-        if not selection:
-            messagebox.showinfo("没有 PDF", "请选择一个本地 PDF。")
+    def open_selected_library_in_reader(self, _event=None) -> None:
+        patent = self._selected_library_patent()
+        if patent is None:
+            messagebox.showinfo("未选择专利", "请先选择一条本地专利。")
             return
+        self._open_hit_in_reader(library_patent_to_search_hit(patent))
+
+    def open_selected_library_family(self) -> None:
+        patent = self._selected_library_patent()
+        if patent is None:
+            messagebox.showinfo("未选择专利", "请先选择一条本地专利。")
+            return
+
+        self.family_number_var.set(patent.publication_number)
+        self._show_page("family")
+        if patent.family_key:
+            members = self.runtime.library_store.get_family_members(patent.family_key)
+            family = library_patents_to_family(members)
+            if family is not None:
+                self.family_type_var.set(family.family_type.value)
+                self._render_family(family)
+                self._set_status(
+                    f"已从本地库打开专利族：{len(family.members)} 个成员"
+                )
+                return
+        if self.runtime.family_resolver is not None:
+            self.run_family_analysis()
+        else:
+            self._set_status("本地库没有完整 Family 数据，在线 Family 服务也未配置。")
+
+    def open_selected_library_pdf(self) -> None:
+        patent = self._selected_library_patent()
+        if patent is None:
+            messagebox.showinfo("未选择专利", "请先选择一条本地专利。")
+            return
+
+        selection = self.library_pdf_list.curselection()
+        if selection:
+            candidate = Path(self.library_pdf_list.get(selection[0]))
+            if candidate.is_file():
+                try:
+                    open_local_path(candidate)
+                    self._set_status(f"已打开 PDF：{candidate}")
+                except Exception as exc:
+                    messagebox.showerror("打开失败", str(exc))
+                return
+
+        local_pdf = preferred_library_pdf(patent)
+        if local_pdf is None:
+            local_pdf = self._find_reader_library_pdf(patent.publication_number)
+        if local_pdf is not None:
+            try:
+                open_local_path(local_pdf)
+                self._set_status(f"已打开 PDF：{local_pdf}")
+            except Exception as exc:
+                messagebox.showerror("打开失败", str(exc))
+            return
+
+        self._reader_hit = library_patent_to_search_hit(patent)
+        self.open_reader_pdf()
+
+    def open_selected_library_folder(self) -> None:
+        patent = self._selected_library_patent()
+        if patent is None:
+            messagebox.showinfo("未选择专利", "请先选择一条本地专利。")
+            return
+
+        local_pdf = preferred_library_pdf(patent)
+        if local_pdf is None:
+            local_pdf = self._find_reader_library_pdf(patent.publication_number)
+        target = (
+            local_pdf.parent
+            if local_pdf is not None
+            else preferred_library_folder(
+                patent,
+                library_root=self.runtime.library_root or self.runtime.paths.downloads,
+            )
+        )
         try:
-            open_local_path(self.library_pdf_list.get(selection[0]))
+            open_local_path(target)
+            self._set_status(f"已打开目录：{target}")
         except Exception as exc:
             messagebox.showerror("打开失败", str(exc))
 
-    def open_selected_library_folder(self) -> None:
-        selection = self.library_pdf_list.curselection()
-        if selection:
-            path = self.library_pdf_list.get(selection[0])
-            target = __import__("pathlib").Path(path).parent
-        else:
-            target = self.runtime.library_root or self.runtime.paths.downloads
-        try:
-            open_local_path(target)
-        except Exception as exc:
-            messagebox.showerror("打开失败", str(exc))
+    def open_selected_library_source(self) -> None:
+        patent = self._selected_library_patent()
+        if patent is None:
+            messagebox.showinfo("未选择专利", "请先选择一条本地专利。")
+            return
+        language = "zh" if patent.jurisdiction.upper() == "CN" else "en"
+        webbrowser.open(
+            f"https://patents.google.com/patent/{patent.publication_number}/{language}"
+        )
+
+    def copy_selected_library_number(self) -> None:
+        patent = self._selected_library_patent()
+        if patent is None:
+            return
+        self.clipboard_clear()
+        self.clipboard_append(patent.publication_number)
+        self.update_idletasks()
+        self._set_status(f"已复制公开号：{patent.publication_number}")
+
+    def toggle_selected_library_favorite(self) -> None:
+        patent = self._selected_library_patent()
+        if patent is None:
+            return
+        self.runtime.library_store.set_favorite(
+            patent.publication_number,
+            not patent.favorite,
+        )
+        number = patent.publication_number
+        self.refresh_library()
+        if self.library_tree.exists(number):
+            self.library_tree.selection_set(number)
+            self.library_tree.focus(number)
+            self.library_tree.see(number)
+            self._load_library_detail()
+        self._set_status(
+            f"{'已收藏' if not patent.favorite else '已取消收藏'}：{number}"
+        )
 
     def choose_acquisition_file(self) -> None:
         path = filedialog.askopenfilename(
@@ -2423,7 +2681,9 @@ class PatentWorkbenchApp(tk.Tk):
 
     def _render_family_resolution(self, resolution) -> None:
         self.family_analyze_button.state(["!disabled"])
-        family = resolution.family
+        self._render_family(resolution.family)
+
+    def _render_family(self, family: PatentFamily) -> None:
         self._current_family = family
         self.family_tree.delete(*self.family_tree.get_children())
         for member in family.members:
@@ -2802,6 +3062,17 @@ class PatentWorkbenchApp(tk.Tk):
             text=self.library_query_var.get().strip()
             if hasattr(self, "library_query_var")
             else None,
+            favorite_only=(
+                self.library_favorite_only_var.get()
+                if hasattr(self, "library_favorite_only_var")
+                else False
+            ),
+            has_pdf=(
+                True
+                if hasattr(self, "library_has_pdf_var")
+                and self.library_has_pdf_var.get()
+                else None
+            ),
             limit=1000,
         )
         patents = self.runtime.library_service.search(query)
@@ -2815,6 +3086,14 @@ class PatentWorkbenchApp(tk.Tk):
                 iid=patent.publication_number,
                 values=patent_row(patent),
             )
+        if hasattr(self, "library_result_summary_var"):
+            filters = []
+            if query.favorite_only:
+                filters.append("收藏")
+            if query.has_pdf:
+                filters.append("有 PDF")
+            suffix = f" · {' / '.join(filters)}" if filters else ""
+            self.library_result_summary_var.set(f"{len(patents)} 条{suffix}")
         if hasattr(self, "status_var"):
             self._set_status(f"本地库：{len(patents)} 条")
 
