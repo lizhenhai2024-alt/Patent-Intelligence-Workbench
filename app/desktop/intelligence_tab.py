@@ -128,7 +128,10 @@ def build_intelligence_tab(app) -> None:
 
     buttons = ttk.Frame(page)
     buttons.pack(fill="x", pady=(10, 6))
-    ttk.Button(buttons, text="运行任务", command=lambda: run_task(app)).pack(side="left")
+    app.intelligence_run_button = ttk.Button(
+        buttons, text="运行任务", command=lambda: run_task(app)
+    )
+    app.intelligence_run_button.pack(side="left")
     ttk.Button(buttons, text="保存离线 HTML", command=lambda: save_report(app)).pack(
         side="left", padx=8
     )
@@ -176,9 +179,10 @@ def build_intelligence_tab(app) -> None:
         text="我确认发送当前报告中的证据包给上述 AI 服务",
         variable=app.intelligence_ai_consent_var,
     ).grid(row=1, column=0, columnspan=2, sticky="w", pady=(8, 0))
-    ttk.Button(ai, text="请求 AI 解读", command=lambda: run_ai_interpretation(app)).grid(
-        row=1, column=2, sticky="e", pady=(8, 0)
+    app.intelligence_ai_button = ttk.Button(
+        ai, text="请求 AI 解读", command=lambda: run_ai_interpretation(app)
     )
+    app.intelligence_ai_button.grid(row=1, column=2, sticky="e", pady=(8, 0))
 
     review = ttk.LabelFrame(page, text="监控事件复核", padding=10)
     review.pack(fill="both", expand=True, pady=(10, 0))
@@ -298,6 +302,9 @@ def continue_task(app, action: str | None = None) -> None:
 
 
 def run_task(app) -> None:
+    if str(app.intelligence_run_button["state"]) == "disabled":
+        return
+    app.intelligence_run_button.state(["disabled"])
     guide = _selected_guide(app)
     topic = app.intelligence_topic_var.get().strip()
     companies = _split(app.intelligence_companies_var.get())
@@ -319,6 +326,7 @@ def run_task(app) -> None:
                 ),
             )
             app._set_status("当前任务需要先补充本地数据。")
+            app.intelligence_run_button.state(["!disabled"])
             return
         scope = AnalysisScope(
             topic="" if guide.workflow_id in {"problem-search", "watch-brief"} else topic,
@@ -339,9 +347,11 @@ def run_task(app) -> None:
             lines.append("\n下一步：编辑检索词后点击“带到检索页”，再由你确认范围并执行检索。")
             app._intelligence_next_action = "search"
             _preview(app, "\n".join(lines))
+            app.intelligence_run_button.state(["!disabled"])
             return
     except (ValueError, KeyError) as exc:
         messagebox.showerror("任务条件错误", str(exc))
+        app.intelligence_run_button.state(["!disabled"])
         return
 
     app._intelligence_report = None
@@ -367,7 +377,11 @@ def run_task(app) -> None:
                 else:
                     report = service.route_comparison(scope, routes)
         except Exception as exc:
-            app._ui_callbacks.submit(lambda error=exc: messagebox.showerror("任务失败", str(error)))
+            def _on_error(error=exc) -> None:
+                messagebox.showerror("任务失败", str(error))
+                app.intelligence_run_button.state(["!disabled"])
+
+            app._ui_callbacks.submit(_on_error)
             return
         app._ui_callbacks.submit(lambda result=report: _show_report(app, result))
 
@@ -375,6 +389,7 @@ def run_task(app) -> None:
 
 
 def _show_report(app, report: AnalysisReport) -> None:
+    app.intelligence_run_button.state(["!disabled"])
     app._intelligence_report = report
     lines = [report.title, report.scope, ""]
     lines.extend(f"{metric.label}：{metric.value}（{metric.formula}）" for metric in report.metrics)
@@ -426,6 +441,8 @@ def copy_ai_prompt(app) -> None:
 
 
 def run_ai_interpretation(app) -> None:
+    if str(app.intelligence_ai_button["state"]) == "disabled":
+        return
     report = app._intelligence_report
     if report is None:
         messagebox.showinfo("尚无报告", "请先生成并审阅一个本地报告。")
@@ -440,6 +457,7 @@ def run_ai_interpretation(app) -> None:
     except ValueError as exc:
         messagebox.showinfo("AI 解读尚未准备好", str(exc))
         return
+    app.intelligence_ai_button.state(["disabled"])
     _preview(app, "正在向你指定的 AI 服务发送当前报告证据包…")
     app._set_status("AI 解读运行中…")
 
@@ -447,9 +465,11 @@ def run_ai_interpretation(app) -> None:
         try:
             text = OpenAICompatibleInterpreter(settings).interpret(report)
         except Exception as exc:
-            app._ui_callbacks.submit(
-                lambda error=exc: messagebox.showerror("AI 解读失败", str(error))
-            )
+            def _on_error(error=exc) -> None:
+                messagebox.showerror("AI 解读失败", str(error))
+                app.intelligence_ai_button.state(["!disabled"])
+
+            app._ui_callbacks.submit(_on_error)
             return
         app._ui_callbacks.submit(lambda result=text: _show_ai_interpretation(app, result))
 
@@ -457,6 +477,7 @@ def run_ai_interpretation(app) -> None:
 
 
 def _show_ai_interpretation(app, interpretation: str) -> None:
+    app.intelligence_ai_button.state(["!disabled"])
     _preview(
         app,
         "\n".join(

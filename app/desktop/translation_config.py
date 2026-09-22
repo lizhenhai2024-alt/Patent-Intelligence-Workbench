@@ -11,6 +11,8 @@ from pathlib import Path
 class TranslationSettings:
     endpoint: str
     api_key: str = ""
+    provider: str = "http"
+    model: str = ""
 
 
 def load_translation_settings(path: Path) -> TranslationSettings | None:
@@ -26,6 +28,8 @@ def load_translation_settings(path: Path) -> TranslationSettings | None:
     return TranslationSettings(
         endpoint=endpoint,
         api_key=str(data.get("api_key") or ""),
+        provider=str(data.get("provider") or "http"),
+        model=str(data.get("model") or ""),
     )
 
 
@@ -33,7 +37,12 @@ def save_translation_settings(path: Path, settings: TranslationSettings) -> None
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps(
-            {"endpoint": settings.endpoint, "api_key": settings.api_key},
+            {
+                "endpoint": settings.endpoint,
+                "api_key": settings.api_key,
+                "provider": settings.provider,
+                "model": settings.model,
+            },
             ensure_ascii=False,
             indent=2,
         ),

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import os
+import re
 import tkinter as tk
 import webbrowser
 from dataclasses import replace
@@ -19,7 +20,12 @@ from app.core.patent_number import PatentNumberError, normalize_patent_number
 from app.core.technology_classifier import TechnologyClassifier
 from app.core.technology_taxonomy import TechnologyTaxonomy
 from app.core.translation import UnconfiguredTranslationProvider
-from app.core.translation_http import CachedTranslationProvider, HttpTranslationProvider
+from app.core.translation_http import (
+    CachedTranslationProvider,
+    DeepLTranslationProvider,
+    HttpTranslationProvider,
+    LlmTranslationProvider,
+)
 from app.desktop.async_runner import TkCallbackQueue, run_async_in_thread
 from app.desktop.figure_preview import figure_scale
 from app.desktop.intelligence_tab import build_intelligence_tab
@@ -34,6 +40,7 @@ from app.desktop.translation_config import (
 )
 from app.domain.family import FamilyType, PatentFamily, PatentPublication
 from app.domain.reader import PatentReaderDocument
+from app.domain.search import SearchHit
 from app.library.archive import company_folder, patent_archive_path
 from app.library.ingest import ingest_download_summary, ingest_family
 from app.library.models import LibraryQuery
@@ -45,6 +52,31 @@ from app.library.workbench import (
     preferred_library_folder,
     preferred_library_pdf,
 )
+from app.watch.models import WatchRule
+
+DEEPL_DEFAULT_ENDPOINT = "https://api-free.deepl.com/v2/translate"
+
+_EMPTY_TREE_IID = "__empty__"
+
+
+def _insert_empty_placeholder(tree: ttk.Treeview, message: str) -> None:
+    """Show a single non-selectable guidance row when the tree has no real data."""
+    if tree.get_children():
+        return
+    tree.insert("", "end", iid=_EMPTY_TREE_IID, values=(message,))
+
+# Mainstream OpenAI-compatible Chat Completions AI APIs usable for translation.
+# Model names are not defaulted here -- they change often and must match the
+# user's own account/plan, so the model field is always required for these.
+LLM_TRANSLATION_DEFAULT_ENDPOINTS = {
+    "openai": "https://api.openai.com/v1/chat/completions",
+    "deepseek": "https://api.deepseek.com/chat/completions",
+    "qwen": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    "glm": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+    "kimi": "https://api.moonshot.cn/v1/chat/completions",
+    "doubao": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    "mimo": "https://api.xiaomimimo.com/v1/chat/completions",
+}
 
 
 class PatentWorkbenchApp(tk.Tk):
@@ -561,6 +593,10 @@ class PatentWorkbenchApp(tk.Tk):
         self.search_tree.pack(fill="both", expand=True)
         self.search_tree.bind("<Double-1>", self._open_selected_in_reader)
         self.search_tree.bind("<<TreeviewSelect>>", self._render_search_technology_evidence)
+        _insert_empty_placeholder(
+            self.search_tree,
+            "尚无检索结果 · 在上方输入关键词 / 公开号 / 公司后点击「开始检索」",
+        )
         self.search_technology_var = tk.StringVar(
             value="Technology evidence: 选择检索结果查看自动分类证据"
         )
@@ -643,6 +679,33 @@ class PatentWorkbenchApp(tk.Tk):
             text="专利预览、原文访问与中英对照翻译",
             style="Subtle.TLabel",
         ).pack(anchor="w", pady=(2, 10))
+
+        open_by_number = ttk.Frame(self.reader_tab, style="Surface.TFrame")
+        open_by_number.pack(fill="x", pady=(0, 8))
+        ttk.Label(open_by_number, text="按公开号打开").pack(side="left")
+        self.reader_open_number_var = tk.StringVar()
+        reader_entry = ttk.Entry(
+            open_by_number,
+            textvariable=self.reader_open_number_var,
+            width=24,
+        )
+        reader_entry.pack(side="left", padx=(6, 6))
+        reader_entry.bind(
+            "<Return>",
+            lambda _event: self.open_reader_by_number(),
+        )
+        ttk.Button(
+            open_by_number,
+            text="打开",
+            command=self.open_reader_by_number,
+            style="Accent.TButton",
+        ).pack(side="left")
+        ttk.Label(
+            open_by_number,
+            text="例如 US20240123456A1 · 也可双击 Search / Library 结果行",
+            style="Subtle.TLabel",
+        ).pack(side="left", padx=(10, 0))
+
         header = ttk.LabelFrame(self.reader_tab, text="专利信息", padding=10)
         header.pack(fill="x", pady=(0, 10))
         self.reader_number_var = tk.StringVar(value="尚未选择专利")
@@ -792,12 +855,35 @@ class PatentWorkbenchApp(tk.Tk):
 
     def _open_selected_in_reader(self, _event=None) -> None:
         selection = self.search_tree.selection()
-        if not selection:
+        if not selection or selection[0] == _EMPTY_TREE_IID:
             return
         hit = self._search_hits_by_number.get(selection[0])
         if hit is None:
             return
         self._open_hit_in_reader(hit)
+
+    def open_reader_by_number(self) -> None:
+        raw = self.reader_open_number_var.get().strip()
+        if not raw:
+            messagebox.showinfo("请输入公开号", "例如 US20240123456A1、CN115123456A。")
+            return
+        try:
+            publication = normalize_patent_number(raw)
+        except PatentNumberError as exc:
+            messagebox.showerror("公开号无法识别", str(exc))
+            return
+        cached = self._search_hits_by_number.get(publication.canonical)
+        if cached is None:
+            cached = self.runtime.library_store.get_patent(publication.canonical)
+            if cached is not None:
+                cached = library_patent_to_search_hit(cached)
+        if cached is None:
+            cached = SearchHit(
+                publication_number=publication.canonical,
+                jurisdiction=publication.jurisdiction,
+                kind_code=publication.kind_code,
+            )
+        self._open_hit_in_reader(cached)
 
     def _open_hit_in_reader(self, hit) -> None:
         self._reader_hit = hit
@@ -1169,18 +1255,29 @@ class PatentWorkbenchApp(tk.Tk):
         self._set_status(f"PDF 已归档到专利库并打开：{result.path}")
 
     def _translate_reader_text(self, text: str) -> None:
+        if getattr(self, "_reader_translation_in_flight", False):
+            return
         if not text.strip():
             self._set_reader_translation("没有可翻译的文本。")
             return
+        self._reader_translation_in_flight = True
         self._set_reader_translation("正在翻译…")
 
         def task():
             return self.translation_provider.translate(text)
 
+        def _on_success(result):
+            self._reader_translation_in_flight = False
+            self._set_reader_translation(result.text)
+
+        def _on_error(exc):
+            self._reader_translation_in_flight = False
+            self._set_reader_translation(str(exc))
+
         run_async_in_thread(
             task,
-            on_success=lambda result: self._set_reader_translation(result.text),
-            on_error=lambda exc: self._set_reader_translation(str(exc)),
+            on_success=_on_success,
+            on_error=_on_error,
             schedule_ui=self._ui_callbacks.submit,
         )
 
@@ -1277,6 +1374,10 @@ class PatentWorkbenchApp(tk.Tk):
             self.family_tree.heading(column, text=title)
             self.family_tree.column(column, width=width, anchor="w")
         self.family_tree.pack(fill="both", expand=True)
+        _insert_empty_placeholder(
+            self.family_tree,
+            "尚未加载专利族 · 输入公开号后点击「解析专利族」，或双击 Search 结果行",
+        )
 
         family_summary_card = ttk.Frame(self.family_tab, style="Surface.TFrame", padding=(12, 9))
         family_summary_card.pack(fill="x", pady=(8, 0))
@@ -1375,6 +1476,54 @@ class PatentWorkbenchApp(tk.Tk):
             style="Ghost.TButton",
         ).pack(side="left", padx=(6, 0))
 
+        new_rule_card = ttk.LabelFrame(self.watch_tab, text="新建监控规则", padding=10)
+        new_rule_card.pack(fill="x", pady=(0, 10))
+        new_rule_form = ttk.Frame(new_rule_card, style="Surface.TFrame")
+        new_rule_form.pack(fill="x")
+
+        self.watch_new_name_var = tk.StringVar()
+        ttk.Label(new_rule_form, text="规则名称").grid(row=0, column=0, sticky="w")
+        ttk.Entry(new_rule_form, textvariable=self.watch_new_name_var, width=22).grid(
+            row=1, column=0, padx=(0, 8), sticky="ew"
+        )
+
+        self.watch_new_company_var = tk.StringVar()
+        ttk.Label(new_rule_form, text="公司 / 申请人（可输入任意名称）").grid(
+            row=0, column=1, sticky="w"
+        )
+        ttk.Combobox(
+            new_rule_form,
+            textvariable=self.watch_new_company_var,
+            values=self._company_display_names(),
+            width=22,
+        ).grid(row=1, column=1, padx=(0, 8), sticky="ew")
+
+        self.watch_new_terms_var = tk.StringVar()
+        ttk.Label(new_rule_form, text="技术关键词（逗号分隔，可留空）").grid(
+            row=0, column=2, sticky="w"
+        )
+        ttk.Entry(new_rule_form, textvariable=self.watch_new_terms_var, width=28).grid(
+            row=1, column=2, padx=(0, 8), sticky="ew"
+        )
+
+        self.watch_new_cadence_var = tk.StringVar(value="24")
+        ttk.Label(new_rule_form, text="间隔(h)").grid(row=0, column=3, sticky="w")
+        ttk.Spinbox(
+            new_rule_form,
+            from_=1,
+            to=8760,
+            textvariable=self.watch_new_cadence_var,
+            width=7,
+        ).grid(row=1, column=3, padx=(0, 8), sticky="w")
+
+        ttk.Button(
+            new_rule_form,
+            text="新建规则",
+            command=self.create_watch_rule,
+            style="Accent.TButton",
+        ).grid(row=1, column=4, sticky="w")
+        new_rule_form.columnconfigure(2, weight=1)
+
         rules_card = ttk.LabelFrame(self.watch_tab, text="监控规则", padding=8)
         rules_card.pack(fill="both", expand=True, pady=(0, 8))
         self.watch_rule_tree = ttk.Treeview(
@@ -1394,6 +1543,10 @@ class PatentWorkbenchApp(tk.Tk):
             self.watch_rule_tree.heading(column, text=title)
             self.watch_rule_tree.column(column, width=width, anchor="w")
         self.watch_rule_tree.pack(fill="both", expand=True)
+        _insert_empty_placeholder(
+            self.watch_rule_tree,
+            "暂无监控规则 · 用上方「新建监控规则」创建，或从预置模板添加",
+        )
         self.watch_rule_tree.bind(
             "<<TreeviewSelect>>",
             self._load_selected_watch_cadence,
@@ -1697,7 +1850,7 @@ class PatentWorkbenchApp(tk.Tk):
         ttk.Label(detail, text="备注").grid(row=4, column=0, sticky="nw")
         self.library_note_text = tk.Text(detail, height=3, wrap="word")
         self.library_note_text.grid(
-            row=5,
+            row=4,
             column=1,
             columnspan=4,
             sticky="ew",
@@ -1708,7 +1861,7 @@ class PatentWorkbenchApp(tk.Tk):
         ttk.Label(detail, text="本地 PDF").grid(row=5, column=0, sticky="nw")
         self.library_pdf_list = tk.Listbox(detail, height=3)
         self.library_pdf_list.grid(
-            row=4,
+            row=5,
             column=1,
             columnspan=4,
             sticky="ew",
@@ -1787,26 +1940,33 @@ class PatentWorkbenchApp(tk.Tk):
         ).pack(anchor="w")
         ttk.Label(
             self.technology_tab,
-            text="悬架与减振器工程专利分类树",
+            text="悬架与减振器工程专利分类树 · 蓝色为可检索的具体技术条目，灌色为分类节点",
             style="Subtle.TLabel",
         ).pack(anchor="w", pady=(2, 10))
+
+        filter_bar = ttk.Frame(self.technology_tab, style="Surface.TFrame")
+        filter_bar.pack(fill="x", pady=(0, 8))
+        ttk.Label(filter_bar, text="搜索分类").pack(side="left")
+        self.technology_filter_var = tk.StringVar()
+        filter_entry = ttk.Entry(filter_bar, textvariable=self.technology_filter_var, width=36)
+        filter_entry.pack(side="left", padx=(6, 6))
+        filter_entry.bind("<KeyRelease>", lambda _event: self._rebuild_technology_tree())
+        ttk.Button(
+            filter_bar,
+            text="清除",
+            style="Quiet.TButton",
+            command=self._clear_technology_filter,
+        ).pack(side="left")
 
         card = ttk.Frame(self.technology_tab, style="Surface.TFrame", padding=12)
         card.pack(fill="both", expand=True)
         self.technology_tree = ttk.Treeview(card, show="tree", selectmode="browse")
         self.technology_tree.pack(fill="both", expand=True)
+        self.technology_tree.tag_configure("leaf", foreground="#1D4ED8")
+        self.technology_tree.tag_configure("category", foreground="#6B7280")
 
         self.technology_taxonomy = TechnologyTaxonomy.default()
-
-        def insert_nodes(parent: str, nodes) -> None:
-            for node in nodes:
-                item = self.technology_tree.insert(parent, "end", iid=node.node_id, text=node.name)
-                insert_nodes(item, node.children)
-
-        insert_nodes("", self.technology_taxonomy.roots)
-        for node_id in ("suspension", "passive_damper"):
-            if self.technology_tree.exists(node_id):
-                self.technology_tree.item(node_id, open=True)
+        self._rebuild_technology_tree()
         self.technology_tree.bind("<<TreeviewSelect>>", self._on_technology_selected)
         self.technology_tree.bind("<Double-1>", self._search_selected_technology)
         ttk.Button(
@@ -1815,6 +1975,42 @@ class PatentWorkbenchApp(tk.Tk):
             command=self._search_selected_technology,
             style="Accent.TButton",
         ).pack(anchor="e", pady=(10, 0))
+
+    def _clear_technology_filter(self) -> None:
+        self.technology_filter_var.set("")
+        self._rebuild_technology_tree()
+
+    def _technology_node_matches(self, node, query: str) -> bool:
+        if not query:
+            return True
+        haystack = node.name.casefold()
+        if query in haystack:
+            return True
+        if any(query in term.casefold() for term in node.search_terms):
+            return True
+        return any(self._technology_node_matches(child, query) for child in node.children)
+
+    def _rebuild_technology_tree(self) -> None:
+        query = self.technology_filter_var.get().strip().casefold()
+        self.technology_tree.delete(*self.technology_tree.get_children())
+
+        def insert_nodes(parent: str, nodes) -> None:
+            for node in nodes:
+                if not self._technology_node_matches(node, query):
+                    continue
+                tag = "leaf" if node.search_terms else "category"
+                item = self.technology_tree.insert(
+                    parent, "end", iid=node.node_id, text=node.name, tags=(tag,)
+                )
+                insert_nodes(item, node.children)
+                if query:
+                    self.technology_tree.item(item, open=True)
+
+        insert_nodes("", self.technology_taxonomy.roots)
+        if not query:
+            for node_id in ("suspension", "passive_damper"):
+                if self.technology_tree.exists(node_id):
+                    self.technology_tree.item(node_id, open=True)
 
     def _on_technology_selected(self, _event=None) -> None:
         selection = self.technology_tree.selection()
@@ -1830,10 +2026,18 @@ class PatentWorkbenchApp(tk.Tk):
     def _search_selected_technology(self, _event=None) -> None:
         selection = self.technology_tree.selection()
         if not selection:
+            messagebox.showinfo(
+                "未选择分类",
+                "请先在左侧分类树中选中一个蓝色的具体技术条目。",
+            )
             return
         node = self.technology_taxonomy.find(selection[0])
         if not node.search_terms:
-            self._set_status(f"Technology: {node.name} · 请选择可检索的叶节点")
+            messagebox.showinfo(
+                "请选择可检索的具体技术条目",
+                f"“{node.name}”是分类节点（灰色），本身没有可检索关键词。"
+                "请展开它，选择下一级蓝色的具体技术条目。",
+            )
             return
         self.search_query_var.set(" OR ".join(node.search_terms))
         self.search_scope_var.set("具体技术主题")
@@ -2062,45 +2266,94 @@ class PatentWorkbenchApp(tk.Tk):
             padding=12,
         )
         translation_frame.pack(fill="x", pady=(12, 0))
+        self.translation_provider_var = tk.StringVar(
+            value=translation.provider if translation else "http"
+        )
         self.translation_endpoint_var = tk.StringVar(
             value=translation.endpoint if translation else ""
         )
         self.translation_api_key_var = tk.StringVar(
             value=translation.api_key if translation else ""
         )
+        self.translation_model_var = tk.StringVar(
+            value=translation.model if translation else ""
+        )
         self.translation_status_var = tk.StringVar(
             value="翻译服务：已配置" if translation else "翻译服务：未配置"
         )
-        ttk.Label(translation_frame, text="Endpoint").grid(row=0, column=0, sticky="w")
+        ttk.Label(translation_frame, text="服务类型").grid(row=0, column=0, sticky="w")
+        translation_provider_combo = ttk.Combobox(
+            translation_frame,
+            textvariable=self.translation_provider_var,
+            values=(
+                "http",
+                "deepl",
+                "openai",
+                "deepseek",
+                "qwen",
+                "glm",
+                "kimi",
+                "doubao",
+                "mimo",
+            ),
+            state="readonly",
+            width=12,
+        )
+        translation_provider_combo.grid(row=1, column=0, padx=(0, 10), pady=(0, 8), sticky="w")
+        translation_provider_combo.bind(
+            "<<ComboboxSelected>>", lambda _event: self._on_translation_provider_changed()
+        )
+        ttk.Label(
+            translation_frame,
+            text=(
+                "http = 通用 LibreTranslate 风格 JSON 接口；deepl = DeepL API；\n"
+                "openai/deepseek/qwen/glm/kimi/doubao/mimo = 对应厂商的 OpenAI 兼容 "
+                "Chat Completions 接口，用你自己的模型做翻译（模型名称需自行填写）"
+            ),
+            style="Subtle.TLabel",
+        ).grid(row=0, column=1, columnspan=3, sticky="w")
+        ttk.Label(translation_frame, text="Endpoint").grid(row=2, column=0, sticky="w")
         ttk.Entry(
             translation_frame,
             textvariable=self.translation_endpoint_var,
-            width=72,
-        ).grid(row=1, column=0, padx=(0, 10), sticky="ew")
-        ttk.Label(translation_frame, text="API Key（可选）").grid(row=0, column=1, sticky="w")
+            width=52,
+        ).grid(row=3, column=0, padx=(0, 10), sticky="ew")
+        ttk.Label(translation_frame, text="API Key（deepl/AI API 必填）").grid(
+            row=2, column=1, sticky="w"
+        )
         ttk.Entry(
             translation_frame,
             textvariable=self.translation_api_key_var,
             show="●",
-            width=42,
-        ).grid(row=1, column=1, padx=(0, 10), sticky="ew")
+            width=28,
+        ).grid(row=3, column=1, padx=(0, 10), sticky="ew")
+        ttk.Label(
+            translation_frame,
+            text="模型（AI API 必填，如 deepseek-chat / mimo-v2.6-flash）",
+        ).grid(row=2, column=2, sticky="w")
+        ttk.Entry(
+            translation_frame,
+            textvariable=self.translation_model_var,
+            width=22,
+        ).grid(row=3, column=2, padx=(0, 10), sticky="ew")
         ttk.Button(
             translation_frame,
             text="保存翻译配置",
             command=self.save_translation_settings,
-        ).grid(row=1, column=2, padx=(0, 8))
+        ).grid(row=3, column=3, padx=(0, 8))
         ttk.Button(
             translation_frame,
             text="删除翻译配置",
             command=self.delete_translation_settings,
-        ).grid(row=1, column=3)
+        ).grid(row=3, column=4)
         ttk.Label(
             translation_frame,
             textvariable=self.translation_status_var,
             style="Subtle.TLabel",
-        ).grid(row=2, column=0, columnspan=4, sticky="w", pady=(10, 0))
+        ).grid(row=4, column=0, columnspan=5, sticky="w", pady=(10, 0))
         translation_frame.columnconfigure(0, weight=1)
         translation_frame.columnconfigure(1, weight=1)
+        translation_frame.columnconfigure(2, weight=1)
 
         local = ttk.LabelFrame(
             self.settings_tab,
@@ -2131,28 +2384,76 @@ class PatentWorkbenchApp(tk.Tk):
             wraplength=920,
         ).pack(anchor="w", pady=(12, 0))
 
+    def _on_translation_provider_changed(self) -> None:
+        provider = self.translation_provider_var.get()
+        current = self.translation_endpoint_var.get().strip()
+        known_default_endpoints = {
+            DEEPL_DEFAULT_ENDPOINT,
+            *LLM_TRANSLATION_DEFAULT_ENDPOINTS.values(),
+        }
+        # Only touch the field if it is empty or still holds a default we set
+        # earlier -- never overwrite an endpoint the user typed in themselves.
+        if current and current not in known_default_endpoints:
+            return
+        if provider == "deepl":
+            self.translation_endpoint_var.set(DEEPL_DEFAULT_ENDPOINT)
+        elif provider in LLM_TRANSLATION_DEFAULT_ENDPOINTS:
+            self.translation_endpoint_var.set(LLM_TRANSLATION_DEFAULT_ENDPOINTS[provider])
+        elif current in known_default_endpoints:
+            self.translation_endpoint_var.set("")
+
     def _reload_translation_provider(self) -> None:
         settings = load_translation_settings(self.translation_settings_path)
         if settings is None:
             self.translation_provider = UnconfiguredTranslationProvider()
             return
-        self.translation_provider = CachedTranslationProvider(
-            provider=HttpTranslationProvider(
+        if settings.provider == "deepl":
+            base_provider: object = DeepLTranslationProvider(
+                api_key=settings.api_key,
+                endpoint=settings.endpoint or DEEPL_DEFAULT_ENDPOINT,
+            )
+        elif settings.provider in LLM_TRANSLATION_DEFAULT_ENDPOINTS:
+            base_provider = LlmTranslationProvider(
+                endpoint=settings.endpoint or LLM_TRANSLATION_DEFAULT_ENDPOINTS[settings.provider],
+                api_key=settings.api_key,
+                model=settings.model,
+            )
+        else:
+            base_provider = HttpTranslationProvider(
                 endpoint=settings.endpoint,
                 api_key=settings.api_key or None,
-            ),
+            )
+        self.translation_provider = CachedTranslationProvider(
+            provider=base_provider,
             cache_path=self.translation_cache_path,
         )
 
     def save_translation_settings(self) -> None:
+        provider = self.translation_provider_var.get().strip() or "http"
         endpoint = self.translation_endpoint_var.get().strip()
         api_key = self.translation_api_key_var.get().strip()
-        if not endpoint:
+        model = self.translation_model_var.get().strip()
+        if provider == "deepl":
+            if not api_key:
+                messagebox.showinfo("缺少配置", "DeepL 需要填写 API Key。")
+                return
+            endpoint = endpoint or DEEPL_DEFAULT_ENDPOINT
+        elif provider in LLM_TRANSLATION_DEFAULT_ENDPOINTS:
+            if not api_key:
+                messagebox.showinfo("缺少配置", "AI API 需要填写 API Key。")
+                return
+            if not model:
+                messagebox.showinfo("缺少配置", "AI API 需要填写模型名称。")
+                return
+            endpoint = endpoint or LLM_TRANSLATION_DEFAULT_ENDPOINTS[provider]
+        elif not endpoint:
             messagebox.showinfo("缺少配置", "Translation Endpoint 必须填写。")
             return
         save_translation_settings(
             self.translation_settings_path,
-            TranslationSettings(endpoint=endpoint, api_key=api_key),
+            TranslationSettings(
+                endpoint=endpoint, api_key=api_key, provider=provider, model=model
+            ),
         )
         self._reload_translation_provider()
         self.translation_status_var.set("翻译服务：已配置")
@@ -2160,8 +2461,10 @@ class PatentWorkbenchApp(tk.Tk):
 
     def delete_translation_settings(self) -> None:
         delete_translation_settings(self.translation_settings_path)
+        self.translation_provider_var.set("http")
         self.translation_endpoint_var.set("")
         self.translation_api_key_var.set("")
+        self.translation_model_var.set("")
         self._reload_translation_provider()
         self.translation_status_var.set("翻译服务：未配置")
         self._set_status("翻译服务配置已删除")
@@ -2214,13 +2517,13 @@ class PatentWorkbenchApp(tk.Tk):
 
     def _selected_library_patent(self):
         selection = self.library_tree.selection()
-        if not selection:
+        if not selection or selection[0] == _EMPTY_TREE_IID:
             return None
         return self.runtime.library_store.get_patent(selection[0])
 
     def _show_library_context_menu(self, event) -> None:
         row = self.library_tree.identify_row(event.y)
-        if not row:
+        if not row or row == _EMPTY_TREE_IID:
             return
         self.library_tree.selection_set(row)
         self.library_tree.focus(row)
@@ -2619,6 +2922,11 @@ class PatentWorkbenchApp(tk.Tk):
             )
         total = response.page.total_result_count
         shown = len(response.page.hits)
+        if shown == 0:
+            _insert_empty_placeholder(
+                self.search_tree,
+                "未找到匹配结果 · 可尝试更换关键词、切换检索范围，或直接用公开号检索",
+            )
         self.search_result_count_var.set(
             f"{response.provider} · 显示 {shown} 条"
             + (f" / 共 {total} 条" if total is not None else "")
@@ -2630,7 +2938,7 @@ class PatentWorkbenchApp(tk.Tk):
 
     def _render_search_technology_evidence(self, _event=None) -> None:
         selection = self.search_tree.selection()
-        if not selection:
+        if not selection or selection[0] == _EMPTY_TREE_IID:
             self.search_technology_var.set(
                 "Technology evidence: 选择检索结果查看自动分类证据"
             )
@@ -2651,7 +2959,7 @@ class PatentWorkbenchApp(tk.Tk):
 
     def _search_to_family(self, _event=None) -> None:
         selection = self.search_tree.selection()
-        if not selection:
+        if not selection or selection[0] == _EMPTY_TREE_IID:
             return
         self.family_number_var.set(selection[0])
         self._show_page("family")
@@ -2703,6 +3011,11 @@ class PatentWorkbenchApp(tk.Tk):
                     member.application_number or "",
                     member.publication_date.isoformat() if member.publication_date else "",
                 ),
+            )
+        if not family.members:
+            _insert_empty_placeholder(
+                self.family_tree,
+                "专利族解析返回 0 个成员 · 请检查公开号是否正确",
             )
         priority = family.earliest_priority
         self.family_summary_var.set(
@@ -2893,6 +3206,11 @@ class PatentWorkbenchApp(tk.Tk):
                 values=watch_rule_row(rule, state),
                 tags=(tag,),
             )
+        if not rules:
+            _insert_empty_placeholder(
+                self.watch_rule_tree,
+                "暂无监控规则 · 用上方「新建监控规则」创建，或从预置模板添加",
+            )
         self.watch_rule_tree.tag_configure("enabled", foreground="#166534")
         self.watch_rule_tree.tag_configure("disabled", foreground="#6B7280")
 
@@ -2903,6 +3221,87 @@ class PatentWorkbenchApp(tk.Tk):
                 "end",
                 values=watch_history_row(history),
             )
+
+    def _company_display_names(self) -> tuple[str, ...]:
+        registry = (
+            self.runtime.search_service.company_registry
+            if self.runtime.search_service
+            else None
+        )
+        if registry is None:
+            return ()
+        return tuple(group.display_name for group in registry.groups)
+
+    def _unique_watch_rule_id(self, company_group: str, name: str) -> str:
+        slug = re.sub(r"[^a-z0-9]+", "-", f"{company_group}-{name}".casefold()).strip("-")
+        slug = slug or "rule"
+        existing_ids = {rule.rule_id for rule in self.runtime.watch_store.list_rules()}
+        candidate = f"custom-{slug}"
+        suffix = 2
+        while candidate in existing_ids:
+            candidate = f"custom-{slug}-{suffix}"
+            suffix += 1
+        return candidate
+
+    def create_watch_rule(self) -> None:
+        name = self.watch_new_name_var.get().strip()
+        company_input = self.watch_new_company_var.get().strip()
+        if not name or not company_input:
+            messagebox.showinfo(
+                "信息不完整",
+                "请填写规则名称和公司 / 申请人。",
+            )
+            return
+        try:
+            cadence_hours = int(self.watch_new_cadence_var.get().strip())
+        except ValueError:
+            messagebox.showerror("间隔错误", "监控间隔必须是整数小时。")
+            return
+        if cadence_hours < 1 or cadence_hours > 8760:
+            messagebox.showerror(
+                "间隔错误", "监控间隔必须在 1–8760 小时之间。"
+            )
+            return
+
+        registry = (
+            self.runtime.search_service.company_registry
+            if self.runtime.search_service
+            else None
+        )
+        company_group = company_input
+        if registry is not None:
+            try:
+                company_group = registry.get(company_input).group_id
+            except KeyError:
+                company_group = company_input
+
+        terms = tuple(
+            term.strip() for term in self.watch_new_terms_var.get().split(",") if term.strip()
+        )
+        rule_id = self._unique_watch_rule_id(company_group, name)
+        try:
+            rule = WatchRule(
+                rule_id=rule_id,
+                name=name,
+                company_group=company_group,
+                technology_terms=terms,
+                enabled=True,
+                cadence_hours=cadence_hours,
+            )
+        except ValueError as exc:
+            messagebox.showerror("规则无效", str(exc))
+            return
+
+        self.runtime.watch_store.upsert_rule(rule)
+        self.watch_new_name_var.set("")
+        self.watch_new_company_var.set("")
+        self.watch_new_terms_var.set("")
+        self.watch_new_cadence_var.set("24")
+        self.refresh_watch()
+        if self.watch_rule_tree.exists(rule.rule_id):
+            self.watch_rule_tree.selection_set(rule.rule_id)
+            self.watch_rule_tree.focus(rule.rule_id)
+        self._set_status(f"已新建监控规则：{rule.name}")
 
     def toggle_selected_watch_rule(self) -> None:
         selection = self.watch_rule_tree.selection()
@@ -2917,7 +3316,7 @@ class PatentWorkbenchApp(tk.Tk):
 
     def _load_selected_watch_cadence(self, _event=None) -> None:
         selection = self.watch_rule_tree.selection()
-        if not selection:
+        if not selection or selection[0] == _EMPTY_TREE_IID:
             return
         rule = self.runtime.watch_store.get_rule(selection[0])
         if rule is not None:
@@ -2925,7 +3324,7 @@ class PatentWorkbenchApp(tk.Tk):
 
     def apply_selected_watch_cadence(self) -> None:
         selection = self.watch_rule_tree.selection()
-        if not selection:
+        if not selection or selection[0] == _EMPTY_TREE_IID:
             messagebox.showinfo("未选择规则", "请先选择一条 Patent Watch 规则。")
             return
 
@@ -2982,7 +3381,7 @@ class PatentWorkbenchApp(tk.Tk):
             messagebox.showwarning("未配置", self.runtime.search_status)
             return
         selection = self.watch_rule_tree.selection()
-        if not selection:
+        if not selection or selection[0] == _EMPTY_TREE_IID:
             messagebox.showinfo("未选择规则", "请先选择一条 Patent Watch 规则。")
             return
         rule = self.runtime.watch_store.get_rule(selection[0])
@@ -3112,6 +3511,11 @@ class PatentWorkbenchApp(tk.Tk):
                 "end",
                 iid=patent.publication_number,
                 values=patent_row(patent),
+            )
+        if not patents:
+            _insert_empty_placeholder(
+                self.library_tree,
+                "本地库暂无专利 · 从 Search 检索后采集，或整族下载后自动入库",
             )
         if hasattr(self, "library_result_summary_var"):
             filters = []
