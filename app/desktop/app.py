@@ -71,7 +71,7 @@ class PatentWorkbenchApp(tk.Tk):
         self._watch_run_active = False
         self._watch_poll_after_id: str | None = None
 
-        self.title("Patent Intelligence Workbench")
+        self.title("专利情报工作台")
         self.geometry("1460x900")
         self.minsize(1180, 720)
         self.configure(bg="#F5F7FA")
@@ -88,62 +88,74 @@ class PatentWorkbenchApp(tk.Tk):
         if "clam" in style.theme_names():
             style.theme_use("clam")
 
-        bg = "#F7FAFD"
+        # Engineering evidence console: stable navy navigation and a quiet workspace.
+        bg = "#F3F6F8"
         surface = "#FFFFFF"
-        border = "#D9E2EC"
-        text = "#16324F"
-        muted = "#6B7F95"
-        accent = "#1261D6"
-        accent_hover = "#0D52BA"
-        selected = "#E8F2FF"
+        border = "#CBD7E2"
+        text = "#102A43"
+        muted = "#627D98"
+        accent = "#0B5CAD"
+        accent_hover = "#084783"
+        selected = "#E7F0F8"
 
         style.configure("TFrame", background=bg)
         style.configure("Surface.TFrame", background=surface)
         style.configure("Card.TFrame", background=surface, relief="flat")
-        style.configure("TLabel", background=bg, foreground=text, font=("Segoe UI", 10))
+        style.configure("TLabel", background=bg, foreground=text, font=("Microsoft YaHei UI", 10))
         style.configure("Surface.TLabel", background=surface, foreground=text)
         style.configure(
-            "Title.TLabel", background=bg, foreground=text, font=("Segoe UI Semibold", 18)
+            "Title.TLabel", background=bg, foreground=text, font=("Microsoft YaHei UI", 18, "bold")
         )
         style.configure(
-            "PageTitle.TLabel", background=bg, foreground=text, font=("Segoe UI Semibold", 15)
+            "PageTitle.TLabel",
+            background=bg,
+            foreground=text,
+            font=("Microsoft YaHei UI", 15, "bold"),
         )
-        style.configure("Subtle.TLabel", background=bg, foreground=muted, font=("Segoe UI", 9))
         style.configure(
-            "SurfaceSubtle.TLabel", background=surface, foreground=muted, font=("Segoe UI", 9)
+            "Subtle.TLabel",
+            background=bg,
+            foreground=muted,
+            font=("Microsoft YaHei UI", 9),
+        )
+        style.configure(
+            "SurfaceSubtle.TLabel",
+            background=surface,
+            foreground=muted,
+            font=("Microsoft YaHei UI", 9),
         )
         style.configure(
             "Status.TLabel",
             background="#EAF0F5",
             foreground="#52677B",
             padding=(12, 7),
-            font=("Segoe UI", 9),
+            font=("Microsoft YaHei UI", 9),
         )
         style.configure(
             "MetricValue.TLabel",
             background=surface,
             foreground=text,
-            font=("Segoe UI Semibold", 20),
+            font=("Microsoft YaHei UI", 20, "bold"),
         )
         style.configure(
             "MetricLabel.TLabel",
             background=surface,
             foreground=muted,
-            font=("Segoe UI", 9),
+            font=("Microsoft YaHei UI", 9),
         )
         style.configure(
             "BadgeOn.TLabel",
             background="#DCFCE7",
             foreground="#166534",
             padding=(7, 3),
-            font=("Segoe UI Semibold", 8),
+            font=("Microsoft YaHei UI", 8, "bold"),
         )
         style.configure(
             "BadgeOff.TLabel",
             background="#F3F4F6",
             foreground="#6B7280",
             padding=(7, 3),
-            font=("Segoe UI Semibold", 8),
+            font=("Microsoft YaHei UI", 8, "bold"),
         )
         style.configure(
             "TButton",
@@ -153,7 +165,7 @@ class PatentWorkbenchApp(tk.Tk):
             bordercolor="#D2DAE3",
             lightcolor="#D2DAE3",
             darkcolor="#D2DAE3",
-            font=("Segoe UI Semibold", 9),
+            font=("Microsoft YaHei UI", 9, "bold"),
             padding=(12, 7),
             relief="flat",
         )
@@ -196,7 +208,7 @@ class PatentWorkbenchApp(tk.Tk):
             borderwidth=0,
             relief="flat",
             padding=(9, 6),
-            font=("Segoe UI", 9),
+            font=("Microsoft YaHei UI", 9),
         )
         style.map(
             "Quiet.TButton",
@@ -226,7 +238,10 @@ class PatentWorkbenchApp(tk.Tk):
         style.configure("TCheckbutton", background=surface, foreground=text)
         style.configure("TLabelframe", background=surface, bordercolor=border, relief="solid")
         style.configure(
-            "TLabelframe.Label", background=surface, foreground=text, font=("Segoe UI Semibold", 10)
+            "TLabelframe.Label",
+            background=surface,
+            foreground=text,
+            font=("Microsoft YaHei UI", 10, "bold"),
         )
         style.configure(
             "Treeview",
@@ -241,7 +256,7 @@ class PatentWorkbenchApp(tk.Tk):
             "Treeview.Heading",
             background="#F9FAFB",
             foreground="#374151",
-            font=("Segoe UI Semibold", 9),
+            font=("Microsoft YaHei UI", 9, "bold"),
             padding=(8, 8),
             relief="flat",
         )
@@ -249,30 +264,30 @@ class PatentWorkbenchApp(tk.Tk):
         style.map("Treeview.Heading", background=[("active", "#F3F4F6")])
         style.configure(
             "Nav.TButton",
-            background="#1261D6",
+            background="#102A43",
             foreground="#EAF3FF",
             borderwidth=0,
             anchor="w",
             padding=(14, 11),
-            font=("Segoe UI Semibold", 9),
+            font=("Microsoft YaHei UI", 9, "bold"),
         )
         style.map(
             "Nav.TButton",
-            background=[("active", "#2470D9")],
+            background=[("active", "#163E63")],
             foreground=[("active", "#FFFFFF")],
         )
         style.configure(
             "NavActive.TButton",
-            background="#0B56C4",
+            background="#0B5CAD",
             foreground="#FFFFFF",
             borderwidth=0,
             anchor="w",
             padding=(14, 11),
-            font=("Segoe UI Semibold", 9),
+            font=("Microsoft YaHei UI", 9, "bold"),
         )
         style.map(
             "NavActive.TButton",
-            background=[("active", "#0A4FAF")],
+            background=[("active", "#084783")],
             foreground=[("active", "#FFFFFF")],
         )
         style.configure(
@@ -291,12 +306,12 @@ class PatentWorkbenchApp(tk.Tk):
         title_wrap.pack(side="left")
         ttk.Label(
             title_wrap,
-            text="Patent Intelligence Workbench",
+            text="专利情报工作台",
             style="Title.TLabel",
         ).pack(anchor="w")
         ttk.Label(
             title_wrap,
-            text="专利检索 · 专利族 · 监控 · 本地知识库",
+            text="从公开件到可复核工程证据",
             style="Subtle.TLabel",
         ).pack(anchor="w", pady=(2, 0))
         self.network_status_var = tk.StringVar(value=self.runtime.search_status)
@@ -306,38 +321,38 @@ class PatentWorkbenchApp(tk.Tk):
             style="Subtle.TLabel",
         ).pack(side="right")
 
-        workspace = tk.Frame(self, bg="#F7FAFD")
+        workspace = tk.Frame(self, bg="#F3F6F8")
         workspace.pack(fill="both", expand=True, padx=(0, 18), pady=(0, 12))
 
-        sidebar = tk.Frame(workspace, bg="#1261D6", width=220, highlightthickness=0)
+        sidebar = tk.Frame(workspace, bg="#102A43", width=220, highlightthickness=0)
         sidebar.pack(side="left", fill="y")
         sidebar.pack_propagate(False)
         tk.Label(
             sidebar,
             text="PIW",
-            bg="#1261D6",
+            bg="#102A43",
             fg="#FFFFFF",
-            font=("Segoe UI Semibold", 18),
+            font=("Microsoft YaHei UI", 18, "bold"),
             anchor="w",
             padx=14,
             pady=0,
         ).pack(fill="x", pady=(16, 0))
         tk.Label(
             sidebar,
-            text="Patent Intelligence",
-            bg="#1261D6",
-            fg="#BFD8FF",
-            font=("Segoe UI", 8),
+            text="工程证据工作台",
+            bg="#102A43",
+            fg="#C4D8EB",
+            font=("Microsoft YaHei UI", 9),
             anchor="w",
             padx=14,
             pady=0,
         ).pack(fill="x", pady=(0, 16))
         tk.Label(
             sidebar,
-            text="WORKSPACE",
-            bg="#1261D6",
-            fg="#9FC5FA",
-            font=("Segoe UI Semibold", 8),
+            text="工作流",
+            bg="#102A43",
+            fg="#9FB8CE",
+            font=("Microsoft YaHei UI", 9, "bold"),
             anchor="w",
             padx=14,
             pady=0,
@@ -368,15 +383,15 @@ class PatentWorkbenchApp(tk.Tk):
         }
         self._nav_buttons = {}
         for key, label in (
-            ("search", "⌕   Search"),
-            ("reader", "▣   Patent Reader"),
-            ("family", "◫   Patent Family"),
-            ("watch", "◉   Patent Watch"),
-            ("library", "▤   Local Library"),
-            ("technology", "⌘   Technology"),
-            ("evidence", "◇   Evidence"),
-            ("intelligence", "▥   Intelligence"),
-            ("settings", "⚙   Settings"),
+            ("search", "⌕   专利检索"),
+            ("reader", "▣   专利阅读"),
+            ("family", "◫   专利族"),
+            ("watch", "◉   专利监控"),
+            ("library", "▤   本地专利库"),
+            ("technology", "⌘   技术分类"),
+            ("evidence", "◇   证据中心"),
+            ("intelligence", "▥   工程情报"),
+            ("settings", "⚙   设置"),
         ):
             button = ttk.Button(
                 sidebar,
@@ -416,7 +431,7 @@ class PatentWorkbenchApp(tk.Tk):
             self.refresh_evidence()
 
     def _build_search_tab(self) -> None:
-        ttk.Label(self.search_tab, text="Patent Search", style="PageTitle.TLabel").pack(anchor="w")
+        ttk.Label(self.search_tab, text="专利检索", style="PageTitle.TLabel").pack(anchor="w")
         ttk.Label(
             self.search_tab,
             text="按专利号、公司、技术主题或公开网页进行检索与采集",
@@ -431,10 +446,10 @@ class PatentWorkbenchApp(tk.Tk):
         self.dashboard_evidence_var = tk.StringVar(value="0")
         for index, (label, variable, target) in enumerate(
             (
-                ("Local patents", self.dashboard_patents_var, "library"),
-                ("Patent families", self.dashboard_families_var, "family"),
-                ("Watch rules", self.dashboard_watch_var, "watch"),
-                ("Evidence", self.dashboard_evidence_var, "evidence"),
+                ("本地公开件", self.dashboard_patents_var, "library"),
+                ("专利族", self.dashboard_families_var, "family"),
+                ("监控规则", self.dashboard_watch_var, "watch"),
+                ("证据", self.dashboard_evidence_var, "evidence"),
             )
         ):
             card = ttk.Frame(metrics, style="Surface.TFrame", padding=(14, 10))
@@ -528,7 +543,7 @@ class PatentWorkbenchApp(tk.Tk):
         ).pack(side="left")
         ttk.Label(
             results_toolbar,
-            text="双击结果可直接进入 Patent Family",
+            text="双击结果可直接进入专利族分析",
             style="SurfaceSubtle.TLabel",
         ).pack(side="right")
 
@@ -562,7 +577,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.search_tree.bind("<Double-1>", self._open_selected_in_reader)
         self.search_tree.bind("<<TreeviewSelect>>", self._render_search_technology_evidence)
         self.search_technology_var = tk.StringVar(
-            value="Technology evidence: 选择检索结果查看自动分类证据"
+            value="技术分类依据：选择检索结果后查看可追溯的自动分类证据"
         )
         ttk.Label(
             results_card,
@@ -572,7 +587,7 @@ class PatentWorkbenchApp(tk.Tk):
             justify="left",
         ).pack(fill="x", pady=(7, 0))
 
-        evidence_card = ttk.LabelFrame(self.search_tab, text="Evidence 采集", padding=8)
+        evidence_card = ttk.LabelFrame(self.search_tab, text="证据采集", padding=8)
         evidence_card.pack(fill="x", pady=(0, 2))
         actions = ttk.Frame(evidence_card, style="Surface.TFrame")
         actions.pack(fill="x")
@@ -637,7 +652,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.acquisition_preview.configure(state="disabled")
 
     def _build_reader_tab(self) -> None:
-        ttk.Label(self.reader_tab, text="Patent Reader", style="PageTitle.TLabel").pack(anchor="w")
+        ttk.Label(self.reader_tab, text="专利阅读", style="PageTitle.TLabel").pack(anchor="w")
         ttk.Label(
             self.reader_tab,
             text="专利预览、原文访问与中英对照翻译",
@@ -817,14 +832,14 @@ class PatentWorkbenchApp(tk.Tk):
         self.reader_number_var.set(hit.publication_number)
         self.reader_title_var.set(hit.title or "")
         classes = ", ".join(hit.classifications) or "—"
-        self.reader_classification_var.set(f"CPC/IPC {classes}")
+        self.reader_classification_var.set(f"CPC/IPC：{classes}")
         source = []
         if hit.title:
             source.append(hit.title)
         if hit.abstract:
-            source.append("\nABSTRACT\n" + hit.abstract)
+            source.append("\n摘要\n" + hit.abstract)
         if hit.classifications:
-            source.append("\nCLASSIFICATIONS\n" + ", ".join(hit.classifications))
+            source.append("\n分类\n" + ", ".join(hit.classifications))
         self.reader_source_text.delete("1.0", "end")
         self.reader_source_text.insert("1.0", "\n".join(source) or "暂无结构化预览内容。")
         self._set_reader_translation("")
@@ -836,7 +851,7 @@ class PatentWorkbenchApp(tk.Tk):
             return
         service = self.runtime.reader_service
         if service is None:
-            self._set_status("Reader 服务未配置。")
+            self._set_status("专利阅读服务未配置。")
             return
         try:
             publication = normalize_patent_number(self._reader_hit.publication_number)
@@ -851,7 +866,7 @@ class PatentWorkbenchApp(tk.Tk):
         run_async_in_thread(
             task,
             on_success=self._on_reader_document_loaded,
-            on_error=lambda exc: self._set_status(f"Reader 全文加载失败：{exc}"),
+            on_error=lambda exc: self._set_status(f"专利全文加载失败：{exc}"),
             schedule_ui=self._ui_callbacks.submit,
         )
 
@@ -877,10 +892,10 @@ class PatentWorkbenchApp(tk.Tk):
             missing.append("附图")
         if missing:
             self._set_status(
-                f"Reader 已加载，但仍缺少：{', '.join(missing)}。"
+                f"专利全文已加载，但仍缺少：{', '.join(missing)}。"
             )
         else:
-            self._set_status(f"Reader 全文已加载：{document.publication_number}")
+            self._set_status(f"专利全文已加载：{document.publication_number}")
 
     def _show_reader_text_view(self) -> None:
         self.reader_figure_frame.pack_forget()
@@ -919,7 +934,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.reader_figure_index %= len(document.figures)
         figure = document.figures[self.reader_figure_index]
         self.reader_figure_info_var.set(
-            f"Figure {self.reader_figure_index + 1}/{len(document.figures)} · 正在加载…"
+            f"附图 {self.reader_figure_index + 1}/{len(document.figures)} · 正在加载…"
         )
         self._load_reader_figure_image(figure.full_url)
 
@@ -967,7 +982,7 @@ class PatentWorkbenchApp(tk.Tk):
         document = self._reader_document
         total = len(document.figures) if document else 0
         self.reader_figure_info_var.set(
-            f"Figure {self.reader_figure_index + 1}/{total} · 双击图片打开原图"
+            f"附图 {self.reader_figure_index + 1}/{total} · 双击图片打开原图"
         )
 
     def _on_reader_figure_image_error(self, url: str, exc: Exception) -> None:
@@ -1205,7 +1220,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.translate_reader_section()
 
     def _build_family_tab(self) -> None:
-        ttk.Label(self.family_tab, text="Patent Family", style="PageTitle.TLabel").pack(anchor="w")
+        ttk.Label(self.family_tab, text="专利族分析", style="PageTitle.TLabel").pack(anchor="w")
         ttk.Label(
             self.family_tab,
             text="解析 DOCDB / INPADOC 专利族，并批量归档与下载",
@@ -1225,7 +1240,7 @@ class PatentWorkbenchApp(tk.Tk):
         ).grid(row=1, column=0, padx=(0, 8), sticky="ew")
 
         self.family_type_var = tk.StringVar(value=FamilyType.DOCDB_SIMPLE.value)
-        ttk.Label(form, text="Family 类型").grid(row=0, column=1, sticky="w")
+        ttk.Label(form, text="专利族类型").grid(row=0, column=1, sticky="w")
         ttk.Combobox(
             form,
             textvariable=self.family_type_var,
@@ -1260,7 +1275,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.family_download_button.grid(row=1, column=4)
 
         columns = ("number", "country", "title", "application", "date")
-        family_results = ttk.LabelFrame(self.family_tab, text="Family 成员", padding=8)
+        family_results = ttk.LabelFrame(self.family_tab, text="专利族成员", padding=8)
         family_results.pack(fill="both", expand=True, pady=(0, 8))
         self.family_tree = ttk.Treeview(
             family_results,
@@ -1286,7 +1301,7 @@ class PatentWorkbenchApp(tk.Tk):
             textvariable=self.family_summary_var,
             style="SurfaceSubtle.TLabel",
         ).pack(fill="x")
-        self.family_country_var = tk.StringVar(value="Jurisdictions  —")
+        self.family_country_var = tk.StringVar(value="国家/地区  —")
         ttk.Label(
             family_summary_card,
             textvariable=self.family_country_var,
@@ -1307,7 +1322,7 @@ class PatentWorkbenchApp(tk.Tk):
         ).pack(fill="x")
 
     def _build_watch_tab(self) -> None:
-        ttk.Label(self.watch_tab, text="Patent Watch", style="PageTitle.TLabel").pack(anchor="w")
+        ttk.Label(self.watch_tab, text="专利监控", style="PageTitle.TLabel").pack(anchor="w")
         ttk.Label(
             self.watch_tab,
             text="持续监控重点公司与技术主题，识别新专利族和新增成员",
@@ -1316,7 +1331,7 @@ class PatentWorkbenchApp(tk.Tk):
         watch_summary = ttk.Frame(self.watch_tab, style="Surface.TFrame", padding=(12, 8))
         watch_summary.pack(fill="x", pady=(0, 10))
         self.watch_summary_var = tk.StringVar(
-            value="Enabled 0   ·   Disabled 0   ·   Recent runs 0"
+            value="已启用 0   ·   已停用 0   ·   最近运行 0"
         )
         ttk.Label(
             watch_summary,
@@ -1408,7 +1423,7 @@ class PatentWorkbenchApp(tk.Tk):
             height=8,
         )
         for column, title, width in (
-            ("rule", "Rule ID", 260),
+            ("rule", "规则编号", 260),
             ("status", "状态", 80),
             ("time", "时间", 190),
             ("events", "事件", 70),
@@ -1419,98 +1434,99 @@ class PatentWorkbenchApp(tk.Tk):
         self.watch_history_tree.pack(fill="both", expand=True)
 
     def _build_library_tab(self) -> None:
-        ttk.Label(self.library_tab, text="Local Library", style="PageTitle.TLabel").pack(anchor="w")
+        ttk.Label(self.library_tab, text="本地专利库", style="PageTitle.TLabel").pack(anchor="w")
         ttk.Label(
             self.library_tab,
-            text="本地专利、PDF、标签、项目与 Evidence 的统一研究工作区",
+            text="本地公开件、PDF、标签、项目与证据的统一研究工作区",
             style="Subtle.TLabel",
         ).pack(anchor="w", pady=(2, 10))
-        library_toolbar_card = ttk.LabelFrame(self.library_tab, text="筛选与导出", padding=10)
+        library_toolbar_card = ttk.LabelFrame(self.library_tab, text="目录、筛选与导出", padding=10)
         library_toolbar_card.pack(fill="x", pady=(0, 10))
-        toolbar = ttk.Frame(library_toolbar_card, style="Surface.TFrame")
-        toolbar.pack(fill="x")
+        root_toolbar = ttk.Frame(library_toolbar_card, style="Surface.TFrame")
+        root_toolbar.pack(fill="x")
 
         library_root = self.runtime.library_root or self.runtime.paths.downloads
         self.library_root_var = tk.StringVar(value=str(library_root))
-        ttk.Label(toolbar, text="专利库目录").pack(side="left")
+        ttk.Label(root_toolbar, text="专利库目录").pack(side="left")
         ttk.Entry(
-            toolbar,
+            root_toolbar,
             textvariable=self.library_root_var,
-            width=42,
-        ).pack(side="left", padx=(5, 4))
+            width=56,
+        ).pack(side="left", fill="x", expand=True, padx=(5, 4))
         ttk.Button(
-            toolbar,
+            root_toolbar,
             text="选择目录",
             command=self.choose_library_root,
             style="Quiet.TButton",
         ).pack(side="left", padx=(0, 4))
         ttk.Button(
-            toolbar,
+            root_toolbar,
             text="扫描预览",
             command=self.preview_library_root,
             style="Quiet.TButton",
         ).pack(side="left", padx=(0, 8))
 
-        self.library_query_var = tk.StringVar()
-        entry = ttk.Entry(
-            toolbar,
-            textvariable=self.library_query_var,
-            width=48,
-        )
-        entry.pack(side="left")
-        entry.bind("<Return>", lambda _event: self.refresh_library())
-
-        ttk.Button(
-            toolbar,
-            text="筛选",
-            command=self.refresh_library,
-            style="Accent.TButton",
-        ).pack(side="left", padx=(8, 0))
-        ttk.Button(
-            toolbar,
-            text="导出 CSV",
-            command=lambda: self.export_library(".csv"),
-            style="Quiet.TButton",
-        ).pack(side="left", padx=(6, 0))
-        ttk.Button(
-            toolbar,
-            text="导出 Excel",
-            command=lambda: self.export_library(".xlsx"),
-            style="Ghost.TButton",
-        ).pack(side="left", padx=(2, 0))
         self.library_enrich_button = ttk.Button(
-            toolbar,
+            root_toolbar,
             text="补全元数据",
             command=self.enrich_library_metadata,
             style="Quiet.TButton",
         )
-        self.library_enrich_button.pack(side="left", padx=(6, 0))
+        self.library_enrich_button.pack(side="left", padx=(0, 6))
         self.library_enrich_status_var = tk.StringVar(value="元数据补全：未运行")
         ttk.Label(
-            toolbar,
+            root_toolbar,
             textvariable=self.library_enrich_status_var,
             style="SurfaceSubtle.TLabel",
-        ).pack(side="left", padx=(10, 0))
+        ).pack(side="left", padx=(4, 0))
 
-        quick = ttk.Frame(library_toolbar_card, style="Surface.TFrame")
-        quick.pack(fill="x", pady=(8, 0))
+        query_toolbar = ttk.Frame(library_toolbar_card, style="Surface.TFrame")
+        query_toolbar.pack(fill="x", pady=(8, 0))
+        self.library_query_var = tk.StringVar()
+        ttk.Label(query_toolbar, text="关键词").pack(side="left", padx=(0, 5))
+        entry = ttk.Entry(
+            query_toolbar,
+            textvariable=self.library_query_var,
+            width=48,
+        )
+        entry.pack(side="left", fill="x", expand=True)
+        entry.bind("<Return>", lambda _event: self.refresh_library())
+
+        ttk.Button(
+            query_toolbar,
+            text="筛选",
+            command=self.refresh_library,
+            style="Accent.TButton",
+        ).pack(side="left", padx=(8, 0))
         self.library_favorite_only_var = tk.BooleanVar(value=False)
         self.library_has_pdf_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(
-            quick,
+            query_toolbar,
             text="仅收藏",
             variable=self.library_favorite_only_var,
             command=self.refresh_library,
-        ).pack(side="left")
+        ).pack(side="left", padx=(12, 0))
         ttk.Checkbutton(
-            quick,
+            query_toolbar,
             text="仅有 PDF",
             variable=self.library_has_pdf_var,
             command=self.refresh_library,
         ).pack(side="left", padx=(10, 0))
+        ttk.Button(
+            query_toolbar,
+            text="导出 CSV",
+            command=lambda: self.export_library(".csv"),
+            style="Quiet.TButton",
+        ).pack(side="left", padx=(12, 0))
+        ttk.Button(
+            query_toolbar,
+            text="导出 Excel",
+            command=lambda: self.export_library(".xlsx"),
+            style="Ghost.TButton",
+        ).pack(side="left", padx=(2, 0))
         self.library_result_summary_var = tk.StringVar(value="0 条")
         ttk.Label(
-            quick,
+            query_toolbar,
             textvariable=self.library_result_summary_var,
             style="SurfaceSubtle.TLabel",
         ).pack(side="right")
@@ -1521,13 +1537,13 @@ class PatentWorkbenchApp(tk.Tk):
         library_actions.pack(fill="x", pady=(0, 8))
         ttk.Button(
             library_actions,
-            text="打开 Reader",
+            text="打开专利阅读",
             command=self.open_selected_library_in_reader,
             style="Accent.TButton",
         ).pack(side="left")
         ttk.Button(
             library_actions,
-            text="Patent Family",
+            text="查看专利族",
             command=self.open_selected_library_family,
             style="Ghost.TButton",
         ).pack(side="left", padx=(6, 0))
@@ -1545,7 +1561,7 @@ class PatentWorkbenchApp(tk.Tk):
         ).pack(side="left", padx=(4, 0))
         ttk.Button(
             library_actions,
-            text="Google Patents",
+            text="打开 Google Patents",
             command=self.open_selected_library_source,
             style="Quiet.TButton",
         ).pack(side="left", padx=(10, 0))
@@ -1611,11 +1627,11 @@ class PatentWorkbenchApp(tk.Tk):
         )
         self.library_context_menu = tk.Menu(self, tearoff=False)
         self.library_context_menu.add_command(
-            label="打开 Reader",
+            label="打开专利阅读",
             command=self.open_selected_library_in_reader,
         )
         self.library_context_menu.add_command(
-            label="Patent Family",
+            label="查看专利族",
             command=self.open_selected_library_family,
         )
         self.library_context_menu.add_separator()
@@ -1650,7 +1666,7 @@ class PatentWorkbenchApp(tk.Tk):
 
         self.library_detail_number_var = tk.StringVar()
         self.library_detail_title_var = tk.StringVar()
-        self.library_metadata_var = tk.StringVar(value="申请人 / Family / CPC / 来源")
+        self.library_metadata_var = tk.StringVar(value="申请人 / 专利族 / CPC / 来源")
         self.library_favorite_var = tk.BooleanVar(value=False)
         self.library_tags_var = tk.StringVar()
         self.library_projects_var = tk.StringVar()
@@ -1697,7 +1713,7 @@ class PatentWorkbenchApp(tk.Tk):
         ttk.Label(detail, text="备注").grid(row=4, column=0, sticky="nw")
         self.library_note_text = tk.Text(detail, height=3, wrap="word")
         self.library_note_text.grid(
-            row=5,
+            row=4,
             column=1,
             columnspan=4,
             sticky="ew",
@@ -1708,7 +1724,7 @@ class PatentWorkbenchApp(tk.Tk):
         ttk.Label(detail, text="本地 PDF").grid(row=5, column=0, sticky="nw")
         self.library_pdf_list = tk.Listbox(detail, height=3)
         self.library_pdf_list.grid(
-            row=4,
+            row=5,
             column=1,
             columnspan=4,
             sticky="ew",
@@ -1782,7 +1798,7 @@ class PatentWorkbenchApp(tk.Tk):
     def _build_technology_tab(self) -> None:
         ttk.Label(
             self.technology_tab,
-            text="Technology Taxonomy",
+            text="技术分类",
             style="PageTitle.TLabel",
         ).pack(anchor="w")
         ttk.Label(
@@ -1825,7 +1841,7 @@ class PatentWorkbenchApp(tk.Tk):
         while current:
             path.append(self.technology_tree.item(current, "text"))
             current = self.technology_tree.parent(current)
-        self._set_status("Technology: " + " > ".join(reversed(path)))
+        self._set_status("技术分类：" + " > ".join(reversed(path)))
 
     def _search_selected_technology(self, _event=None) -> None:
         selection = self.technology_tree.selection()
@@ -1833,7 +1849,7 @@ class PatentWorkbenchApp(tk.Tk):
             return
         node = self.technology_taxonomy.find(selection[0])
         if not node.search_terms:
-            self._set_status(f"Technology: {node.name} · 请选择可检索的叶节点")
+            self._set_status(f"技术分类：{node.name} · 请选择可检索的叶节点")
             return
         self.search_query_var.set(" OR ".join(node.search_terms))
         self.search_scope_var.set("具体技术主题")
@@ -1841,38 +1857,42 @@ class PatentWorkbenchApp(tk.Tk):
         self._set_status(f"已载入技术检索：{node.name}")
 
     def _build_evidence_tab(self) -> None:
-        ttk.Label(self.evidence_tab, text="Evidence Center", style="PageTitle.TLabel").pack(
+        ttk.Label(self.evidence_tab, text="证据中心", style="PageTitle.TLabel").pack(
             anchor="w"
         )
         ttk.Label(
             self.evidence_tab,
-            text="集中检索、浏览并追溯网页、PDF 与 Office 文档采集证据",
+            text="集中检索、浏览并追溯网页、PDF 与 Office 文档采集的工程证据",
             style="Subtle.TLabel",
         ).pack(anchor="w", pady=(2, 10))
 
-        toolbar_card = ttk.LabelFrame(self.evidence_tab, text="Evidence 检索", padding=10)
+        toolbar_card = ttk.LabelFrame(self.evidence_tab, text="证据检索", padding=10)
         toolbar_card.pack(fill="x", pady=(0, 10))
         toolbar = ttk.Frame(toolbar_card, style="Surface.TFrame")
         toolbar.pack(fill="x")
         self.evidence_query_var = tk.StringVar()
+        ttk.Label(toolbar, text="关键词").pack(side="left", padx=(0, 5))
         entry = ttk.Entry(toolbar, textvariable=self.evidence_query_var, width=36)
         entry.pack(side="left", fill="x", expand=True)
         entry.bind("<Return>", lambda _event: self.refresh_evidence())
-        self.evidence_type_var = tk.StringVar(value="All types")
+        self.evidence_type_var = tk.StringVar(value="全部类型")
+        ttk.Label(toolbar, text="类型").pack(side="left", padx=(12, 5))
         ttk.Combobox(
             toolbar,
             textvariable=self.evidence_type_var,
-            values=("All types", "url", "file"),
+            values=("全部类型", "网页", "文件"),
             state="readonly",
             width=12,
         ).pack(side="left", padx=(8, 0))
         self.evidence_company_var = tk.StringVar()
+        ttk.Label(toolbar, text="公司").pack(side="left", padx=(12, 5))
         ttk.Entry(
             toolbar,
             textvariable=self.evidence_company_var,
             width=16,
         ).pack(side="left", padx=(8, 0))
         self.evidence_topic_var = tk.StringVar()
+        ttk.Label(toolbar, text="技术主题").pack(side="left", padx=(12, 5))
         ttk.Entry(
             toolbar,
             textvariable=self.evidence_topic_var,
@@ -1887,7 +1907,7 @@ class PatentWorkbenchApp(tk.Tk):
 
         evidence_summary = ttk.Frame(self.evidence_tab, style="Surface.TFrame", padding=(12, 8))
         evidence_summary.pack(fill="x", pady=(0, 8))
-        self.evidence_summary_var = tk.StringVar(value="Evidence 0")
+        self.evidence_summary_var = tk.StringVar(value="证据 0 条")
         ttk.Label(
             evidence_summary,
             textvariable=self.evidence_summary_var,
@@ -1937,7 +1957,7 @@ class PatentWorkbenchApp(tk.Tk):
         source_type = self.evidence_type_var.get()
         self._evidence_center_records = self.runtime.library_store.list_evidence(
             text=query,
-            source_type=None if source_type == "All types" else source_type,
+            source_type={"网页": "url", "文件": "file"}.get(source_type),
             company_group=self.evidence_company_var.get().strip() or None,
             technology_topic=self.evidence_topic_var.get().strip() or None,
             limit=1000,
@@ -1949,7 +1969,7 @@ class PatentWorkbenchApp(tk.Tk):
                 "end",
                 iid=record.evidence_id,
                 values=(
-                    record.source_type,
+                    {"url": "网页", "file": "文件"}.get(record.source_type, record.source_type),
                     record.title or record.source,
                     record.publication_number or "—",
                     record.company_group or "—",
@@ -1962,11 +1982,11 @@ class PatentWorkbenchApp(tk.Tk):
         if not self._evidence_center_records:
             self.evidence_preview.insert(
                 "1.0",
-                "No evidence found.\n\n从 Search 页面使用“采集 URL / 文件”创建第一条 Evidence。",
+                "尚未找到证据。\n\n请从“专利检索”页面使用“采集 URL / 文件”创建第一条证据。",
             )
         self.evidence_preview.configure(state="disabled")
-        self.evidence_summary_var.set(f"Evidence {len(self._evidence_center_records)}")
-        self._set_status(f"Evidence：{len(self._evidence_center_records)} 条")
+        self.evidence_summary_var.set(f"证据 {len(self._evidence_center_records)} 条")
+        self._set_status(f"证据：{len(self._evidence_center_records)} 条")
 
     def _load_evidence_center_preview(self, _event=None) -> None:
         selection = self.evidence_tree.selection()
@@ -1980,13 +2000,13 @@ class PatentWorkbenchApp(tk.Tk):
         if record is None:
             return
         preview = (
-            f"{record.title or 'Untitled Evidence'}\n\n"
-            f"Source: {record.source}\n"
-            f"Type: {record.source_type}\n"
-            f"Patent: {record.publication_number or '—'}\n"
-            f"Company: {record.company_group or '—'}\n"
-            f"Topic: {record.technology_topic or '—'}\n"
-            f"Captured: {record.captured_at.isoformat()}\n\n"
+            f"{record.title or '未命名证据'}\n\n"
+            f"来源：{record.source}\n"
+            f"类型：{record.source_type}\n"
+            f"关联专利：{record.publication_number or '—'}\n"
+            f"公司：{record.company_group or '—'}\n"
+            f"技术主题：{record.technology_topic or '—'}\n"
+            f"采集时间：{record.captured_at.isoformat()}\n\n"
             f"{record.markdown[:12000]}"
         )
         self.evidence_preview.configure(state="normal")
@@ -2000,7 +2020,7 @@ class PatentWorkbenchApp(tk.Tk):
 
         frame = ttk.LabelFrame(
             self.settings_tab,
-            text="EPO Open Patent Services",
+            text="EPO 开放专利服务（可选）",
             padding=12,
         )
         frame.pack(fill="x")
@@ -2009,7 +2029,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.epo_secret_var = tk.StringVar(value=credentials.consumer_secret if credentials else "")
         self.settings_status_var = tk.StringVar(value=self.runtime.search_status)
 
-        ttk.Label(frame, text="Consumer Key").grid(
+        ttk.Label(frame, text="使用者密钥（Consumer Key）").grid(
             row=0,
             column=0,
             sticky="w",
@@ -2020,7 +2040,7 @@ class PatentWorkbenchApp(tk.Tk):
             width=56,
         ).grid(row=1, column=0, padx=(0, 10), sticky="ew")
 
-        ttk.Label(frame, text="Consumer Secret").grid(
+        ttk.Label(frame, text="使用者密钥（Consumer Secret）").grid(
             row=0,
             column=1,
             sticky="w",
@@ -2058,7 +2078,7 @@ class PatentWorkbenchApp(tk.Tk):
 
         translation_frame = ttk.LabelFrame(
             self.settings_tab,
-            text="Translation",
+            text="翻译服务（可选）",
             padding=12,
         )
         translation_frame.pack(fill="x", pady=(12, 0))
@@ -2071,13 +2091,13 @@ class PatentWorkbenchApp(tk.Tk):
         self.translation_status_var = tk.StringVar(
             value="翻译服务：已配置" if translation else "翻译服务：未配置"
         )
-        ttk.Label(translation_frame, text="Endpoint").grid(row=0, column=0, sticky="w")
+        ttk.Label(translation_frame, text="接口地址（Endpoint）").grid(row=0, column=0, sticky="w")
         ttk.Entry(
             translation_frame,
             textvariable=self.translation_endpoint_var,
             width=72,
         ).grid(row=1, column=0, padx=(0, 10), sticky="ew")
-        ttk.Label(translation_frame, text="API Key（可选）").grid(row=0, column=1, sticky="w")
+        ttk.Label(translation_frame, text="API 密钥（可选）").grid(row=0, column=1, sticky="w")
         ttk.Entry(
             translation_frame,
             textvariable=self.translation_api_key_var,
@@ -2172,7 +2192,7 @@ class PatentWorkbenchApp(tk.Tk):
         if not key or not secret:
             messagebox.showinfo(
                 "缺少凭据",
-                "Consumer Key 和 Consumer Secret 都必须填写。",
+                "使用者密钥（Consumer Key）和使用者密钥（Consumer Secret）都必须填写。",
             )
             return
         try:
@@ -2256,7 +2276,11 @@ class PatentWorkbenchApp(tk.Tk):
         self.library_evidence_list.delete(0, "end")
         for record in self._library_evidence_records:
             label = record.title or record.source
-            self.library_evidence_list.insert("end", f"[{record.source_type}] {label}")
+            source_label = {"url": "网页", "file": "文件"}.get(
+                record.source_type,
+                record.source_type,
+            )
+            self.library_evidence_list.insert("end", f"[{source_label}] {label}")
         self.library_evidence_preview.configure(state="normal")
         self.library_evidence_preview.delete("1.0", "end")
         if self._library_evidence_records:
@@ -2706,8 +2730,8 @@ class PatentWorkbenchApp(tk.Tk):
             )
         priority = family.earliest_priority
         self.family_summary_var.set(
-            f"{family.family_type.value} · {len(family.members)} 成员 · "
-            f"Family ID: {family.source_family_id or '-'} · "
+            f"{family.family_type.value} · {len(family.members)} 个成员 · "
+            f"专利族编号：{family.source_family_id or '-'} · "
             f"最早优先权: {priority.number if priority else '-'}"
         )
         jurisdiction_counts: dict[str, int] = {}
@@ -2721,7 +2745,7 @@ class PatentWorkbenchApp(tk.Tk):
                 jurisdiction_counts.items(), key=lambda item: (-item[1], item[0])
             )
         )
-        self.family_country_var.set(f"Jurisdictions  {distribution or '—'}")
+        self.family_country_var.set(f"国家/地区  {distribution or '—'}")
         self._set_status(f"专利族解析完成：{len(family.members)} 个成员")
 
     def add_current_family_to_library(self) -> None:
@@ -2854,12 +2878,12 @@ class PatentWorkbenchApp(tk.Tk):
         enabled_count = sum(1 for rule in rules if rule.enabled)
         scheduler = self.runtime.watch_scheduler
         due_count = len(scheduler.due_rules()) if scheduler is not None else 0
-        auto_label = "Auto ON" if scheduler is not None else "Auto OFF"
+        auto_label = "自动监控已开启" if scheduler is not None else "自动监控未配置"
         self.watch_summary_var.set(
-            f"{auto_label}   ·   Enabled {enabled_count}"
-            f"   ·   Due {due_count}"
-            f"   ·   Disabled {len(rules) - enabled_count}"
-            f"   ·   Recent runs {len(recent_runs)}"
+            f"{auto_label}   ·   已启用 {enabled_count}"
+            f"   ·   待运行 {due_count}"
+            f"   ·   已停用 {len(rules) - enabled_count}"
+            f"   ·   最近运行 {len(recent_runs)}"
         )
         for rule in rules:
             state = self.runtime.watch_store.get_state(rule.rule_id)
@@ -2925,7 +2949,7 @@ class PatentWorkbenchApp(tk.Tk):
             self.watch_rule_tree.selection_set(rule.rule_id)
             self.watch_rule_tree.focus(rule.rule_id)
         self.watch_cadence_var.set(str(cadence_hours))
-        self._set_status(f"Patent Watch 间隔已更新：{rule.name} → {cadence_hours} 小时")
+        self._set_status(f"专利监控间隔已更新：{rule.name} → {cadence_hours} 小时")
 
     def run_due_watch_rules(self) -> None:
         scheduler = self.runtime.watch_scheduler
@@ -3040,7 +3064,7 @@ class PatentWorkbenchApp(tk.Tk):
             return
         self._watch_run_active = True
         self._set_watch_buttons_enabled(False)
-        self._set_status(f"Patent Watch 自动运行：{len(due)} 条到期规则…")
+        self._set_status(f"专利监控自动运行：{len(due)} 条到期规则…")
 
         def task():
             return scheduler.run_due()
@@ -3132,7 +3156,7 @@ class PatentWorkbenchApp(tk.Tk):
     def _on_library_preview_ready(self, summary) -> None:
         message = (
             f"扫描预览（未写入）：{summary.folders} 个公司目录 · "
-            f"{summary.imported} 条专利 · {summary.families} 个 Family · "
+            f"{summary.imported} 条专利 · {summary.families} 个专利族 · "
             f"{summary.attached_pdfs} 个 PDF · {summary.classified} 条已分类 · "
             f"跳过 {summary.skipped}"
         )
@@ -3158,8 +3182,8 @@ class PatentWorkbenchApp(tk.Tk):
         )
         self.refresh_library()
         message = (
-            f"LocalLibrary 已同步：{summary.folders} 个公司目录 · "
-            f"{summary.imported} 条专利 · {summary.families} 个 Family · "
+            f"本地专利库已同步：{summary.folders} 个公司目录 · "
+            f"{summary.imported} 条专利 · {summary.families} 个专利族 · "
             f"{summary.attached_pdfs} 个 PDF · {summary.classified} 条已分类 · "
             f"跳过 {summary.skipped}"
         )
@@ -3186,7 +3210,7 @@ class PatentWorkbenchApp(tk.Tk):
                 f"无变化 {summary.unchanged}"
             )
             self.refresh_library()
-            self._set_status(f"LocalLibrary 元数据补全完成：{summary.enriched} 条更新")
+            self._set_status(f"本地专利库元数据补全完成：{summary.enriched} 条更新")
 
         def failed(exc: Exception) -> None:
             self.library_enrich_button.state(["!disabled"])
