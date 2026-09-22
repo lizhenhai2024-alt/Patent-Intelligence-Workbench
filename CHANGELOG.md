@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.0.0rc4 — Reader/Watch restoration, LocalLibrary workbench and engineering intelligence
+
+### Search and portfolio quality
+
+- Prefer Chinese title/applicant metadata for CN patents where available.
+- Allow free-form company/applicant searches instead of limiting input to preset companies.
+- Tighten suspension-domain filtering to reduce unrelated company-portfolio contamination.
+
+### Patent Reader and Patent Watch
+
+- Restore Reader claims, description and figures through layered public/PDF/EPO fallbacks.
+- Add explicit source visibility and family full-text fallback.
+- Restore automatic Patent Watch execution with failure backoff and run-selected-now control.
+
+### Local Library
+
+- Turn LocalLibrary into an interactive patent workbench with direct Reader, Family, PDF, folder and source actions.
+- Add right-click/keyboard navigation, quick filters, richer metadata and local-family reconstruction.
+
+### Engineering intelligence
+
+- Add evidence-backed engineering-intelligence workflows for patent analysis and technical research.
+
+### Validation
+
+- Windows one-file packaged executable smoke test is required before release.
+- Release artifact includes BUILD_INFO.txt and SHA256SUMS.txt and is published only after a successful main-branch Windows build.
+
 ## 1.0.0rc3 — Desktop thread safety, download feedback and Watch cadence
 
 ### Desktop thread safety
