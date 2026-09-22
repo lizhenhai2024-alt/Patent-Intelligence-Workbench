@@ -2765,15 +2765,20 @@ class PatentWorkbenchApp(tk.Tk):
                 maximum=max(len(summary.members), 1),
                 value=len(summary.members),
             )
+            parts = [f"成功 {summary.succeeded}"]
+            if summary.failed:
+                parts.append(f"失败 {summary.failed}")
+            if summary.unsupported:
+                parts.append(f"未支持自动下载 {summary.unsupported}")
+            status_text = "，".join(parts)
             self.family_download_progress_var.set(
-                f"下载完成：成功 {summary.succeeded}，失败 {summary.failed} · "
-                f"{summary.family_folder}"
+                f"下载完成：{status_text} · {summary.family_folder}"
             )
-            self._set_status(f"下载完成：成功 {summary.succeeded}，失败 {summary.failed}")
+            self._set_status(f"下载完成：{status_text}")
 
             if summary.failed:
                 failed = [
-                    f"{member.publication_number}: {member.error or '未下载'}"
+                    f"{member.publication_number}: {member.error or '下载失败'}"
                     for member in summary.members
                     if member.status == "failed"
                 ]
@@ -2782,8 +2787,24 @@ class PatentWorkbenchApp(tk.Tk):
                     details += f"\n…另有 {len(failed) - 8} 项"
                 messagebox.showwarning(
                     "整族 PDF 下载完成（有失败）",
-                    f"成功 {summary.succeeded}，失败 {summary.failed}\n\n"
+                    f"{status_text}\n\n"
                     f"目录：{summary.family_folder}\n\n{details}",
+                )
+            elif summary.unsupported:
+                unsupported = [
+                    member.publication_number
+                    for member in summary.members
+                    if member.status == "unsupported"
+                ]
+                detail_list = "\n".join(unsupported[:12])
+                if len(unsupported) > 12:
+                    detail_list += f"\n…另有 {len(unsupported) - 12} 项"
+                messagebox.showinfo(
+                    "整族 PDF 下载完成",
+                    f"成功下载 {summary.succeeded} 个专利 PDF。\n\n"
+                    f"以下 {summary.unsupported} 个成员未配置自动下载"
+                    f"（已记录到 family.json，可手动获取）：\n\n{detail_list}\n\n"
+                    f"目录：{summary.family_folder}",
                 )
             else:
                 messagebox.showinfo(
@@ -2837,7 +2858,8 @@ class PatentWorkbenchApp(tk.Tk):
             maximum=max(progress.total, 1),
             value=progress.completed,
         )
-        state = "成功" if progress.status == "success" else "失败"
+        state_map = {"success": "成功", "unsupported": "未支持", "failed": "失败"}
+        state = state_map.get(progress.status, progress.status)
         self.family_download_progress_var.set(
             f"下载中：{progress.completed} / {progress.total} · "
             f"{progress.publication_number} · {state}"
