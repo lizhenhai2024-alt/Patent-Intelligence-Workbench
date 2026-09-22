@@ -7,14 +7,17 @@ from app.watch.models import WatchRule
 from app.watch.state import WatchRuleState, WatchRunHistory
 
 
-def patent_row(patent: LibraryPatent) -> tuple[str, str, str, str, str, str]:
+def patent_row(patent: LibraryPatent) -> tuple[str, str, str, str, str, str, str]:
+    assignees = patent.current_assignees or patent.original_assignees
+    owner = ", ".join(assignees) or ", ".join(patent.company_groups)
     return (
         patent.publication_number,
         patent.jurisdiction,
         patent.title or "",
-        ", ".join(patent.company_groups),
+        owner,
         ", ".join(patent.technology_topics),
         "★" if patent.favorite else "",
+        "PDF" if patent.pdf_paths else "",
     )
 
 
