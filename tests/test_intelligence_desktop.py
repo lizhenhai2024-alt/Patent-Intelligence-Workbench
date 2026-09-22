@@ -1,0 +1,50 @@
+import time
+
+import pytest
+
+from app.desktop.app import PatentWorkbenchApp
+from app.desktop.intelligence_tab import copy_ai_prompt, run_task, send_to_search
+from app.desktop.paths import AppPaths
+from app.desktop.runtime import DesktopRuntime
+from app.desktop.tk_runtime import can_run_tk_tests
+from app.intelligence.analysis import AnalysisScope, AnalysisService
+
+pytestmark = pytest.mark.skipif(
+    not can_run_tk_tests(), reason="Tk UI tests require a usable Tcl/Tk runtime"
+)
+
+
+def test_intelligence_tab_previews_editable_engineering_search(tmp_path, monkeypatch):
+    runtime = DesktopRuntime.create(paths=AppPaths.for_root(tmp_path / "appdata"))
+    app = PatentWorkbenchApp(runtime)
+    app.withdraw()
+    try:
+        assert "intelligence" in app._pages
+        app._show_page("intelligence")
+        app.intelligence_workflow_var.set("工程问题检索")
+        app.intelligence_topic_var.set("CDC 减振器低温响应变慢")
+        run_task(app)
+        assert app.intelligence_query_var.get()
+        assert "内置技术词典" in app.intelligence_preview.get("1.0", "end")
+        app.intelligence_query_var.set("pilot valve")
+        send_to_search(app)
+        assert app.search_query_var.get() == "pilot valve"
+        assert app._pages["search"].winfo_manager() == "pack"
+        app._intelligence_report = AnalysisService(runtime.library_store).landscape(AnalysisScope())
+        copy_ai_prompt(app)
+        assert "只基于列出的数据" in app.clipboard_get()
+        errors = []
+        monkeypatch.setattr(
+            "app.desktop.intelligence_tab.messagebox.showerror", lambda *args: errors.append(args)
+        )
+        app.intelligence_workflow_var.set("专利全景分析")
+        run_task(app)
+        deadline = time.monotonic() + 3
+        while app._intelligence_report is None and not errors and time.monotonic() < deadline:
+            app.update()
+            time.sleep(0.01)
+        assert not errors
+        assert app._intelligence_report is not None
+        assert app._intelligence_report.workflow == "landscape"
+    finally:
+        app._on_close()

@@ -13,11 +13,11 @@
 
 正式 Prior Art / 查新、X/Y/A、Claim Chart 和 FTO 不进入 V1.0。
 
-## Planned engineering-intelligence workflows
+## Engineering-intelligence workflows (source checkout)
 
-The workflows below are **product direction, not implemented V1 features**. They build on the existing Search → Reader/Family → Download → Watch → LocalLibrary → Export loop.
+The desktop source now includes offline, LocalLibrary-backed entry points for the workflows below. They extend the Search → Reader/Family → Download → Watch → LocalLibrary → Export loop; they have not been packaged as a formal V1 release.
 
-| Priority | Workflow | Intended output |
+| Priority | Workflow | Current output |
 | --- | --- | --- |
 | 1 | 专利全景分析 | Family-level filing trends, companies, jurisdictions, technology branches, representative publications, and traceable counts. |
 | 2 | 公司技术画像 | One exactly resolved company group's suspension-technology routes, key families, changes over time, and evidence. |
@@ -25,11 +25,13 @@ The workflows below are **product direction, not implemented V1 features**. They
 | 4 | 工程问题检索 | Editable multilingual terms and search scope derived from an engineering problem, followed by patent-backed solution leads. |
 | 5 | 监控简报 | New-family and new-member events grouped into a reviewable, annotatable action list. |
 
-The first milestone is **专利全景分析**. A user should be able to define a topic, jurisdictions, and time window; generate an offline-readable report; inspect the patents behind every chart or count; and see the query, data source, date, and counting method. Family counts and national-publication counts must remain distinct.
+The first milestone, **专利全景分析**, accepts a topic, jurisdictions and time window and generates an offline-readable HTML report with publication receipts, data source, date and counting method. Known-family and national-publication counts remain distinct; missing family keys are shown separately. The Intelligence tab also offers a copy-only AI evidence prompt: the application does not send local records to an AI service automatically.
 
 Each workflow should state its purpose, suitable use, required inputs, outputs, data sources and as-of date, method, example questions, and review limits. Materials and engineering knowledge may help explain mechanisms or frame a search, but a patent-data view alone cannot establish product performance, supply capacity, or market share.
 
 Product-feature-to-claim evidence mapping, DFMEA, validation planning, and R&D initiation are later extensions that require additional product, design, or test evidence. Automated infringement, FTO, validity, novelty, or other formal legal conclusions remain outside the workbench.
+
+See [Engineering Intelligence guide](docs/ENGINEERING_INTELLIGENCE.md) for input fields, report limits and the optional AI handoff.
 
 ## Core jurisdictions
 
@@ -123,4 +125,3 @@ Release-candidate documentation:
 ## License
 
 MIT
-
