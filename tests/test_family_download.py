@@ -129,3 +129,165 @@ def test_family_downloader_reports_member_progress(tmp_path):
     assert updates[0].status == "success"
     assert updates[1].publication_number == "US20240123456A1"
     assert updates[1].status == "failed"
+
+
+class UnsupportedProvider:
+    """Provider that never supports any publication."""
+
+    name = "UNSUPPORTED"
+
+    def supports(self, publication):
+        return False
+
+    async def fetch_pdf(self, publication):
+        raise AssertionError("should not be called")
+
+
+class SelectiveProvider:
+    """Provider that supports only JP publications."""
+
+    name = "SELECTIVE"
+
+    def supports(self, publication):
+        return publication.jurisdiction == "JP"
+
+    async def fetch_pdf(self, publication):
+        return PdfPayload(
+            provider=self.name,
+            source_url=f"https://example.test/{publication.canonical}.pdf",
+            data=b"%PDF-1.7\nselective-test\n%%EOF",
+        )
+
+
+def _family_with_unsupported_jurisdiction():
+    priority = PriorityClaim(
+        number="JP2022000456",
+        country="JP",
+        priority_date=date(2022, 3, 4),
+    )
+    return PatentFamily(
+        family_type=FamilyType.DOCDB_SIMPLE,
+        source="TEST",
+        source_family_id="F-200",
+        members=[
+            PatentPublication(
+                publication_number="JP2024000123A",
+                jurisdiction="JP",
+                title="Damper valve",
+                publication_date=date(2024, 1, 10),
+                original_assignees=("Example Corp",),
+                priorities=(priority,),
+            ),
+            PatentPublication(
+                publication_number="BR112024001234A2",
+                jurisdiction="BR",
+                title="Brazilian family member",
+                priorities=(priority,),
+            ),
+            PatentPublication(
+                publication_number="ES1234567T3",
+                jurisdiction="ES",
+                title="Spanish family member",
+                priorities=(priority,),
+            ),
+        ],
+    )
+
+
+def test_unsupported_jurisdiction_marked_unsupported_not_failed(tmp_path):
+    """BR/ES members should be 'unsupported', not 'failed'."""
+    provider = StatefulProvider()
+    downloader = FamilyDownloader(DownloadManager([provider]))
+    family = _family_with_unsupported_jurisdiction()
+
+    summary = asyncio.run(downloader.download_family(family, tmp_path))
+
+    assert summary.succeeded == 1
+    assert summary.failed == 0
+    assert summary.unsupported == 2
+
+    br_member = next(
+        m for m in summary.members if m.publication_number == "BR112024001234A2"
+    )
+    assert br_member.status == "unsupported"
+    assert "jurisdiction" in (br_member.error or "").lower() or "unsupported" in (
+        br_member.error or ""
+    ).lower()
+
+    es_member = next(
+        m for m in summary.members if m.publication_number == "ES1234567T3"
+    )
+    assert es_member.status == "unsupported"
+
+    jp_member = next(
+        m for m in summary.members if m.publication_number == "JP2024000123A"
+    )
+    assert jp_member.status == "success"
+
+
+def test_all_providers_unsupported_marks_member_unsupported(tmp_path):
+    """When no provider supports a publication, status should be 'unsupported'."""
+    downloader = FamilyDownloader(DownloadManager([UnsupportedProvider()]))
+    family = _family()
+
+    summary = asyncio.run(downloader.download_family(family, tmp_path))
+
+    assert summary.succeeded == 0
+    assert summary.failed == 0
+    assert summary.unsupported == 2
+
+    for member in summary.members:
+        assert member.status == "unsupported"
+
+
+def test_mixed_supported_and_unsupported_providers(tmp_path):
+    """SelectiveProvider supports JP only; US should be 'unsupported', not 'failed'."""
+    downloader = FamilyDownloader(DownloadManager([SelectiveProvider()]))
+    family = _family()
+
+    summary = asyncio.run(downloader.download_family(family, tmp_path))
+
+    assert summary.succeeded == 1
+    assert summary.failed == 0
+    assert summary.unsupported == 1
+
+    jp_member = next(
+        m for m in summary.members if m.publication_number == "JP2024000123A"
+    )
+    assert jp_member.status == "success"
+
+    us_member = next(
+        m for m in summary.members if m.publication_number == "US20240123456A1"
+    )
+    assert us_member.status == "unsupported"
+
+
+def test_actual_download_failure_still_marked_failed(tmp_path):
+    """A provider that supports but errors should still yield status='failed'."""
+    provider = StatefulProvider(failing={"US20240123456A1"})
+    downloader = FamilyDownloader(DownloadManager([provider]))
+    family = _family()
+
+    summary = asyncio.run(downloader.download_family(family, tmp_path))
+
+    assert summary.succeeded == 1
+    assert summary.failed == 1
+    assert summary.unsupported == 0
+
+    us_member = next(
+        m for m in summary.members if m.publication_number == "US20240123456A1"
+    )
+    assert us_member.status == "failed"
+
+
+def test_unsupported_members_written_to_manifest(tmp_path):
+    """Unsupported members should still appear in family.json."""
+    downloader = FamilyDownloader(DownloadManager([UnsupportedProvider()]))
+    family = _family()
+
+    summary = asyncio.run(downloader.download_family(family, tmp_path))
+
+    payload = json.loads(summary.manifest_path.read_text(encoding="utf-8"))
+    assert len(payload["downloads"]) == 2
+    statuses = {d["publication_number"]: d["status"] for d in payload["downloads"]}
+    assert all(s == "unsupported" for s in statuses.values())

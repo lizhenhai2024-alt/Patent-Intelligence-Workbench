@@ -38,6 +38,9 @@ class DownloadExhaustedError(DownloadError):
         self.publication_number = publication_number
         self.attempts = attempts
         self.official_sources = official_sources
+        self.all_unsupported = all(
+            not attempt.attempted for attempt in attempts
+        )
         details = "; ".join(
             f"{attempt.provider}: {attempt.error or 'failed'}"
             for attempt in attempts

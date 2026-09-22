@@ -50,6 +50,10 @@ class FamilyDownloadSummary:
     def failed(self) -> int:
         return sum(member.status == "failed" for member in self.members)
 
+    @property
+    def unsupported(self) -> int:
+        return sum(member.status == "unsupported" for member in self.members)
+
 
 class FamilyDownloader:
     def __init__(self, manager: DownloadManager):
@@ -123,7 +127,7 @@ class FamilyDownloader:
                     FamilyMemberDownload(
                         publication_number=member.publication_number,
                         jurisdiction=member.jurisdiction,
-                        status="failed",
+                        status="unsupported",
                         error=str(exc),
                     ),
                     completed,
@@ -150,11 +154,12 @@ class FamilyDownloader:
             try:
                 result = await self.manager.download(publication, destination)
             except DownloadExhaustedError as exc:
+                status = "unsupported" if exc.all_unsupported else "failed"
                 record(
                     FamilyMemberDownload(
                         publication_number=member.publication_number,
                         jurisdiction=member.jurisdiction,
-                        status="failed",
+                        status=status,
                         error=str(exc),
                         official_fallbacks=exc.official_sources,
                     ),
