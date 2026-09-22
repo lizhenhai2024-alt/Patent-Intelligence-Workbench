@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.0rc6 — Chinese engineering evidence workspace
+
+### Desktop experience
+
+- Localize user-facing desktop navigation, page titles, status messages, controls and configuration labels into Chinese while preserving standard patent and provider identifiers.
+- Refine the layout around a stable engineering-evidence workflow: one primary action per page and grouped secondary actions.
+- Split Local Library controls into directory sync and search/export rows, make Evidence filters self-describing, and correct the Local Library note/PDF detail layout.
+
+### Documentation and validation
+
+- Rewrite README in Chinese with the RC.6 installation path, evidence boundaries and optional-AI data policy.
+- Add a page-layout audit and Chinese UI regression coverage.
+- Full deterministic audit, real Tk UI regression, GitHub CI and Windows build passed.
+
 ## 1.0.0rc5 — Guided engineering intelligence workspace
 
 ### Product readiness
