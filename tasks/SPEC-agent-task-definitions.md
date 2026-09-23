@@ -2,6 +2,8 @@
 
 > **2026-09-23 决策更新：** 产品负责人批准了受控智能体（见 `docs/AI_PRODUCT_SPEC.md` 第 11 节和 `tasks/ROADMAP.md` 中的智能体路线）。下文对"自主智能体循环"的否定仍适用于不受限的循环；文末的 MCP 设想已作为 M1 实现（`tasks/SPEC-agent-mcp.md`）。
 
+> **2026-09-23 规划复核：** 本文保留为历史模式对标。当前允许白名单、步数上限内的本地只读动态工具循环；禁止的是不受控权限和自动法律结论。文中将所有任务固定为 workflow、将 MCP 描述为未来想法的段落不再作为开发要求。M1 已实现，M2 待真实模型验收；当前状态、执行顺序与发送说明以 [ROADMAP](ROADMAP.md) 和产品契约第 11 节为准。
+
 ## Objective
 
 Define what "Agent task" means for the Patent Intelligence Workbench, grounded in (1) Anthropic's own workflow-vs-agent vocabulary and (2) how mainstream patent platforms (PatSnap, incoPat) expose their data to AI agents. Produce a task taxonomy this product can adopt without breaking its existing boundaries (offline-first, LocalLibrary-scoped, consent-gated AI, no fabricated legal conclusions).
