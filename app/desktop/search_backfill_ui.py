@@ -105,7 +105,7 @@ def _confirm_dialog(app, expression: dict) -> None:
     limit_row = ttk.Frame(dialog, padding=(12, 4))
     limit_row.pack(fill="x")
     ttk.Label(limit_row, text="本次上限：").pack(side="left")
-    limit_var = tk.IntVar(value=search_backfill.DEFAULT_LIMIT)
+    limit_var = tk.IntVar(value=app.runtime.backfill_config.default_limit)
     ttk.Spinbox(
         limit_row, from_=1, to=search_backfill.HARD_LIMIT, textvariable=limit_var, width=8
     ).pack(side="left")
@@ -117,7 +117,7 @@ def _confirm_dialog(app, expression: dict) -> None:
             try:
                 value = int(limit_var.get())
             except (ValueError, tk.TclError):
-                value = search_backfill.DEFAULT_LIMIT
+                value = app.runtime.backfill_config.default_limit
             clamped = max(1, min(value, search_backfill.HARD_LIMIT))
             _run(app, expression, clamped)
 

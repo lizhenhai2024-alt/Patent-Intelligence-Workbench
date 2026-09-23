@@ -365,8 +365,10 @@ def _check_coverage_async(app, company: str, base_text: str) -> None:
             lines.append(f"覆盖率：本地 {report.local_total} 件（外部总数未知）")
         if report.local_without_dates > 0:
             lines.append(f"日期缺失：{report.local_without_dates} 件")
-        if report.ratio is not None and report.ratio < 0.5:
-            lines.append("建议补库：覆盖率低于 50%，可使用批量补库补充。")
+        threshold = app.runtime.backfill_config.coverage_threshold
+        if report.ratio is not None and report.ratio < threshold:
+            pct = f"{threshold:.0%}"
+            lines.append(f"建议补库：覆盖率低于 {pct}，可使用批量补库补充。")
         app._ui_callbacks.submit(
             lambda: app.intelligence_readiness_var.set("\n".join(lines))
         )

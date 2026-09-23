@@ -65,7 +65,7 @@ def _confirm_dialog(app, store, credentials, items: list[str]) -> None:
     limit_row = ttk.Frame(dialog, padding=(12, 4))
     limit_row.pack(fill="x")
     ttk.Label(limit_row, text="本次上限：").pack(side="left")
-    limit_var = tk.IntVar(value=min(backfill.DEFAULT_LIMIT, len(items)))
+    limit_var = tk.IntVar(value=min(app.runtime.backfill_config.default_limit, len(items)))
     ttk.Spinbox(
         limit_row, from_=1, to=min(backfill.HARD_LIMIT, len(items)), textvariable=limit_var,
         width=8,
@@ -78,7 +78,7 @@ def _confirm_dialog(app, store, credentials, items: list[str]) -> None:
             try:
                 value = int(limit_var.get())
             except (ValueError, tk.TclError):
-                value = backfill.DEFAULT_LIMIT
+                value = app.runtime.backfill_config.default_limit
             clamped = max(1, min(value, backfill.HARD_LIMIT, len(items)))
             _run(app, store, credentials, items[:clamped])
 

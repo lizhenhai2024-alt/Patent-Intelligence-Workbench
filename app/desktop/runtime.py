@@ -9,7 +9,12 @@ from app.acquisition import AcquisitionEngine, default_engine
 from app.core.company_registry import CompanyRegistry
 from app.core.technology_dictionary import TechnologyDictionary
 from app.desktop.credentials import CredentialStore, DesktopCredentialStore, EpoOpsCredentials
-from app.desktop.library_config import load_library_folder, save_library_folder
+from app.desktop.library_config import (
+    BackfillConfig,
+    load_backfill_config,
+    load_library_folder,
+    save_library_folder,
+)
 from app.desktop.paths import AppPaths
 from app.downloads.factory import build_default_download_manager
 from app.downloads.family import FamilyDownloader
@@ -46,6 +51,7 @@ class DesktopRuntime:
     search_status: str = "公开搜索可用 · EPO OPS 未配置（可选增强）"
     credential_source: str | None = None
     library_root: Path | None = None
+    backfill_config: BackfillConfig = BackfillConfig()
 
     @classmethod
     def create(
@@ -69,6 +75,7 @@ class DesktopRuntime:
             resolved_paths.downloads,
         ).root
         library_root.mkdir(parents=True, exist_ok=True)
+        backfill_config = load_backfill_config(config_path)
         runtime = cls(
             paths=resolved_paths,
             library_store=library_store,
@@ -76,6 +83,7 @@ class DesktopRuntime:
             watch_store=watch_store,
             family_downloader=FamilyDownloader(build_default_download_manager()),
             credential_store=credential_store or DesktopCredentialStore(),
+            backfill_config=backfill_config,
             acquisition_engine=default_engine(),
             library_root=library_root,
         )
