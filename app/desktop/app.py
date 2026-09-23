@@ -33,6 +33,7 @@ from app.desktop.fulltext_ui import build_fulltext_controls
 from app.desktop.intelligence_tab import build_intelligence_tab
 from app.desktop.opening import open_local_path
 from app.desktop.presenters import patent_row, watch_history_row, watch_rule_row
+from app.desktop.reader_appearance import ReaderAppearance
 from app.desktop.runtime import DesktopRuntime
 from app.desktop.search_backfill_ui import build_search_backfill_controls
 from app.desktop.translation_settings_ui import (
@@ -85,12 +86,15 @@ class PatentWorkbenchApp(tk.Tk):
         self._search_hits_by_number = {}
         self._reader_hit = None
         self._reader_document: PatentReaderDocument | None = None
+        self._reader_load_gen = 0
+        self._reader_translation_gen = 0
         self._reader_figure_cache: dict[str, bytes] = {}
         self._reader_figure_original = None
         self._reader_figure_photo = None
         self._reader_figure_loading_url: str | None = None
         self._reader_figure_zoom_level = 0
         self._watch_run_active = False
+        self._search_running = False
         self._watch_poll_after_id: str | None = None
 
         self.title("Patent Intelligence Workbench")
@@ -624,7 +628,7 @@ class PatentWorkbenchApp(tk.Tk):
         ).pack(side="left")
         ttk.Label(
             results_toolbar,
-            text="双击结果可直接进入 Patent Family",
+            text="双击结果可直接进入 Patent Reader",
             style="SurfaceSubtle.TLabel",
         ).pack(side="right")
 
@@ -816,7 +820,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.reader_section_box.pack(side="left", padx=(6, 0))
         self.reader_section_box.bind(
             "<<ComboboxSelected>>",
-            lambda _event: self._render_reader_section(),
+            lambda _event: self._on_reader_section_changed(),
         )
         ttk.Button(
             actions,
@@ -845,6 +849,9 @@ class PatentWorkbenchApp(tk.Tk):
         )
         ttk.Button(actions, text="+", command=self.zoom_in_reader_figure).pack(
             side="left", padx=(4, 0)
+        )
+        self.reader_appearance = ReaderAppearance(
+            header, self.runtime.paths.root / "reader-appearance.json", self._set_status,
         )
         self.reader_figure_index = 0
         body = ttk.Panedwindow(self.reader_tab, orient="horizontal")
@@ -916,6 +923,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.reader_translation_text.pack(fill="both", expand=True)
         self.reader_translation_text.insert("1.0", "译文将在这里显示。")
         self.reader_translation_text.configure(state="disabled")
+        self.reader_appearance.attach(self.reader_source_text, self.reader_translation_text)
 
     def _open_selected_in_reader(self, _event=None) -> None:
         selection = self.search_tree.selection()
@@ -951,6 +959,8 @@ class PatentWorkbenchApp(tk.Tk):
 
     def _open_hit_in_reader(self, hit) -> None:
         self._reader_hit = hit
+        self._reader_load_gen += 1
+        self._reader_translation_gen += 1
         self._reader_document = PatentReaderDocument(
             publication_number=hit.publication_number,
             title=hit.title,
@@ -993,19 +1003,33 @@ class PatentWorkbenchApp(tk.Tk):
         except PatentNumberError:
             return
         seed = self._reader_document
+        gen = self._reader_load_gen
         self.reader_content_source_var.set("内容源：正在加载全文 / PDF / 同族兜底…")
 
         async def task():
             return await service.load(publication, seed=seed)
 
+        def _on_loaded(document):
+            if self._reader_load_gen != gen:
+                return
+            self._on_reader_document_loaded(document)
+
+        def _on_error(exc):
+            if self._reader_load_gen != gen:
+                return
+            self._set_status(f"Reader 全文加载失败：{exc}")
+
         run_async_in_thread(
             task,
-            on_success=self._on_reader_document_loaded,
-            on_error=lambda exc: self._set_status(f"Reader 全文加载失败：{exc}"),
+            on_success=_on_loaded,
+            on_error=_on_error,
             schedule_ui=self._ui_callbacks.submit,
         )
 
     def _on_reader_document_loaded(self, document: PatentReaderDocument) -> None:
+        hit = self._reader_hit
+        if hit is None or document.publication_number != hit.publication_number:
+            return
         self._reader_document = document
         sources = []
         if document.claims_source:
@@ -1041,6 +1065,11 @@ class PatentWorkbenchApp(tk.Tk):
         self.reader_source_text.pack_forget()
         if not self.reader_figure_frame.winfo_ismapped():
             self.reader_figure_frame.pack(fill="both", expand=True)
+
+    def _on_reader_section_changed(self) -> None:
+        self._reader_translation_gen += 1
+        self._reader_translation_in_flight = False
+        self._render_reader_section()
 
     def _render_reader_section(self) -> None:
         document = self._reader_document
@@ -1324,20 +1353,24 @@ class PatentWorkbenchApp(tk.Tk):
         if not text.strip():
             self._set_reader_translation("没有可翻译的文本。")
             return
+        gen = self._reader_translation_gen
+        section = self.reader_section_var.get()
         self._reader_translation_in_flight = True
         self._set_reader_translation("正在翻译…")
 
         async def task():
-            # run_async_in_thread expects a coroutine factory; the provider call is
-            # blocking but already runs on the worker thread, never on the Tk thread.
             return self.translation_provider.translate(text)
 
         def _on_success(result):
             self._reader_translation_in_flight = False
+            if self._reader_translation_gen != gen or self.reader_section_var.get() != section:
+                return
             self._set_reader_translation(result.text)
 
         def _on_error(exc):
             self._reader_translation_in_flight = False
+            if self._reader_translation_gen != gen:
+                return
             self._set_reader_translation(str(exc))
 
         run_async_in_thread(
@@ -1656,6 +1689,7 @@ class PatentWorkbenchApp(tk.Tk):
             toolbar,
             textvariable=self.library_root_var,
             width=42,
+            state="readonly",
         ).pack(side="left", padx=(5, 4))
         ttk.Button(
             toolbar,
@@ -2261,6 +2295,8 @@ class PatentWorkbenchApp(tk.Tk):
             f"Captured: {record.captured_at.isoformat()}\n\n"
             f"{record.markdown[:12000]}"
         )
+        if len(record.markdown) > 12000:
+            preview += f"\n\n… 已截断（共 {len(record.markdown)} 字符，显示前 12000）"
         self.evidence_preview.configure(state="normal")
         self.evidence_preview.delete("1.0", "end")
         self.evidence_preview.insert("1.0", preview)
@@ -2491,6 +2527,8 @@ class PatentWorkbenchApp(tk.Tk):
             f"采集时间：{record.captured_at.isoformat()}\n\n"
             f"{record.markdown[:8000]}"
         )
+        if len(record.markdown) > 8000:
+            preview += f"\n\n… 已截断（共 {len(record.markdown)} 字符，显示前 8000）"
         self.library_evidence_preview.configure(state="normal")
         self.library_evidence_preview.delete("1.0", "end")
         self.library_evidence_preview.insert("1.0", preview)
@@ -2719,6 +2757,8 @@ class PatentWorkbenchApp(tk.Tk):
             self.search_query_var.set("")
 
     def run_search(self) -> None:
+        if self._search_running:
+            return
         service = self.runtime.search_service
         if service is None:
             messagebox.showwarning("未配置", self.runtime.search_status)
@@ -2746,12 +2786,22 @@ class PatentWorkbenchApp(tk.Tk):
             return
 
         self.search_button.state(["disabled"])
+        self._search_running = True
         self._set_status("正在搜索…")
 
         def task():
             resolved_company = company
             resolved_query = query
-            if not resolved_company and query:
+            # Patent number always takes precedence — don't let company scope clear it.
+            is_patent_number = False
+            if query:
+                try:
+                    normalize_patent_number(query)
+                    is_patent_number = True
+                except PatentNumberError:
+                    pass
+
+            if not is_patent_number and not resolved_company and query:
                 try:
                     resolved_company = service.company_registry.get(query).display_name
                     resolved_query = ""
@@ -2761,12 +2811,17 @@ class PatentWorkbenchApp(tk.Tk):
             portfolio_scope = None
             technology_terms = ()
             if resolved_company:
-                if scope == "悬架与减振器":
+                if is_patent_number:
+                    portfolio_scope = None
+                elif scope == "悬架与减振器":
                     portfolio_scope = "suspension portfolio"
                 elif scope == "具体技术主题" and resolved_query:
                     technology_terms = (resolved_query,)
+            search_query = resolved_query
+            if resolved_company and not is_patent_number and scope != "具体技术主题":
+                search_query = ""
             return service.search(
-                resolved_query if not resolved_company or scope == "具体技术主题" else "",
+                search_query,
                 company=resolved_company,
                 portfolio_scope=portfolio_scope,
                 technology_terms=technology_terms,
@@ -2777,7 +2832,7 @@ class PatentWorkbenchApp(tk.Tk):
         run_async_in_thread(
             task,
             on_success=self._render_search_response,
-            on_error=lambda exc: self._network_error("搜索失败", exc),
+            on_error=lambda exc: self._on_search_error(exc),
             schedule_ui=self._ui_callbacks.submit,
         )
 
@@ -2799,6 +2854,7 @@ class PatentWorkbenchApp(tk.Tk):
         return tuple(labels)
 
     def _render_search_response(self, response) -> None:
+        self._search_running = False
         self.search_button.state(["!disabled"])
         self.search_tree.delete(*self.search_tree.get_children())
         self._search_technology_evidence.clear()
@@ -2887,6 +2943,7 @@ class PatentWorkbenchApp(tk.Tk):
 
         family_type = FamilyType(self.family_type_var.get())
         self.family_analyze_button.state(["disabled"])
+        self._current_family = None
         self._set_status("正在解析专利族…")
 
         def task():
@@ -2895,7 +2952,7 @@ class PatentWorkbenchApp(tk.Tk):
         run_async_in_thread(
             task,
             on_success=self._render_family_resolution,
-            on_error=lambda exc: self._network_error("专利族解析失败", exc),
+            on_error=lambda exc: self._on_family_error(exc),
             schedule_ui=self._ui_callbacks.submit,
         )
 
@@ -3550,20 +3607,32 @@ class PatentWorkbenchApp(tk.Tk):
             return
         query = LibraryQuery(
             text=self.library_query_var.get().strip() or None,
+            favorite_only=(
+                self.library_favorite_only_var.get()
+                if hasattr(self, "library_favorite_only_var")
+                else False
+            ),
+            has_pdf=(
+                True
+                if hasattr(self, "library_has_pdf_var")
+                and self.library_has_pdf_var.get()
+                else None
+            ),
             limit=10000,
         )
         result = self.runtime.library_service.export(path, query=query)
         self._set_status(f"已导出：{result}")
 
-    def _network_error(self, title: str, exc: Exception) -> None:
+    def _on_search_error(self, exc: Exception) -> None:
+        self._search_running = False
         self.search_button.state(["!disabled"])
+        self._network_error("搜索失败", exc)
+
+    def _on_family_error(self, exc: Exception) -> None:
         self.family_analyze_button.state(["!disabled"])
-        if hasattr(self, "family_download_button"):
-            self.family_download_button.state(["!disabled"])
-        self.run_watch_button.state(["!disabled"])
-        if hasattr(self, "run_selected_watch_button"):
-            self.run_selected_watch_button.state(["!disabled"])
-        self._watch_run_active = False
+        self._network_error("专利族解析失败", exc)
+
+    def _network_error(self, title: str, exc: Exception) -> None:
         self._set_status(f"{title}: {exc}")
         messagebox.showerror(title, str(exc))
 

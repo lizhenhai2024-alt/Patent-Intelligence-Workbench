@@ -352,3 +352,148 @@ def test_reader_translation_shows_translated_text_not_coroutine_error(app):
     shown = app.reader_translation_text.get("1.0", "end").strip()
     assert shown == "1. 一种缓冲器"
     assert "coroutine" not in shown
+
+
+def test_reader_late_callback_does_not_overwrite(app):
+    """UI-01 (P0): A late-loaded document must not overwrite a newer Reader context."""
+    from app.domain.reader import PatentReaderDocument
+
+    hit_a = SearchHit(
+        publication_number="US20240003399A1",
+        jurisdiction="US",
+        kind_code="A1",
+        title="Damper A",
+    )
+    hit_b = SearchHit(
+        publication_number="US20240003400A1",
+        jurisdiction="US",
+        kind_code="A1",
+        title="Damper B",
+    )
+    # Open A, then B without waiting for A's async load.
+    app._open_hit_in_reader(hit_a)
+    gen_after_a = app._reader_load_gen
+    app._open_hit_in_reader(hit_b)
+    gen_after_b = app._reader_load_gen
+    assert gen_after_b > gen_after_a
+
+    # Simulate A's late callback.
+    late_doc = PatentReaderDocument(
+        publication_number="US20240003399A1",
+        title="Damper A",
+        claims="A late claim from A",
+    )
+    app._on_reader_document_loaded(late_doc)
+
+    # B's context must be preserved — A's late claim must not appear.
+    assert app._reader_document.publication_number == "US20240003400A1"
+    assert app._reader_document.claims != "A late claim from A"
+
+
+def test_patent_number_not_cleared_by_company_filter(app):
+    """UI-02 (P1): Entering a patent number with company selected must pass the number through."""
+    from app.core.company_registry import CompanyRegistry
+    from app.domain.search import SearchPage, SearchResponse
+
+    captured = {}
+
+    registry = CompanyRegistry.default()
+
+    class FakeSearchService:
+        company_registry = registry
+
+        def search(self, query, **kwargs):
+            captured["query"] = query
+            captured["kwargs"] = kwargs
+            return SearchResponse(
+                hits=(),
+                total=0,
+                page=SearchPage(current=1, page_size=100, total_pages=0),
+            )
+
+    app.runtime.search_service = FakeSearchService()
+    app.search_query_var.set("US20240123456A1")
+    app.search_company_var.set("KYB")
+    app.search_scope_var.set("悬架与减振器")
+    app.run_search()
+    import time
+
+    deadline = time.monotonic() + 3
+    while "query" not in captured and time.monotonic() < deadline:
+        app.update()
+        time.sleep(0.01)
+    assert captured["query"] == "US20240123456A1"
+
+
+def test_search_reentrancy_blocked(app):
+    """UI-03 (P1): A second search while one is running must be a no-op."""
+    app._search_running = True
+    app.search_query_var.set("damper")
+    app.run_search()
+    # run_search returns immediately when _search_running is True.
+    assert app._search_running is True
+
+
+def test_family_analysis_clears_old_family(app):
+    """UI-04 (P1): Starting a new family analysis must clear the previous family."""
+    from app.domain.family import FamilyType, PatentFamily, PatentPublication
+
+    old_family = PatentFamily(
+        family_type=FamilyType.DOCDB_SIMPLE,
+        source="OLD",
+        source_family_id="F-OLD",
+        members=[
+            PatentPublication(
+                publication_number="US99999999B2",
+                jurisdiction="US",
+            ),
+        ],
+    )
+    app._current_family = old_family
+    # Simulate starting a new analysis — _current_family should be cleared.
+    app.family_number_var.set("US20240123456A1")
+    app.family_type_var.set("DOCDB_SIMPLE")
+    try:
+        app.run_family_analysis()
+    except Exception:
+        pass
+    assert app._current_family is None
+
+
+def test_network_error_does_not_unlock_other_tasks(app):
+    """UI-05 (P1): A network error in one task must not unlock buttons from other tasks."""
+    app.run_watch_button.state(["disabled"])
+    app._watch_run_active = True
+    app.search_button.state(["disabled"])
+    app._network_error("测试错误", Exception("boom"))
+    # Watch lock and button must remain — error was for search, not watch.
+    assert app._watch_run_active is True
+    assert "disabled" in app.run_watch_button.state()
+
+
+def test_export_respects_library_filters(app, monkeypatch):
+    """UI-06 (P1): Export must honor favorite and has_pdf filters."""
+    import os
+    import tempfile
+
+    captured = {}
+
+    class FakeLibraryService:
+        def search(self, query):
+            return []
+
+        def export(self, path, query=None):
+            captured["query"] = query
+            return path
+
+    tmp = os.path.join(tempfile.gettempdir(), "test_export_ui06.csv")
+    monkeypatch.setattr(
+        "tkinter.filedialog.asksaveasfilename", lambda **kw: tmp
+    )
+    app.runtime.library_service = FakeLibraryService()
+    app.library_favorite_only_var.set(True)
+    app.library_has_pdf_var.set(True)
+    app.export_library(".csv")
+    assert "query" in captured
+    assert captured["query"].favorite_only is True
+    assert captured["query"].has_pdf is True

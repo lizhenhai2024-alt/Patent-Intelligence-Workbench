@@ -32,6 +32,8 @@ def build_backfill_controls(app, parent) -> None:
 def start_backfill(app) -> None:
     if app._backfill_cancel is not None:
         return
+    if getattr(app, "_backfill_confirm_open", False):
+        return
     credentials = app.runtime.current_epo_credentials()
     if credentials is None:
         app.backfill_status_var.set("未配置 EPO OPS 凭据，请先在设置里填写")
@@ -45,6 +47,7 @@ def start_backfill(app) -> None:
 
 
 def _confirm_dialog(app, store, credentials, items: list[str]) -> None:
+    app._backfill_confirm_open = True
     dialog = tk.Toplevel(app)
     dialog.title("确认 EPO OPS 全文补全")
     dialog.transient(app)
@@ -69,9 +72,15 @@ def _confirm_dialog(app, store, credentials, items: list[str]) -> None:
     ).pack(side="left")
 
     def finish(approved: bool) -> None:
+        app._backfill_confirm_open = False
         dialog.destroy()
         if approved:
-            _run(app, store, credentials, items[: max(1, limit_var.get())])
+            try:
+                value = int(limit_var.get())
+            except (ValueError, tk.TclError):
+                value = backfill.DEFAULT_LIMIT
+            clamped = max(1, min(value, backfill.HARD_LIMIT, len(items)))
+            _run(app, store, credentials, items[:clamped])
 
     buttons = ttk.Frame(dialog, padding=12)
     buttons.pack(fill="x")

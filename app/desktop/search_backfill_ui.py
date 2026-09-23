@@ -77,6 +77,8 @@ def _current_expression(app) -> dict | None:
 def start_search_backfill(app) -> None:
     if app._search_backfill_cancel is not None:
         return
+    if getattr(app, "_search_backfill_confirm_open", False):
+        return
     expression = _current_expression(app)
     if expression is None:
         return
@@ -84,6 +86,7 @@ def start_search_backfill(app) -> None:
 
 
 def _confirm_dialog(app, expression: dict) -> None:
+    app._search_backfill_confirm_open = True
     dialog = tk.Toplevel(app)
     dialog.title("确认批量补库")
     dialog.transient(app)
@@ -108,9 +111,15 @@ def _confirm_dialog(app, expression: dict) -> None:
     ).pack(side="left")
 
     def finish(approved: bool) -> None:
+        app._search_backfill_confirm_open = False
         dialog.destroy()
         if approved:
-            _run(app, expression, max(1, limit_var.get()))
+            try:
+                value = int(limit_var.get())
+            except (ValueError, tk.TclError):
+                value = search_backfill.DEFAULT_LIMIT
+            clamped = max(1, min(value, search_backfill.HARD_LIMIT))
+            _run(app, expression, clamped)
 
     buttons = ttk.Frame(dialog, padding=12)
     buttons.pack(fill="x")

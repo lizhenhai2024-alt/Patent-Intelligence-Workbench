@@ -202,6 +202,7 @@ def fetch_model_list(app) -> None:
         return
     app.agent_fetch_models_button.state(["disabled"])
     app._set_status("正在获取模型列表…")
+    captured_base_url = base_url
 
     def worker() -> None:
         try:
@@ -209,12 +210,14 @@ def fetch_model_list(app) -> None:
         except ValueError as exc:
             app._ui_callbacks.submit(lambda error=exc: _models_failed(app, error))
             return
-        app._ui_callbacks.submit(lambda: _models_loaded(app, models))
+        app._ui_callbacks.submit(lambda: _models_loaded(app, models, captured_base_url))
 
     threading.Thread(target=worker, daemon=True).start()
 
 
-def _models_loaded(app, models) -> None:
+def _models_loaded(app, models, base_url: str | None = None) -> None:
+    if base_url is not None and app.agent_base_url_var.get().strip() != base_url:
+        return
     app.agent_fetch_models_button.state(["!disabled"])
     _set_model_choices(app, models)
     app._set_status(f"已获取 {len(models)} 个模型，请在下拉框中选择")
@@ -477,6 +480,7 @@ def run_agent(app) -> None:
 
     cancel = threading.Event()
     app._agent_cancel = cancel
+    app._agent_last_html = None
     runner = AgentRunner(
         definition,
         profile,

@@ -296,6 +296,7 @@ def _selected_guide(app) -> WorkflowGuide:
 
 def refresh_task_workspace(app) -> None:
     """Show task-specific instructions and avoid a one-size-fits-all form."""
+    app._intelligence_report = None
     guide = _selected_guide(app)
     app.intelligence_task_context_var.set(
         "\n".join(
