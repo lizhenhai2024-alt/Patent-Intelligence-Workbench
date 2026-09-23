@@ -63,6 +63,7 @@ login` set up locally, or paste a token and Claude can push them from here.
 - **期望/影响**：应阻止重复运行或只接受最后一次请求；否则结果与当前输入不一致，较早任务还可能提前解除按钮禁用。
 - **根因位置**：`app/desktop/app.py::_build_search_tab` 的 Return 绑定、`run_search`、`_render_search_response`。
 - **修复验收**：鼠标/回车统一执行运行策略；A/B 反序返回不得将 A 结果显示成 B 查询结果。
+- **2026-09-23 修复**：`b17bcc4` 中 `run_search` 增加 `_search_running` 互斥锁。
 
 ### UI-04 · P1 · 解析新专利族期间，加入库/下载仍操作旧专利族
 
@@ -71,6 +72,7 @@ login` set up locally, or paste a token and Claude can push them from here.
 - **期望/影响**：旧族若保留展示，须明确标注并阻止被误当成 B 进行入库/下载。
 - **根因位置**：`app/desktop/app.py::run_family_analysis`、`add_current_family_to_library`、`download_current_family`。
 - **修复验收**：新解析期间操作与显示结果身份一致；成功/失败/输入变化均有明确状态。
+- **2026-09-23 修复**：`b17bcc4` 中 `run_family_analysis` 开始前清空 `_current_family`。
 
 ### UI-05 · P1 · 任一网络错误会解除其他页面的运行锁
 
@@ -79,6 +81,7 @@ login` set up locally, or paste a token and Claude can push them from here.
 - **期望/影响**：错误只恢复所属任务状态；否则可重复启动监控/下载，混淆进度并并发写入本地库。
 - **根因位置**：`app/desktop/app.py::_network_error`（约 3563 行）。
 - **修复验收**：并行运行两个不同任务，单方失败不改变另一方按钮、锁或进度。
+- **2026-09-23 修复**：`b17bcc4` 中拆分 `_network_error` 为 `_on_search_error` 和 `_on_family_error`，各自只恢复自己的按钮状态。
 
 ### UI-06 · P1 · 本地库导出忽略“仅收藏”和“仅有 PDF”筛选
 
@@ -87,6 +90,7 @@ login` set up locally, or paste a token and Claude can push them from here.
 - **期望/影响**：默认导出与当前筛选一致；如支持导出全库须明确另设选项。
 - **根因位置**：`app/desktop/app.py::refresh_library` 与 `export_library`（约 3542 行）。
 - **修复验收**：文本、收藏、PDF 条件的组合在列表与两类导出中一致；超过显示上限时说明导出范围。
+- **2026-09-23 修复**：`b17bcc4` 中 `export_library` 构造查询时读取 `library_favorite_only_var` 和 `library_has_pdf_var`。
 
 ### UI-07 · P1 · 可编辑的专利库目录与实际生效目录不同步
 
@@ -95,6 +99,7 @@ login` set up locally, or paste a token and Claude can push them from here.
 - **期望/影响**：避免用户以为下载进入新目录，实际写入旧位置。
 - **根因位置**：`app/desktop/app.py::_build_library_tab`（约 1658 行）、`preview_library_root`、`choose_library_root`、`_download_family_to_library_root`。
 - **修复验收**：目录改为只读并通过选择操作更新，或提供校验后的明确应用入口；展示、预览、打开、下载保持一致。
+- **2026-09-23 修复**：`b17bcc4` 中 `library_root_var` Entry 设为 `state="readonly"`。
 
 ### UI-08 · P1 · 情报工作流切换后，旧报告仍可导出或发给 AI
 
@@ -103,6 +108,7 @@ login` set up locally, or paste a token and Claude can push them from here.
 - **期望/影响**：结果操作只作用于当前明确展示的产物，不把旧范围报告冒充当前任务。
 - **根因位置**：`app/desktop/intelligence_tab.py::refresh_task_workspace`、`run_task`（约 354 行）、`save_report`、`run_ai_interpretation`。
 - **修复验收**：切任务/条件失效/规划任务成功时清理或明确锁定旧报告；导出和 AI 操作绑定当前产物。
+- **2026-09-23 修复**：`b17bcc4` 中 `refresh_task_workspace` 切换时清空 `_intelligence_report`。
 
 ### UI-09 · P1 · 智能体本次失败后，“查看结果”仍打开上次 HTML
 
@@ -111,6 +117,7 @@ login` set up locally, or paste a token and Claude can push them from here.
 - **期望/影响**：本次结果和历史结果须区分，失败时不能无提示打开上一轮产物。
 - **根因位置**：`app/desktop/agent_tab.py::run_agent`、`show_result`（约 605 行）、`open_last_html`。
 - **修复验收**：新运行开始重置当前结果入口；失败/取消后提示本次无结果，历史记录保留独立入口。
+- **2026-09-23 修复**：`b17bcc4` 中 `run_agent` 开始时重置 `_agent_last_html`。
 
 ### UI-10 · P1 · 切换模型厂商后，旧请求的模型列表可覆盖新配置
 
@@ -119,6 +126,7 @@ login` set up locally, or paste a token and Claude can push them from here.
 - **期望/影响**：避免保存不可用的跨厂商模型组合。
 - **根因位置**：`app/desktop/agent_tab.py::fetch_model_list`、`_models_loaded`（约 217 行）；回调没有保存并核对接口/配置身份。
 - **修复验收**：更换预设、接口或已保存配置后丢弃旧响应；失败回调也不得覆盖新请求状态。
+- **2026-09-23 修复**：`b17bcc4` 中 `_models_loaded` 回调检查 `base_url` 身份。
 
 ### UI-11 · P1 · EPO 全文补全可手输绕过 1000 件硬上限
 
@@ -127,6 +135,7 @@ login` set up locally, or paste a token and Claude can push them from here.
 - **期望/影响**：超过批准的单次联网上限，产生意外请求量。无效数字也应保留对话框并提示，不先关闭再抛 Tcl 错误。
 - **根因位置**：`app/desktop/backfill_ui.py::_confirm_dialog`（约 47 行）、`_run`；输入错误处理也适用于搜索补库确认框。
 - **修复验收**：程序层校验 1–1000 与候选数；覆盖手输超限、0、负数、空白、非数字，非法输入不启动任务。
+- **2026-09-23 修复**：`b17bcc4` 中 `_confirm_dialog` 校验并钳制限制 1..HARD_LIMIT。
 
 ### UI-12 · P1 · 补库可打开多个确认框，确认后绕过运行互斥
 
@@ -135,6 +144,7 @@ login` set up locally, or paste a token and Claude can push them from here.
 - **期望/影响**：可能产生两个写库/下载任务，而取消按钮只持有最后一个任务的事件。
 - **根因位置**：`app/desktop/search_backfill_ui.py::start_search_backfill/_confirm_dialog/_run` 与 `backfill_ui.py` 对应方法。
 - **修复验收**：确认阶段也纳入单任务状态；多次点击只保留一个框，重复确认不启动第二任务，取消覆盖实际活动任务。
+- **2026-09-23 修复**：`b17bcc4` 中确认对话框使用 `_confirm_open` 标志防止重复打开。
 
 ### UI-13 · P1 · 固定布局裁掉关键按钮，缺少整页滚动或换行
 
@@ -151,6 +161,7 @@ login` set up locally, or paste a token and Claude can push them from here.
 - **期望/影响**：用户应知道看到的只是片段，并有可操作的全文查看路径。
 - **根因位置**：`app/desktop/app.py::_load_evidence_center_preview`（约 2248 行）、`_load_selected_evidence`。
 - **修复验收**：显示总长度/截断提示并提供全文入口；正文末尾证据能从 UI 到达。
+- **2026-09-23 修复**：`b17bcc4` 中证据预览显示截断指示器和总长度。
 
 ### UI-15 · P2 · 检索结果“双击”提示与实际跳转不一致
 
@@ -158,6 +169,7 @@ login` set up locally, or paste a token and Claude can push them from here.
 - **实际**：实际绑定 `_open_selected_in_reader`，进入 Reader；专利族有另一个显式按钮。
 - **根因位置**：`app/desktop/app.py::_build_search_tab`（提示约 628 行，与 Double-1 绑定不一致）。
 - **修复验收**：按已实现产品流程统一提示和动作，并验证显式 Reader/Family 两个入口。
+- **2026-09-23 修复**：`b17bcc4` 中提示改为"双击结果可直接进入 Patent Reader"。
 
 ### ENV-01 · P1 · Tcl/Tk 初始化问题本轮再次出现（重新打开历史 Resolved 0）
 
