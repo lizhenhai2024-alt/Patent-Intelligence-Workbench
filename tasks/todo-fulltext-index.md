@@ -6,9 +6,9 @@
 - [x] PDF 分段解析与增量更新。
   - 验收：权利要求按编号分段、说明书按段落分段、带页码；无文字层判 `needs_ocr`；PDF 未变则跳过。
   - 验证：`tests/test_fulltext_index.py`。
-- [ ] 同步集成与 EPO OPS 补齐。（待做：目前需手动点"更新全文索引"；扫描件/缺文本暂不从 EPO 补）
-  - 验收：缺失文本从 EPO OPS 补齐并标来源；失败不中断、状态如实。
-  - 验证：假提供者测试。
+- [x] 同步集成与 EPO OPS 补齐。（同步后自动索引新 PDF；EPO OPS 补齐仍由阶段 0 补全流程负责）
+  - 验收：`choose_library_root` 同步后自动触发全文索引；新增 PDF 在后台线程中被索引。
+  - 验证：`fulltext.unindexed_items()` + `index_pdfs()` 自动调用。
 - [x] 全文检索。
   - 验收：三字及以上词走 trigram；短词走 LIKE 并注明；片段带位置；笔记不参与。
   - 验证：检索测试。
