@@ -35,7 +35,7 @@ Product-feature-to-claim evidence mapping, DFMEA, validation planning, and R&D i
 
 See [Engineering Intelligence guide](docs/ENGINEERING_INTELLIGENCE.md) for task inputs, data-readiness limits and the optional AI handoff.
 
-Reader also has optional machine translation for non-English full text (JA/KO/DE and others): a generic LibreTranslate-style HTTP endpoint, DeepL for stronger JA/KO/DE quality, or an OpenAI-compatible Chat Completions endpoint you configure yourself. Configure it in desktop Settings; nothing is sent anywhere until you do.
+Reader also has optional machine translation for non-English full text (JA/KO/DE and others). 设置 → 翻译设置 offers DeepL (free/pro), Google Cloud Translation, Microsoft Azure Translator, 百度翻译, 有道智云, a custom LibreTranslate-compatible endpoint, or 大模型 (one of the shared AI model profiles). Keys are kept in Windows Credential Manager, not in translation.json; nothing is sent anywhere until you configure a service.
 
 ## Core jurisdictions
 

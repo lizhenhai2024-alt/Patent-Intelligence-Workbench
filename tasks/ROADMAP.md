@@ -33,13 +33,14 @@ Eureka 式任务智能体，按 `docs/AI_PRODUCT_SPEC.md` 第 11 节作为*受�
 
 1. 完成 M2。
 2. 本地专利全文索引（A0，2026-09-23 加入）：`tasks/SPEC-fulltext-index.md`、`tasks/plan-fulltext-index.md`、`tasks/todo-fulltext-index.md`；与分类号映射同期或之前完成。
-3. 分类号映射 + FI/F-term 提取。
-4. 引证网络（已在开发中）。
-5. 五层工程记录（吸收原 P0 第 4 项"权利要求特征拆解"）。
-6. 技术功效矩阵。
-7. M3 智能体。
-8. 法律状态 + 剩余保护期视图；语义检索决策。
-9. M4 智能体，之后视精力做 v2 中的 B8–B10、A5。
+3. 覆盖率检查与确认后补库（A0b，2026-09-23 加入；单次默认上限 200 件）：`tasks/SPEC-library-backfill.md`、`tasks/plan-library-backfill.md`、`tasks/todo-library-backfill.md`。
+4. 分类号映射 + FI/F-term 提取。
+5. 引证网络（已在开发中）。
+6. 五层工程记录（吸收原 P0 第 4 项"权利要求特征拆解"）。
+7. 技术功效矩阵。
+8. M3 智能体。
+9. 法律状态 + 剩余保护期视图；语义检索决策。
+10. M4 智能体，之后视精力做 v2 中的 B8–B10、A5。
 
 原 P0 第 2 项"技术强度指标"排在 M3 之后、与法律状态一起评估。
 

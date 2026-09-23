@@ -203,28 +203,74 @@ def test_technology_category_search_shows_messagebox(app, monkeypatch):
 
 
 def test_translation_provider_switch_clears_stale_endpoint(app):
-    """Issue 4 (revised 2026-09-23): LLM translation uses a shared AI model profile.
+    """Issue 4, revised 2026-09-23: DeepL was shown with a leftover DeepSeek address.
 
-    DeepL still auto-fills its endpoint; "大模型" disables endpoint/key and picks a
-    profile instead, so no stale LLM endpoint or plaintext key can be left behind.
+    Every preset service now always fills its own endpoint; only 自定义 keeps a
+    user-typed address; credentials are never carried from one vendor to another.
     """
-    app.translation_provider_var.set("deepl")
-    app.translation_endpoint_var.set("")
+    app.translation_provider_var.set("自定义（LibreTranslate 兼容）")
+    app._on_translation_provider_changed()
+    app.translation_endpoint_var.set("https://api.deepseek.com/v1")
+    app.translation_api_key_var.set("sk-old")
+    app.translation_provider_var.set("DeepL（免费版）")
     app._on_translation_provider_changed()
     assert app.translation_endpoint_var.get() == "https://api-free.deepl.com/v2/translate"
+    assert app.translation_api_key_var.get() == ""
 
-    app.translation_provider_var.set("大模型")
+    app.translation_provider_var.set("百度翻译")
+    app._on_translation_provider_changed()
+    assert app.translation_endpoint_var.get().startswith("https://fanyi-api.baidu.com/")
+    assert "disabled" not in app.translation_app_id_entry.state()
+    assert app.translation_app_id_label_var.get() == "APPID"
+
+    app.translation_provider_var.set("大模型（AI 模型配置）")
     app._on_translation_provider_changed()
     assert "disabled" in app.translation_endpoint_entry.state()
     assert "disabled" in app.translation_api_key_entry.state()
     assert "disabled" not in app.translation_profile_combo.state()
 
-    # User-typed custom endpoint must not be overwritten when switching back.
-    app.translation_provider_var.set("http")
+    # 自定义 keeps a user-typed address but drops another vendor's default.
+    app.translation_provider_var.set("自定义（LibreTranslate 兼容）")
+    app._on_translation_provider_changed()
     app.translation_endpoint_var.set("https://my-custom.example/api")
+    app.translation_provider_var.set("自定义（LibreTranslate 兼容）")
     app._on_translation_provider_changed()
     assert app.translation_endpoint_var.get() == "https://my-custom.example/api"
-    assert "disabled" not in app.translation_endpoint_entry.state()
+
+
+def test_translation_service_list_and_keys_stay_out_of_json(app, monkeypatch, tmp_path):
+    from app.agents.model_profiles import MemorySecretStore
+    from app.desktop.translation_config import load_translation_settings
+
+    labels = app.translation_service_combo.cget("values")
+    for label in (
+        "DeepL（免费版）",
+        "Google 翻译（Cloud Translation）",
+        "微软翻译（Azure Translator）",
+        "百度翻译",
+        "有道智云翻译",
+        "大模型（AI 模型配置）",
+    ):
+        assert label in labels
+    app.model_profiles.secrets = MemorySecretStore()
+    # This file's fixture uses the real app data dir: never write translation.json there.
+    app.translation_settings_path = tmp_path / "translation.json"
+    app.translation_cache_path = tmp_path / "translation-cache.json"
+    shown = []
+    monkeypatch.setattr(
+        "app.desktop.translation_settings_ui.messagebox.showinfo", lambda *a: shown.append(a)
+    )
+    app.translation_provider_var.set("百度翻译")
+    app._on_translation_provider_changed()
+    app.translation_api_key_var.set("baidu-secret")
+    app.save_translation_settings()
+    assert shown and "APPID" in shown[0][1]  # APPID is required
+    app.translation_app_id_var.set("2026000001")
+    app.save_translation_settings()
+    stored = app.translation_settings_path.read_text(encoding="utf-8")
+    assert "baidu-secret" not in stored
+    assert load_translation_settings(app.translation_settings_path).provider == "baidu"
+    assert app.translation_provider.provider.name == "BAIDU"
 
 
 def test_reader_translation_reentrancy_guard(app):

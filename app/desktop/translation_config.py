@@ -16,6 +16,8 @@ class TranslationSettings:
     # provider == "llm_profile": translate with a shared AI model profile (key in the
     # profile's secret store, never in translation.json).
     model_profile: str = ""
+    # Baidu APPID / Youdao 应用ID / Azure 区域 (not secret; the key lives in the secret store)
+    app_id: str = ""
 
 
 def load_translation_settings(path: Path) -> TranslationSettings | None:
@@ -39,6 +41,7 @@ def load_translation_settings(path: Path) -> TranslationSettings | None:
         provider=provider,
         model=str(data.get("model") or ""),
         model_profile=model_profile,
+        app_id=str(data.get("app_id") or ""),
     )
 
 
@@ -52,6 +55,7 @@ def save_translation_settings(path: Path, settings: TranslationSettings) -> None
                 "provider": settings.provider,
                 "model": settings.model,
                 "model_profile": settings.model_profile,
+                "app_id": settings.app_id,
             },
             ensure_ascii=False,
             indent=2,

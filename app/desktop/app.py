@@ -20,12 +20,6 @@ from app.core.patent_number import PatentNumberError, normalize_patent_number
 from app.core.technology_classifier import TechnologyClassifier
 from app.core.technology_taxonomy import TechnologyTaxonomy
 from app.core.translation import UnconfiguredTranslationProvider
-from app.core.translation_http import (
-    CachedTranslationProvider,
-    DeepLTranslationProvider,
-    HttpTranslationProvider,
-    LlmTranslationProvider,
-)
 from app.desktop.agent_tab import (
     build_agent_tab,
     build_model_profiles_section,
@@ -38,12 +32,14 @@ from app.desktop.intelligence_tab import build_intelligence_tab
 from app.desktop.opening import open_local_path
 from app.desktop.presenters import patent_row, watch_history_row, watch_rule_row
 from app.desktop.runtime import DesktopRuntime
-from app.desktop.translation_config import (
-    TranslationSettings,
-    delete_translation_settings,
-    load_translation_settings,
-    save_translation_settings,
+from app.desktop.translation_settings_ui import (
+    apply_service_state,
+    build_translation_section,
+    on_service_changed,
+    reload_provider,
 )
+from app.desktop.translation_settings_ui import delete as delete_translation
+from app.desktop.translation_settings_ui import save as save_translation
 from app.domain.family import FamilyType, PatentFamily, PatentPublication
 from app.domain.reader import PatentReaderDocument
 from app.domain.search import SearchHit
@@ -60,8 +56,6 @@ from app.library.workbench import (
 )
 from app.watch.models import WatchRule
 
-DEEPL_DEFAULT_ENDPOINT = "https://api-free.deepl.com/v2/translate"
-
 _EMPTY_TREE_IID = "__empty__"
 
 
@@ -70,43 +64,6 @@ def _insert_empty_placeholder(tree: ttk.Treeview, message: str) -> None:
     if tree.get_children():
         return
     tree.insert("", "end", iid=_EMPTY_TREE_IID, values=(message,))
-
-# Mainstream OpenAI-compatible Chat Completions AI APIs usable for translation.
-# Model names are not defaulted here -- they change often and must match the
-# user's own account/plan, so the model field is always required for these.
-LLM_TRANSLATION_DEFAULT_ENDPOINTS = {
-    "openai": "https://api.openai.com/v1/chat/completions",
-    "deepseek": "https://api.deepseek.com/chat/completions",
-    "qwen": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
-    "glm": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
-    "kimi": "https://api.moonshot.cn/v1/chat/completions",
-    "doubao": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
-    "mimo": "https://api.xiaomimimo.com/v1/chat/completions",
-}
-
-# Settings → Translation: "大模型" translates with a shared AI model profile
-# (Settings → AI 模型配置), the same profiles the Agents page uses.
-LLM_SERVICE_LABEL = "大模型"
-
-
-def _translation_service_label(provider: str) -> str:
-    if provider == "llm_profile" or provider in LLM_TRANSLATION_DEFAULT_ENDPOINTS:
-        return LLM_SERVICE_LABEL
-    return provider
-
-
-def _translation_status(settings: TranslationSettings | None) -> str:
-    if settings is None:
-        return "翻译服务：未配置"
-    if settings.provider == "llm_profile":
-        return f"翻译服务：大模型（AI 模型配置“{settings.model_profile}”）"
-    if settings.provider in LLM_TRANSLATION_DEFAULT_ENDPOINTS:
-        return (
-            "翻译服务：旧版大模型配置仍在使用（API Key 以明文保存在 translation.json）；"
-            "请选择一个 AI 模型配置后重新保存"
-        )
-    return "翻译服务：已配置"
-
 
 class PatentWorkbenchApp(tk.Tk):
     def __init__(self, runtime: DesktopRuntime):
@@ -2236,8 +2193,6 @@ class PatentWorkbenchApp(tk.Tk):
 
     def _build_settings_tab(self) -> None:
         credentials = self.runtime.current_epo_credentials()
-        translation = load_translation_settings(self.translation_settings_path)
-
         frame = ttk.LabelFrame(
             self.settings_tab,
             text="EPO Open Patent Services",
@@ -2298,96 +2253,7 @@ class PatentWorkbenchApp(tk.Tk):
 
         build_model_profiles_section(self, self.settings_tab, pady=(12, 0))
 
-        translation_frame = ttk.LabelFrame(
-            self.settings_tab,
-            text="翻译设置",
-            padding=12,
-        )
-        translation_frame.pack(fill="x", pady=(12, 0))
-        self.translation_provider_var = tk.StringVar(
-            value=_translation_service_label(translation.provider) if translation else "http"
-        )
-        self.translation_profile_var = tk.StringVar(
-            value=translation.model_profile if translation else ""
-        )
-        self.translation_endpoint_var = tk.StringVar(
-            value=translation.endpoint if translation else ""
-        )
-        self.translation_api_key_var = tk.StringVar(
-            value=translation.api_key if translation else ""
-        )
-        self.translation_model_var = tk.StringVar(
-            value=translation.model if translation else ""
-        )
-        self.translation_status_var = tk.StringVar(value=_translation_status(translation))
-        ttk.Label(translation_frame, text="服务类型").grid(row=0, column=0, sticky="w")
-        translation_provider_combo = ttk.Combobox(
-            translation_frame,
-            textvariable=self.translation_provider_var,
-            values=("http", "deepl", LLM_SERVICE_LABEL),
-            state="readonly",
-            width=12,
-        )
-        translation_provider_combo.grid(row=1, column=0, padx=(0, 10), pady=(0, 8), sticky="w")
-        translation_provider_combo.bind(
-            "<<ComboboxSelected>>", lambda _event: self._on_translation_provider_changed()
-        )
-        ttk.Label(
-            translation_frame,
-            text=(
-                "http = 通用 LibreTranslate 风格 JSON 接口；deepl = DeepL API；\n"
-                f"{LLM_SERVICE_LABEL} = 使用上方“AI 模型配置”中的一个配置翻译"
-                "（厂商、模型和 API Key 与智能体共用）"
-            ),
-            style="Subtle.TLabel",
-        ).grid(row=0, column=1, columnspan=3, sticky="w")
-        ttk.Label(translation_frame, text="Endpoint（http/deepl）").grid(
-            row=2, column=0, sticky="w"
-        )
-        self.translation_endpoint_entry = ttk.Entry(
-            translation_frame,
-            textvariable=self.translation_endpoint_var,
-            width=52,
-        )
-        self.translation_endpoint_entry.grid(row=3, column=0, padx=(0, 10), sticky="ew")
-        ttk.Label(translation_frame, text="API Key（deepl 必填）").grid(
-            row=2, column=1, sticky="w"
-        )
-        self.translation_api_key_entry = ttk.Entry(
-            translation_frame,
-            textvariable=self.translation_api_key_var,
-            show="●",
-            width=28,
-        )
-        self.translation_api_key_entry.grid(row=3, column=1, padx=(0, 10), sticky="ew")
-        ttk.Label(translation_frame, text=f"AI 模型配置（{LLM_SERVICE_LABEL}）").grid(
-            row=2, column=2, sticky="w"
-        )
-        self.translation_profile_combo = ttk.Combobox(
-            translation_frame,
-            textvariable=self.translation_profile_var,
-            state="readonly",
-            width=26,
-        )
-        self.translation_profile_combo.grid(row=3, column=2, padx=(0, 10), sticky="ew")
-        ttk.Button(
-            translation_frame,
-            text="保存翻译配置",
-            command=self.save_translation_settings,
-        ).grid(row=3, column=3, padx=(0, 8))
-        ttk.Button(
-            translation_frame,
-            text="删除翻译配置",
-            command=self.delete_translation_settings,
-        ).grid(row=3, column=4)
-        ttk.Label(
-            translation_frame,
-            textvariable=self.translation_status_var,
-            style="Subtle.TLabel",
-        ).grid(row=4, column=0, columnspan=5, sticky="w", pady=(10, 0))
-        translation_frame.columnconfigure(0, weight=1)
-        translation_frame.columnconfigure(1, weight=1)
-        translation_frame.columnconfigure(2, weight=1)
+        build_translation_section(self, self.settings_tab, pady=(12, 0))
         refresh_profiles(self)
         self._apply_translation_service_state()
 
@@ -2421,135 +2287,19 @@ class PatentWorkbenchApp(tk.Tk):
         ).pack(anchor="w", pady=(12, 0))
 
     def _apply_translation_service_state(self) -> None:
-        llm = self.translation_provider_var.get() == LLM_SERVICE_LABEL
-        self.translation_endpoint_entry.state(["disabled"] if llm else ["!disabled"])
-        self.translation_api_key_entry.state(["disabled"] if llm else ["!disabled"])
-        self.translation_profile_combo.state(["!disabled", "readonly"] if llm else ["disabled"])
-        if llm and not self.translation_profile_var.get():
-            names = self.translation_profile_combo.cget("values")
-            if names:
-                self.translation_profile_var.set(names[0])
+        apply_service_state(self)
 
     def _on_translation_provider_changed(self) -> None:
-        self._apply_translation_service_state()
-        provider = self.translation_provider_var.get()
-        current = self.translation_endpoint_var.get().strip()
-        known_default_endpoints = {
-            DEEPL_DEFAULT_ENDPOINT,
-            *LLM_TRANSLATION_DEFAULT_ENDPOINTS.values(),
-        }
-        # Only touch the field if it is empty or still holds a default we set
-        # earlier -- never overwrite an endpoint the user typed in themselves.
-        if current and current not in known_default_endpoints:
-            return
-        if provider == "deepl":
-            self.translation_endpoint_var.set(DEEPL_DEFAULT_ENDPOINT)
-        elif provider in LLM_TRANSLATION_DEFAULT_ENDPOINTS:
-            self.translation_endpoint_var.set(LLM_TRANSLATION_DEFAULT_ENDPOINTS[provider])
-        elif current in known_default_endpoints:
-            self.translation_endpoint_var.set("")
+        on_service_changed(self)
 
     def _reload_translation_provider(self) -> None:
-        settings = load_translation_settings(self.translation_settings_path)
-        if settings is None:
-            self.translation_provider = UnconfiguredTranslationProvider()
-            return
-        if settings.provider == "llm_profile":
-            try:
-                profile = self.model_profiles.get(settings.model_profile)
-            except KeyError:
-                self.translation_provider = UnconfiguredTranslationProvider()
-                return
-            base_provider: object = LlmTranslationProvider(
-                endpoint=profile.chat_url,
-                api_key=self.model_profiles.api_key(profile.name) or "",
-                model=profile.model,
-                auth_style=profile.auth_style,
-            )
-        elif settings.provider == "deepl":
-            base_provider = DeepLTranslationProvider(
-                api_key=settings.api_key,
-                endpoint=settings.endpoint or DEEPL_DEFAULT_ENDPOINT,
-            )
-        elif settings.provider in LLM_TRANSLATION_DEFAULT_ENDPOINTS:
-            base_provider = LlmTranslationProvider(
-                endpoint=settings.endpoint or LLM_TRANSLATION_DEFAULT_ENDPOINTS[settings.provider],
-                api_key=settings.api_key,
-                model=settings.model,
-            )
-        else:
-            base_provider = HttpTranslationProvider(
-                endpoint=settings.endpoint,
-                api_key=settings.api_key or None,
-            )
-        self.translation_provider = CachedTranslationProvider(
-            provider=base_provider,
-            cache_path=self.translation_cache_path,
-        )
+        reload_provider(self)
 
     def save_translation_settings(self) -> None:
-        provider = self.translation_provider_var.get().strip() or "http"
-        endpoint = self.translation_endpoint_var.get().strip()
-        api_key = self.translation_api_key_var.get().strip()
-        model = self.translation_model_var.get().strip()
-        if provider == LLM_SERVICE_LABEL:
-            name = self.translation_profile_var.get().strip()
-            try:
-                profile = self.model_profiles.get(name)
-            except KeyError:
-                messagebox.showinfo(
-                    "缺少配置", "请先在上方“AI 模型配置”中保存一个配置，再在这里选择它。"
-                )
-                return
-            if not self.model_profiles.api_key(profile.name):
-                messagebox.showinfo("缺少配置", f"AI 模型配置“{profile.name}”还没有 API Key。")
-                return
-            settings = TranslationSettings(
-                endpoint="", provider="llm_profile", model_profile=profile.name
-            )
-            save_translation_settings(self.translation_settings_path, settings)
-            self.translation_api_key_var.set("")
-            self._reload_translation_provider()
-            self.translation_status_var.set(_translation_status(settings))
-            self._set_status("翻译服务配置已保存")
-            return
-        if provider == "deepl":
-            if not api_key:
-                messagebox.showinfo("缺少配置", "DeepL 需要填写 API Key。")
-                return
-            endpoint = endpoint or DEEPL_DEFAULT_ENDPOINT
-        elif provider in LLM_TRANSLATION_DEFAULT_ENDPOINTS:
-            if not api_key:
-                messagebox.showinfo("缺少配置", "AI API 需要填写 API Key。")
-                return
-            if not model:
-                messagebox.showinfo("缺少配置", "AI API 需要填写模型名称。")
-                return
-            endpoint = endpoint or LLM_TRANSLATION_DEFAULT_ENDPOINTS[provider]
-        elif not endpoint:
-            messagebox.showinfo("缺少配置", "Translation Endpoint 必须填写。")
-            return
-        save_translation_settings(
-            self.translation_settings_path,
-            TranslationSettings(
-                endpoint=endpoint, api_key=api_key, provider=provider, model=model
-            ),
-        )
-        self._reload_translation_provider()
-        self.translation_status_var.set("翻译服务：已配置")
-        self._set_status("翻译服务配置已保存")
+        save_translation(self)
 
     def delete_translation_settings(self) -> None:
-        delete_translation_settings(self.translation_settings_path)
-        self.translation_provider_var.set("http")
-        self.translation_endpoint_var.set("")
-        self.translation_api_key_var.set("")
-        self.translation_model_var.set("")
-        self.translation_profile_var.set("")
-        self._apply_translation_service_state()
-        self._reload_translation_provider()
-        self.translation_status_var.set("翻译服务：未配置")
-        self._set_status("翻译服务配置已删除")
+        delete_translation(self)
 
     def save_epo_settings(self) -> None:
         key = self.epo_key_var.get().strip()
