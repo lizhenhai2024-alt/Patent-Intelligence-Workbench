@@ -306,6 +306,72 @@ class PatentWorkbenchApp(tk.Tk):
             darkcolor="#1769AA",
         )
 
+        # Card grid (Intelligence workflow picker, Agent picker) and its filter chips.
+        style.configure(
+            "CardOutline.TFrame",
+            background=surface,
+            relief="solid",
+            borderwidth=1,
+            bordercolor=border,
+            lightcolor=border,
+            darkcolor=border,
+        )
+        style.configure(
+            "CardOutlineActive.TFrame",
+            background=selected,
+            relief="solid",
+            borderwidth=2,
+            bordercolor=accent,
+            lightcolor=accent,
+            darkcolor=accent,
+        )
+        style.configure("CardIcon.TLabel", background=surface, font=("Segoe UI Emoji", 16))
+        style.configure("CardIconActive.TLabel", background=selected, font=("Segoe UI Emoji", 16))
+        style.configure(
+            "CardTitle.TLabel",
+            background=surface,
+            foreground=text,
+            font=("Segoe UI Semibold", 11),
+        )
+        style.configure(
+            "CardTitleActive.TLabel",
+            background=selected,
+            foreground=text,
+            font=("Segoe UI Semibold", 11),
+        )
+        style.configure(
+            "CardDesc.TLabel", background=surface, foreground=muted, font=("Segoe UI", 9)
+        )
+        style.configure(
+            "CardDescActive.TLabel", background=selected, foreground=muted, font=("Segoe UI", 9)
+        )
+        style.configure(
+            "Tag.TButton",
+            background="#FFFFFF",
+            foreground=muted,
+            borderwidth=1,
+            bordercolor=border,
+            lightcolor=border,
+            darkcolor=border,
+            relief="solid",
+            padding=(10, 5),
+            font=("Segoe UI", 9),
+        )
+        style.map(
+            "Tag.TButton",
+            background=[("active", "#F2F6F9")],
+            foreground=[("active", "#1769AA")],
+        )
+        style.configure(
+            "TagActive.TButton",
+            background=accent,
+            foreground="#FFFFFF",
+            borderwidth=0,
+            padding=(10, 5),
+            font=("Segoe UI Semibold", 9),
+        )
+        style.map("TagActive.TButton", background=[("active", accent_hover)])
+
     def _build_shell(self) -> None:
         header = ttk.Frame(self, padding=(18, 14))
         header.pack(fill="x")

@@ -42,7 +42,7 @@ def test_agents_page_presets_and_profile_without_key_on_disk(app, tmp_path):
     from app.desktop.agent_tab import apply_preset, save_profile
 
     app._show_page("agents")
-    assert "本地库问答（演示）" in app.agent_choice_combo["values"]
+    assert "本地库问答（演示）" in app._agent_cards
     app.agent_preset_var.set("小米 MiMo（按量付费，sk- Key）")
     apply_preset(app)
     assert app.agent_base_url_var.get() == "https://api.xiaomimimo.com/v1"

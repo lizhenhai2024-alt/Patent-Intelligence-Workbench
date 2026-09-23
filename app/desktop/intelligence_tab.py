@@ -7,6 +7,7 @@ import tkinter as tk
 from datetime import date
 from tkinter import filedialog, messagebox, ttk
 
+from app.desktop.cards import Card, build_tag_row
 from app.desktop.opening import open_local_path
 from app.intelligence.ai_interpreter import (
     AIInterpretationSettings,
@@ -28,6 +29,24 @@ from app.intelligence.watch_review import ReviewItem, WatchReviewStore
 _WORKFLOWS = tuple(guide.name for guide in workflow_guides())
 _STATUS_LABELS = {"pending": "待复核", "important": "重要", "ignored": "忽略"}
 _LABEL_STATUSES = {value: key for key, value in _STATUS_LABELS.items()}
+
+_TAG_ALL = "全部"
+_WORKFLOW_CATEGORY = {
+    "landscape": "专利分析",
+    "company-profile": "专利分析",
+    "competitive-landscape": "专利分析",
+    "route-comparison": "专利分析",
+    "problem-search": "检索准备",
+    "watch-brief": "监控复盘",
+}
+_WORKFLOW_ICON = {
+    "landscape": "🗺️",
+    "company-profile": "🏢",
+    "competitive-landscape": "⚖️",
+    "route-comparison": "🔀",
+    "problem-search": "🔍",
+    "watch-brief": "🔔",
+}
 
 
 def _split(value: str) -> tuple[str, ...]:
@@ -67,17 +86,26 @@ def build_intelligence_tab(app) -> None:
 
     chooser = ttk.LabelFrame(page, text="1. 选择任务", padding=10)
     chooser.pack(fill="x")
-    app._intelligence_workflow_buttons: dict[str, ttk.Button] = {}
-    for index, guide in enumerate(workflow_guides()):
-        row, col = divmod(index, 3)
-        button = ttk.Button(
-            chooser,
-            text=f"{guide.name}\n{guide.purpose}",
-            command=lambda name=guide.name: select_workflow(app, name),
+    categories = [_TAG_ALL, *dict.fromkeys(_WORKFLOW_CATEGORY.values())]
+    app._intelligence_category_var = tk.StringVar(value=_TAG_ALL)
+    app._intelligence_tag_buttons = build_tag_row(
+        chooser, categories, active=_TAG_ALL, on_select=lambda value: select_category(app, value)
+    )
+    app._intelligence_card_grid = ttk.Frame(chooser, style="Surface.TFrame")
+    app._intelligence_card_grid.pack(fill="x")
+    app._intelligence_cards: dict[str, Card] = {}
+    for guide in workflow_guides():
+        card = Card(
+            app._intelligence_card_grid,
+            icon=_WORKFLOW_ICON.get(guide.workflow_id, "📄"),
+            title=guide.name,
+            description=guide.purpose,
+            on_click=lambda name=guide.name: select_workflow(app, name),
         )
-        button.grid(row=row, column=col, sticky="nsew", padx=4, pady=4)
-        app._intelligence_workflow_buttons[guide.name] = button
-        chooser.columnconfigure(col, weight=1)
+        app._intelligence_cards[guide.name] = card
+    for col in range(3):
+        app._intelligence_card_grid.columnconfigure(col, weight=1)
+    _layout_workflow_cards(app)
 
     context = ttk.LabelFrame(page, text="2. 任务说明", padding=10)
     context.pack(fill="x", pady=(10, 0))
@@ -239,6 +267,29 @@ def select_workflow(app, name: str) -> None:
     app.intelligence_workflow_var.set(name)
 
 
+def select_category(app, category: str) -> None:
+    app._intelligence_category_var.set(category)
+    for name, button in app._intelligence_tag_buttons.items():
+        button.configure(style="TagActive.TButton" if name == category else "Tag.TButton")
+    _layout_workflow_cards(app)
+
+
+def _layout_workflow_cards(app) -> None:
+    category = app._intelligence_category_var.get()
+    visible_guides = [
+        guide
+        for guide in workflow_guides()
+        if category == _TAG_ALL or _WORKFLOW_CATEGORY.get(guide.workflow_id) == category
+    ]
+    for card in app._intelligence_cards.values():
+        card.frame.grid_forget()
+    for index, guide in enumerate(visible_guides):
+        row, col = divmod(index, 3)
+        app._intelligence_cards[guide.name].frame.grid(
+            row=row, column=col, sticky="nsew", padx=4, pady=4
+        )
+
+
 def _selected_guide(app) -> WorkflowGuide:
     return workflow_guide(app.intelligence_workflow_var.get())
 
@@ -257,8 +308,8 @@ def refresh_task_workspace(app) -> None:
             )
         )
     )
-    for name, button in app._intelligence_workflow_buttons.items():
-        button.configure(style="Accent.TButton" if name == guide.name else "TButton")
+    for name, card in app._intelligence_cards.items():
+        card.set_active(name == guide.name)
     visible = {
         "topic": guide.workflow_id != "watch-brief",
         "companies": guide.needs_companies > 0,

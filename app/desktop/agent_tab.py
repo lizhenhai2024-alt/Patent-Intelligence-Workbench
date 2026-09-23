@@ -22,6 +22,7 @@ from app.agents.model_profiles import (
 )
 from app.agents.render import blocks, render_html, text_parts
 from app.agents.runtime import AgentResult, AgentRunner, CheckpointDecision
+from app.desktop.cards import Card
 from app.desktop.credentials import ai_secret_store
 from app.desktop.opening import open_local_path
 
@@ -332,16 +333,14 @@ def _build_run_section(app, page) -> None:
     app.agent_choice_var = tk.StringVar()
     app.agent_description_var = tk.StringVar()
     app.agent_definition_errors_var = tk.StringVar()
+
+    ttk.Label(box, text="智能体").pack(anchor="w")
+    app._agent_card_grid = ttk.Frame(box, style="Surface.TFrame")
+    app._agent_card_grid.pack(fill="x", pady=(4, 8))
+    app._agent_cards: dict[str, Card] = {}
+
     row = ttk.Frame(box)
     row.pack(fill="x")
-    ttk.Label(row, text="智能体").pack(side="left")
-    app.agent_choice_combo = ttk.Combobox(
-        row, textvariable=app.agent_choice_var, state="readonly", width=30
-    )
-    app.agent_choice_combo.pack(side="left", padx=6)
-    app.agent_choice_combo.bind(
-        "<<ComboboxSelected>>", lambda _e: _describe_agent(app)
-    )
     ttk.Button(row, text="重新加载定义", command=lambda: reload_agents(app)).pack(side="left")
     ttk.Label(row, text="模型").pack(side="left", padx=(24, 0))
     app.agent_run_profile_var = tk.StringVar()
@@ -401,13 +400,44 @@ def _update_send_notice(app) -> None:
 def reload_agents(app) -> None:
     definitions, errors = load_definitions((app._agent_user_dir,))
     app._agent_definitions: dict[str, AgentDefinition] = {d.name: d for d in definitions}
-    app.agent_choice_combo.configure(values=list(app._agent_definitions))
+    _rebuild_agent_cards(app)
     if app.agent_choice_var.get() not in app._agent_definitions:
         app.agent_choice_var.set(next(iter(app._agent_definitions), ""))
     app.agent_definition_errors_var.set(
         "以下定义文件未加载：\n" + "\n".join(errors) if errors else ""
     )
     _describe_agent(app)
+
+
+def _rebuild_agent_cards(app) -> None:
+    for widget in app._agent_card_grid.winfo_children():
+        widget.destroy()
+    app._agent_cards = {}
+    for index, definition in enumerate(app._agent_definitions.values()):
+        row, col = divmod(index, 3)
+        card = Card(
+            app._agent_card_grid,
+            icon="🤖",
+            title=definition.name,
+            description=definition.description,
+            on_click=lambda name=definition.name: select_agent(app, name),
+        )
+        card.frame.grid(row=row, column=col, sticky="nsew", padx=4, pady=4)
+        app._agent_card_grid.columnconfigure(col, weight=1)
+        app._agent_cards[definition.name] = card
+    _highlight_agent_cards(app)
+
+
+def select_agent(app, name: str) -> None:
+    app.agent_choice_var.set(name)
+    _highlight_agent_cards(app)
+    _describe_agent(app)
+
+
+def _highlight_agent_cards(app) -> None:
+    current = app.agent_choice_var.get()
+    for name, card in app._agent_cards.items():
+        card.set_active(name == current)
 
 
 def _describe_agent(app) -> None:
