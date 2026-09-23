@@ -34,6 +34,7 @@ from app.desktop.intelligence_tab import build_intelligence_tab
 from app.desktop.opening import open_local_path
 from app.desktop.presenters import patent_row, watch_history_row, watch_rule_row
 from app.desktop.runtime import DesktopRuntime
+from app.desktop.search_backfill_ui import build_search_backfill_controls
 from app.desktop.translation_settings_ui import (
     apply_service_state,
     build_translation_section,
@@ -539,6 +540,8 @@ class PatentWorkbenchApp(tk.Tk):
         form.columnconfigure(1, weight=1)
         form.columnconfigure(2, weight=1)
         form.columnconfigure(3, weight=1)
+
+        build_search_backfill_controls(self, search_card)
 
         results_card = ttk.LabelFrame(self.search_tab, text="检索结果", padding=8)
         results_card.pack(fill="both", expand=True, pady=(0, 8))

@@ -1,0 +1,256 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+
+from app.domain.family import PatentFamily, PatentPublication
+from app.domain.search import SearchHit, SearchMode, SearchPage, SearchResponse
+from app.downloads.family import FamilyDownloadSummary, FamilyMemberDownload
+from app.library import search_backfill
+from app.library.service import PatentLibraryService
+from app.library.store import SQLitePatentLibrary
+from app.services.family_resolver import FamilyResolution, ProviderAttempt
+
+
+@pytest.fixture
+def library(tmp_path):
+    path = tmp_path / "workbench.db"
+    store = SQLitePatentLibrary(path)
+    store.upsert_publication(
+        PatentPublication(publication_number="US20180003259A1", jurisdiction="US", title="existing")
+    )
+    yield store
+    store.close()
+
+
+def _hit(number: str, jurisdiction: str = "CN") -> SearchHit:
+    return SearchHit(publication_number=number, jurisdiction=jurisdiction, title="damper")
+
+
+class FakeSearchService:
+    """Returns a fixed sequence of pages, one per call, ignoring page params."""
+
+    def __init__(self, pages: list[SearchPage], *, company_group_id: str | None = "grp-1"):
+        self.pages = list(pages)
+        self.company_group_id = company_group_id
+        self.calls = 0
+
+    async def search(self, query, **kwargs):
+        self.calls += 1
+        page = self.pages.pop(0) if self.pages else SearchPage(hits=())
+        return SearchResponse(
+            mode=SearchMode.COMPANY,
+            provider="fake",
+            page=page,
+            normalized_query=query,
+            company_group_id=self.company_group_id,
+        )
+
+
+class FakeFamilyResolver:
+    def __init__(
+        self,
+        *,
+        fail_on: frozenset[str] = frozenset(),
+        family_id_by_number: dict | None = None,
+    ):
+        self.fail_on = fail_on
+        self.family_id_by_number = family_id_by_number or {}
+
+    async def resolve(self, publication, family_type):
+        if publication.canonical in self.fail_on:
+            raise RuntimeError("resolve failed")
+        family_id = self.family_id_by_number.get(publication.canonical, publication.canonical)
+        family = PatentFamily(
+            family_type=family_type,
+            source="fake",
+            source_family_id=family_id,
+            members=[
+                PatentPublication(
+                    publication_number=publication.canonical,
+                    jurisdiction=publication.jurisdiction,
+                )
+            ],
+        )
+        return FamilyResolution(
+            family=family, provider="fake", attempts=(ProviderAttempt("fake", True),)
+        )
+
+
+class FakeFamilyDownloader:
+    def __init__(self, *, fail_on: frozenset[str] = frozenset()):
+        self.fail_on = fail_on
+
+    async def download_family(self, family, root, **kwargs):
+        number = family.members[0].publication_number if family.members else ""
+        if number in self.fail_on:
+            raise RuntimeError("download failed")
+        folder = Path(root) / "family"
+        return FamilyDownloadSummary(
+            family_folder=folder,
+            manifest_path=folder / "family.json",
+            members=(
+                FamilyMemberDownload(
+                    publication_number=number,
+                    jurisdiction=family.members[0].jurisdiction if family.members else "CN",
+                    status="success",
+                    path=str(folder / f"{number}.pdf"),
+                    provider="fake",
+                ),
+            ),
+        )
+
+
+@pytest.mark.asyncio
+async def test_dedupes_against_local_library(library, tmp_path):
+    service = PatentLibraryService(library)
+    search_service = FakeSearchService([SearchPage(hits=(_hit("US20180003259A1"),))])
+    resolver = FakeFamilyResolver()
+    downloader = FakeFamilyDownloader()
+
+    summary = await search_backfill.run_search_backfill(
+        service,
+        search_service,
+        resolver,
+        downloader,
+        tmp_path,
+        company="ZF",
+        limit=10,
+    )
+
+    assert summary.scanned == 1
+    assert summary.already_local == 1
+    assert summary.added == 0
+
+
+@pytest.mark.asyncio
+async def test_adds_new_publications_and_records_provenance(library, tmp_path):
+    service = PatentLibraryService(library)
+    search_service = FakeSearchService([SearchPage(hits=(_hit("CN201900001U"),))])
+    resolver = FakeFamilyResolver()
+    downloader = FakeFamilyDownloader()
+
+    summary = await search_backfill.run_search_backfill(
+        service,
+        search_service,
+        resolver,
+        downloader,
+        tmp_path,
+        company="ZF",
+        limit=10,
+    )
+
+    assert summary.added == 1
+    assert library.get_patent("CN201900001U") is not None
+    row = library.connection.execute(
+        "SELECT source_type FROM library_provenance WHERE publication_number = ?",
+        ("CN201900001U",),
+    ).fetchone()
+    assert row["source_type"] == "BACKFILL"
+
+
+@pytest.mark.asyncio
+async def test_family_level_dedupe_within_one_run(library, tmp_path):
+    service = PatentLibraryService(library)
+    search_service = FakeSearchService(
+        [SearchPage(hits=(_hit("CN201900001U"), _hit("CN201900002U")))]
+    )
+    resolver = FakeFamilyResolver(
+        family_id_by_number={"CN201900001U": "FAM-1", "CN201900002U": "FAM-1"}
+    )
+    downloader = FakeFamilyDownloader()
+
+    summary = await search_backfill.run_search_backfill(
+        service,
+        search_service,
+        resolver,
+        downloader,
+        tmp_path,
+        company="ZF",
+        limit=10,
+    )
+
+    assert summary.added == 1
+    assert summary.already_local == 1
+
+
+@pytest.mark.asyncio
+async def test_limit_caps_scanned_items(library, tmp_path):
+    service = PatentLibraryService(library)
+    hits = tuple(_hit(f"CN20190000{i}U") for i in range(5))
+    search_service = FakeSearchService([SearchPage(hits=hits)])
+    resolver = FakeFamilyResolver()
+    downloader = FakeFamilyDownloader()
+
+    summary = await search_backfill.run_search_backfill(
+        service,
+        search_service,
+        resolver,
+        downloader,
+        tmp_path,
+        company="ZF",
+        limit=2,
+    )
+
+    assert summary.scanned == 2
+    assert summary.added == 2
+
+
+@pytest.mark.asyncio
+async def test_cancel_stops_early(library, tmp_path):
+    service = PatentLibraryService(library)
+    hits = tuple(_hit(f"CN20190000{i}U") for i in range(3))
+    search_service = FakeSearchService([SearchPage(hits=hits)])
+    resolver = FakeFamilyResolver()
+    downloader = FakeFamilyDownloader()
+
+    summary = await search_backfill.run_search_backfill(
+        service,
+        search_service,
+        resolver,
+        downloader,
+        tmp_path,
+        company="ZF",
+        limit=10,
+        should_cancel=lambda: True,
+    )
+
+    assert summary.cancelled is True
+    assert summary.scanned == 0
+    assert summary.added == 0
+
+
+@pytest.mark.asyncio
+async def test_family_and_download_failures_do_not_stop_the_batch(library, tmp_path):
+    service = PatentLibraryService(library)
+    hits = (_hit("CN201900001U"), _hit("CN201900002U"), _hit("CN201900003U"))
+    search_service = FakeSearchService([SearchPage(hits=hits)])
+    resolver = FakeFamilyResolver(fail_on=frozenset({"CN201900001U"}))
+    downloader = FakeFamilyDownloader(fail_on=frozenset({"CN201900002U"}))
+
+    summary = await search_backfill.run_search_backfill(
+        service,
+        search_service,
+        resolver,
+        downloader,
+        tmp_path,
+        company="ZF",
+        limit=10,
+    )
+
+    assert summary.scanned == 3
+    assert summary.family_failed == 1
+    assert summary.download_failed == 1
+    assert summary.added == 1
+
+
+def test_write_task_log(tmp_path):
+    summary = search_backfill.SearchBackfillSummary(task_id="searchbackfill-test-1")
+    summary.added = 2
+    summary.outcomes.append(
+        search_backfill.PublicationOutcome("CN1", "added")
+    )
+    path = search_backfill.write_task_log(tmp_path / "backfill_runs", summary, limit=200)
+    assert path.exists()
+    assert "searchbackfill-test-1" in path.read_text(encoding="utf-8")
