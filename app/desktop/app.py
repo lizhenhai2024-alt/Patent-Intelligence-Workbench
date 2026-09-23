@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import os
 import re
+import threading
 import tkinter as tk
 import webbrowser
 from dataclasses import replace
@@ -3557,6 +3558,29 @@ class PatentWorkbenchApp(tk.Tk):
         if summary.unknown_folders:
             message += f" · 待核目录 {len(summary.unknown_folders)}"
         self._set_status(message)
+        if summary.attached_pdfs > 0:
+            self._auto_index_after_sync()
+
+    def _auto_index_after_sync(self) -> None:
+        from app.library.fulltext import index_pdfs, unindexed_items
+
+        items = unindexed_items(self.runtime.library_store)
+        if not items:
+            return
+        self._set_status(f"同步后自动索引全文：{len(items)} 件待索引…")
+
+        def worker() -> None:
+            try:
+                summary = index_pdfs(self.runtime.library_store.connection, items)
+            except Exception:
+                return
+            self._ui_callbacks.submit(
+                lambda: self._set_status(
+                    f"同步后全文索引完成：本次 {summary.indexed} 件，跳过 {summary.skipped} 件"
+                )
+            )
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def enrich_library_metadata(self) -> None:
         service = self.runtime.library_enrichment_service

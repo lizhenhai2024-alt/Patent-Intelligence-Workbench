@@ -441,6 +441,30 @@ def index_pdfs(
     return summary
 
 
+def unindexed_items(store) -> list[tuple[str, Path | None]]:
+    """Return (publication_number, pdf_path) for patents with PDFs but no index entry."""
+    from app.library.models import LibraryQuery
+    from app.library.workbench import preferred_library_pdf
+
+    patents = store.query(
+        LibraryQuery(limit=max(1, store.count_patents()))
+    )
+    existing = {
+        row[0]
+        for row in store.connection.execute(
+            "SELECT publication_number FROM library_text_source"
+        ).fetchall()
+    }
+    items = []
+    for patent in patents:
+        if patent.publication_number in existing:
+            continue
+        pdf = preferred_library_pdf(patent)
+        if pdf is not None:
+            items.append((patent.publication_number, pdf))
+    return items
+
+
 # -- reading ---------------------------------------------------------------------
 
 
