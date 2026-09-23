@@ -27,6 +27,7 @@ from app.desktop.agent_tab import (
     refresh_profiles,
 )
 from app.desktop.async_runner import TkCallbackQueue, run_async_in_thread
+from app.desktop.backfill_ui import build_backfill_controls
 from app.desktop.figure_preview import figure_scale
 from app.desktop.fulltext_ui import build_fulltext_controls
 from app.desktop.intelligence_tab import build_intelligence_tab
@@ -1639,6 +1640,7 @@ class PatentWorkbenchApp(tk.Tk):
             style="SurfaceSubtle.TLabel",
         ).pack(side="left", padx=(10, 0))
         build_fulltext_controls(self, library_toolbar_card)
+        build_backfill_controls(self, library_toolbar_card)
 
         quick = ttk.Frame(library_toolbar_card, style="Surface.TFrame")
         quick.pack(fill="x", pady=(8, 0))

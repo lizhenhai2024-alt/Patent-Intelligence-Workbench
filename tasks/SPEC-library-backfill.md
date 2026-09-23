@@ -62,3 +62,16 @@
 1. 在真实本地库上对"复原弹簧"或"KYB CDC 阀"做覆盖率检查，能显示外部数、本地数和日期缺失数。
 2. 确认补库后，新增专利带来源记录、日期和全文索引；重新运行同一个问题，结论引用的公开号增多，且"局限与待确认"中的覆盖说明随之更新。
 3. 新测试全部通过；`python scripts/ai_self_audit.py --full` 和 `git diff --check` 保持通过。
+
+## 阶段 0：已知专利全文补全（2026-09-23 追加，先做）
+
+在上面的"覆盖率检查 + 搜索发现新专利"之前，先做一个范围更小、价值更直接的版本：**只针对本地库里已经存在、但全文缺失或不完整的公开号**（`library_text_source.status` 为 `needs_ocr` / `partial` / `failed`，或完全没有记录），不做检索发现，直接用公开号向 EPO OPS 要官方权利要求书/说明书全文。真实库现状（2026-09-23 全文索引建成后）：完整 540、部分 11、需要 OCR 122，另有 19 件无 PDF——阶段 0 覆盖这 152 件。
+
+- 数据源：`app.providers.epo_ops.EpoOpsProvider.get_fulltext_section(publication, "claims"|"description")`，已有实现，返回解析好的纯文本，不需要 OCR、不需要下载 PDF。
+- 写入：复用 `app/library/fulltext.py` 的 `replace_text()`，`source_type="EPO_OPS"`，`source_ref="EPO_OPS:<公开号>"`，`pdf_sha256=None`。权利要求/说明书分段复用现有的 `_claim_segments`/`_description_segments`（EPO OPS 文本没有页码，`page_start`/`page_end` 记为空)。
+- 来源记录：每件补入的公开号在 `library_provenance` 写一条 `source_type="BACKFILL"`，`source_ref=<任务ID>`；任务本身（时间、候选数、结果统计）写 JSON 到应用数据目录 `backfill_runs/`。
+- 用户确认：桌面页面显示候选数量和默认上限（200，可调，硬上限 1000），用户点确认后才开始；后台执行、有进度、可取消；请求之间加小延时，避免触发 EPO OPS 限流；单件失败不中断整体任务，记录原因后继续。
+- 不做：不搜索发现新专利号；不下载/拼接 PDF（后续如需要 PDF 本身，再做基于 `get_image_page_pdf` 的独立功能）；不覆盖已经是 `ok`/`partial` 且并非缺失的记录，除非其全文为空。
+- 前置条件：需要已配置的 EPO OPS 凭据（`app.runtime.current_epo_credentials()`），未配置时提示去设置里填，不静默跳过。
+
+后面的"覆盖率检查 + 搜索发现新专利"（原 SPEC 正文）保持不变，作为下一阶段。
