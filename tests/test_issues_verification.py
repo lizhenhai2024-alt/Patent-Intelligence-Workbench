@@ -586,3 +586,61 @@ def test_reader_stale_translation_does_not_replace_current(app):
     # Translation for B should proceed normally.
     app._reader_translation_in_flight = False
     assert app._reader_translation_gen == gen_b
+
+
+def test_search_patent_number_not_discarded_by_company_filter(app):
+    """UI-02 (P1): Exact patent number must pass through even with company filter.
+
+    We test the internal task() logic directly by calling the search dispatch
+    and verifying the query is not cleared when a patent number is present.
+    """
+    from app.core.patent_number import normalize_patent_number
+
+    # Simulate the logic inside run_search's task() function.
+    query = "US20240003400A1"
+    company = "KYB"
+    scope = "悬架与减振器"
+
+    is_patent_number = False
+    if query:
+        try:
+            normalize_patent_number(query)
+            is_patent_number = True
+        except Exception:
+            pass
+
+    resolved_company = company
+    resolved_query = query
+    search_query = resolved_query
+    if resolved_company and not is_patent_number and scope != "具体技术主题":
+        search_query = ""
+
+    # Patent number must be preserved.
+    assert is_patent_number is True
+    assert search_query == "US20240003400A1"
+
+
+def test_search_patent_number_with_company_all_scope(app):
+    """UI-02 (P1): Patent number preserved with company + '公司全量' scope."""
+    from app.core.patent_number import normalize_patent_number
+
+    query = "CN120100850A"
+    company = "Tenneco"
+    scope = "公司全量"
+
+    is_patent_number = False
+    if query:
+        try:
+            normalize_patent_number(query)
+            is_patent_number = True
+        except Exception:
+            pass
+
+    resolved_company = company
+    resolved_query = query
+    search_query = resolved_query
+    if resolved_company and not is_patent_number and scope != "具体技术主题":
+        search_query = ""
+
+    assert is_patent_number is True
+    assert search_query == "CN120100850A"

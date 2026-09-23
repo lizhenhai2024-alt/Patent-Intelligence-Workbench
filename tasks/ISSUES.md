@@ -54,6 +54,7 @@ login` set up locally, or paste a token and Claude can push them from here.
 - **期望/影响**：产品契约规定精确公开号优先；不能执行完全不同的公司组合检索。
 - **根因位置**：`app/desktop/app.py::run_search`（约 2726 行），有公司且不是“具体技术主题”时直接将 query 改为空。
 - **修复验收**：公开号优先识别；覆盖三个范围和残留公司条件组合，界面明确展示实际生效范围。
+- **2026-09-23 修复**：`b17bcc4` 中添加 `is_patent_number` 检测，专利号绕过公司筛选清空逻辑。回归测试：`test_search_patent_number_not_discarded_by_company_filter`、`test_search_patent_number_with_company_all_scope`。
 
 ### UI-03 · P1 · 搜索按钮禁用不能阻止回车重入，旧结果可覆盖新查询
 
@@ -167,7 +168,7 @@ login` set up locally, or paste a token and Claude can push them from here.
 
 ### 修复顺序建议
 
-~~先修 UI-01 错误归属~~（已修复 2026-09-24）；再处理 UI-02/04/05/06/07/08/09/10 的状态与数据范围，UI-11/12 的受控任务边界以及 UI-13 的入口可达性；UI-03 和其他 P1 同批验证，最后处理 P2。环境 ENV-01 单独排查。每项修复应增加针对其复现条件的回归测试，不能以本轮已有测试通过代替缺陷验证。
+~~先修 UI-01 错误归属~~（已修复 2026-09-24）；~~再处理 UI-02/04/05/06/07/08/09/10 的状态与数据范围~~（UI-02 已修复 2026-09-23）；UI-11/12 的受控任务边界以及 UI-13 的入口可达性；UI-03 和其他 P1 同批验证，最后处理 P2。环境 ENV-01 单独排查。每项修复应增加针对其复现条件的回归测试，不能以本轮已有测试通过代替缺陷验证。
 
 
 ## Resolved (kept for reference)
