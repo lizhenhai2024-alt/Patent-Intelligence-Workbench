@@ -30,12 +30,13 @@ import asyncio
 import json
 import uuid
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
 from pathlib import Path
 
 from app.core.patent_number import PatentNumberError, normalize_patent_number
-from app.domain.family import FamilyType
+from app.core.technology_classifier import TechnologyClassifier
+from app.domain.family import FamilyType, PatentFamily
 from app.domain.search import SearchHit
 from app.downloads.family import FamilyDownloader, FamilyDownloadSummary
 from app.library.archive import company_folder
@@ -154,6 +155,28 @@ async def collect_new_hits(
     return new_hits, already_local_count, total, company_group_id, scan_limit_reached
 
 
+def _fill_family_gaps_from_hit(family: PatentFamily, hit: SearchHit) -> PatentFamily:
+    """EPO OPS' family/biblio lookup sometimes has no title or applicant data
+    for a specific member (a known gap for some CN records in particular); the
+    search hit that found this record often already carries that data, so it
+    should not be thrown away just because the family lookup came up short.
+    """
+    if not hit.title and not hit.applicants:
+        return family
+    for index, member in enumerate(family.members):
+        if member.publication_number != hit.publication_number:
+            continue
+        if member.title and member.original_assignees:
+            break
+        family.members[index] = replace(
+            member,
+            title=member.title or hit.title,
+            original_assignees=member.original_assignees or hit.applicants,
+        )
+        break
+    return family
+
+
 async def run_search_backfill(
     service: PatentLibraryService,
     search_service: SearchService,
@@ -175,9 +198,11 @@ async def run_search_backfill(
     should_cancel: Callable[[], bool] | None = None,
     delay_seconds: float = DEFAULT_DELAY_SECONDS,
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+    classifier: TechnologyClassifier | None = None,
 ) -> SearchBackfillSummary:
     task_id = f"searchbackfill-{datetime.now(UTC).strftime('%Y%m%dT%H%M%S')}-{uuid.uuid4().hex[:6]}"
     summary = SearchBackfillSummary(task_id=task_id)
+    classifier = classifier or TechnologyClassifier()
 
     max_scanned = min(max(limit * MAX_SCAN_MULTIPLIER, 500), MAX_SCAN_CEILING)
     hits, already_local_count, total, company_group_id, scan_limit_reached = await collect_new_hits(
@@ -232,7 +257,16 @@ async def run_search_backfill(
             summary.outcomes.append(PublicationOutcome(number, "already_local", "同族已处理"))
             continue
         processed_families.add(family_key)
-        ingest_family(service.store, family, company_group=company_group_id)
+        family = _fill_family_gaps_from_hit(family, hit)
+        topic_text = " ".join(part for part in (hit.title or "", hit.abstract or "") if part)
+        topic_matches = classifier.classify(text=topic_text, classifications=hit.classifications)
+        technology_topics = tuple(match.name for match in topic_matches[:5])
+        ingest_family(
+            service.store,
+            family,
+            company_group=company_group_id,
+            technology_topics=technology_topics,
+        )
         service.store.add_provenance(number, "BACKFILL", task_id)
         try:
             download_summary: FamilyDownloadSummary = await family_downloader.download_family(

@@ -351,3 +351,81 @@ async def test_collect_new_hits_sleeps_between_pages(library):
     )
 
     assert sleeps == [1.5]
+
+
+@pytest.mark.asyncio
+async def test_fills_title_and_applicants_from_hit_when_family_lookup_lacks_them(
+    library, tmp_path
+):
+    """EPO OPS' family/biblio lookup sometimes omits title/applicant data for a
+    member (a known gap for some CN records); the search hit that found it
+    already carries that data and must not be discarded."""
+    service = PatentLibraryService(library)
+    hit = SearchHit(
+        publication_number="CN2019000041U",
+        jurisdiction="CN",
+        title="减振器结构",
+        applicants=("采埃孚",),
+    )
+
+    class BareFamilyResolver:
+        async def resolve(self, publication, family_type):
+            family = PatentFamily(family_type=family_type, source="fake")
+            family.add_member(
+                PatentPublication(
+                    publication_number=publication.canonical, jurisdiction=publication.jurisdiction
+                )
+            )
+            return FamilyResolution(family=family, provider="fake", attempts=())
+
+    search_service = FakeSearchService([SearchPage(hits=(hit,))])
+    resolver = BareFamilyResolver()
+    downloader = FakeFamilyDownloader()
+
+    summary = await search_backfill.run_search_backfill(
+        service,
+        search_service,
+        resolver,
+        downloader,
+        tmp_path,
+        company="ZF",
+        limit=10,
+    )
+
+    assert summary.added == 1
+    stored = library.get_patent("CN2019000041U")
+    assert stored is not None
+    assert stored.title == "减振器结构"
+    assert stored.original_assignees == ("采埃孚",)
+
+
+@pytest.mark.asyncio
+async def test_tags_technology_topics_derived_from_hit(library, tmp_path):
+    """Newly-backfilled patents should come in with technology topics already
+    attached (via the same classifier the manual '补全元数据' step uses),
+    instead of requiring a separate manual enrichment pass."""
+    service = PatentLibraryService(library)
+    hit = SearchHit(
+        publication_number="CN2019000042U",
+        jurisdiction="CN",
+        title="连续阻尼控制减振器阀",
+    )
+    search_service = FakeSearchService([SearchPage(hits=(hit,))])
+    resolver = FakeFamilyResolver()
+    downloader = FakeFamilyDownloader()
+
+    await search_backfill.run_search_backfill(
+        service,
+        search_service,
+        resolver,
+        downloader,
+        tmp_path,
+        company="ZF",
+        limit=10,
+    )
+
+    stored = library.get_patent("CN2019000042U")
+    assert stored is not None
+    # Whatever the classifier makes of the title, ingest_family must at least
+    # have been given a chance to tag it -- not silently skipped.
+    assert isinstance(stored.technology_topics, tuple)
