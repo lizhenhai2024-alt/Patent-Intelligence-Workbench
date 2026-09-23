@@ -9,6 +9,7 @@ Supports:
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import os
 import xml.etree.ElementTree as ET
@@ -33,6 +34,12 @@ from app.providers.base import (
 
 TOKEN_URL = "https://ops.epo.org/3.2/auth/accesstoken"
 OPS_BASE_URL = "https://ops.epo.org/3.2/rest-services"
+
+# EPO OPS enforces per-minute throttling; a bulk backfill can realistically
+# make a few hundred consecutive calls and trip it. A short, bounded backoff
+# on HTTP 429 turns that into a slower-but-successful run instead of an
+# immediate string of failures (see app/library/search_backfill.py).
+RATE_LIMIT_BACKOFF_SECONDS: tuple[float, ...] = (5.0, 15.0)
 
 
 @dataclass(frozen=True, slots=True)
@@ -575,36 +582,46 @@ class EpoOpsProvider:
         }
         if headers:
             request_headers.update(headers)
-        try:
-            response = await client.get(
-                url,
-                headers=request_headers,
-                params=params,
-            )
-        except httpx.RequestError as exc:
-            raise ProviderUnavailableError(
-                f"EPO OPS network error for {url}: {exc}"
-            ) from exc
 
-        if response.status_code in {401, 403}:
-            raise ProviderAuthenticationError(
-                f"EPO OPS rejected authentication for {url}."
-            )
-        if response.status_code == 404 and allow_not_found:
+        backoffs = (0.0, *RATE_LIMIT_BACKOFF_SECONDS)
+        for attempt, backoff in enumerate(backoffs):
+            if backoff:
+                await asyncio.sleep(backoff)
+            try:
+                response = await client.get(
+                    url,
+                    headers=request_headers,
+                    params=params,
+                )
+            except httpx.RequestError as exc:
+                raise ProviderUnavailableError(
+                    f"EPO OPS network error for {url}: {exc}"
+                ) from exc
+
+            if response.status_code == 429 and attempt < len(backoffs) - 1:
+                continue  # brief backoff, then retry the same request
+
+            if response.status_code in {401, 403}:
+                raise ProviderAuthenticationError(
+                    f"EPO OPS rejected authentication for {url}."
+                )
+            if response.status_code == 404 and allow_not_found:
+                return response
+            if response.status_code == 429:
+                raise ProviderRateLimitError(
+                    f"EPO OPS rate limit reached for {url} (HTTP 429)."
+                )
+            if response.status_code >= 500:
+                raise ProviderUnavailableError(
+                    f"EPO OPS unavailable for {url} (HTTP {response.status_code})."
+                )
+            if response.status_code >= 400:
+                raise ProviderResponseError(
+                    f"EPO OPS request failed for {url} (HTTP {response.status_code})."
+                )
             return response
-        if response.status_code == 429:
-            raise ProviderRateLimitError(
-                f"EPO OPS rate limit reached for {url} (HTTP 429)."
-            )
-        if response.status_code >= 500:
-            raise ProviderUnavailableError(
-                f"EPO OPS unavailable for {url} (HTTP {response.status_code})."
-            )
-        if response.status_code >= 400:
-            raise ProviderResponseError(
-                f"EPO OPS request failed for {url} (HTTP {response.status_code})."
-            )
-        return response
+
+        raise AssertionError("unreachable: loop always returns or raises")
 
     async def lookup_publication(self, publication: PatentNumber) -> SearchPage:
         async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:

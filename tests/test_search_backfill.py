@@ -254,3 +254,100 @@ def test_write_task_log(tmp_path):
     path = search_backfill.write_task_log(tmp_path / "backfill_runs", summary, limit=200)
     assert path.exists()
     assert "searchbackfill-test-1" in path.read_text(encoding="utf-8")
+
+
+@pytest.mark.asyncio
+async def test_collect_new_hits_pages_past_already_local_hits(library):
+    """Old bug: a low cap only ever looked at the first page. If everything on
+    that page was already local, no new candidate was ever reached even though
+    later pages had plenty. collect_new_hits must keep paging until it finds
+    `limit` genuinely new hits (or hits max_scanned)."""
+    page1 = SearchPage(hits=(_hit("US20180003259A1"), _hit("CN2019000021U")))
+    page2 = SearchPage(hits=(_hit("CN2019000022U"), _hit("CN2019000023U")))
+    search_service = FakeSearchService([page1, page2])
+
+    result = await search_backfill.collect_new_hits(
+        search_service,
+        query="ZF",
+        company="ZF",
+        portfolio_scope=None,
+        technology_terms=(),
+        jurisdictions=(),
+        published_from=None,
+        published_to=None,
+        limit=2,
+        is_known=lambda number: number in {"US20180003259A1", "CN2019000021U"},
+        max_scanned=100,
+        page_size=2,
+        delay_seconds=0,
+    )
+    new_hits, already_local_count, _total, _group, scan_limit_reached = result
+
+    assert already_local_count == 2
+    assert [hit.publication_number for hit in new_hits] == ["CN2019000022U", "CN2019000023U"]
+    assert scan_limit_reached is False
+    assert search_service.calls == 2
+
+
+@pytest.mark.asyncio
+async def test_collect_new_hits_stops_at_scan_limit(library):
+    """If every hit turns out to already be local, paging must not run forever:
+    it stops at max_scanned and reports scan_limit_reached so the caller can
+    tell the user the cap was hit without finding enough new records."""
+    all_local_hits = tuple(_hit(f"CN2019{i:07d}U") for i in range(4))
+    search_service = FakeSearchService(
+        [SearchPage(hits=all_local_hits[:2]), SearchPage(hits=all_local_hits[2:])]
+    )
+
+    result = await search_backfill.collect_new_hits(
+        search_service,
+        query="ZF",
+        company="ZF",
+        portfolio_scope=None,
+        technology_terms=(),
+        jurisdictions=(),
+        published_from=None,
+        published_to=None,
+        limit=10,
+        is_known=lambda _number: True,
+        max_scanned=4,
+        page_size=2,
+        delay_seconds=0,
+    )
+    new_hits, already_local_count, _total, _group, scan_limit_reached = result
+
+    assert new_hits == []
+    assert already_local_count == 4
+    assert scan_limit_reached is True
+
+
+@pytest.mark.asyncio
+async def test_collect_new_hits_sleeps_between_pages(library):
+    """Each page fetch after the first is spaced out by delay_seconds so a large
+    run does not hammer the search provider back-to-back."""
+    page1 = SearchPage(hits=(_hit("CN2019000031U"), _hit("CN2019000032U")))
+    page2 = SearchPage(hits=(_hit("CN2019000033U"),))
+    search_service = FakeSearchService([page1, page2])
+    sleeps: list[float] = []
+
+    async def fake_sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+
+    await search_backfill.collect_new_hits(
+        search_service,
+        query="ZF",
+        company="ZF",
+        portfolio_scope=None,
+        technology_terms=(),
+        jurisdictions=(),
+        published_from=None,
+        published_to=None,
+        limit=10,
+        is_known=lambda _number: False,
+        max_scanned=100,
+        page_size=2,
+        delay_seconds=1.5,
+        sleep=fake_sleep,
+    )
+
+    assert sleeps == [1.5]
