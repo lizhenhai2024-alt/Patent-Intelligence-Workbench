@@ -54,6 +54,19 @@ def extract_pdf_reader_document(
     )
 
 
+def extract_pdf_text_sections(pdf_path: str | Path) -> tuple[str, str]:
+    """Return (claims, description) text from a local PDF without rendering or writing files."""
+    doc = fitz.open(Path(pdf_path))
+    try:
+        layout = _infer_layout(tuple(page.get_text("text") for page in doc))
+        return (
+            _section_text(doc, layout, "CLAIMS"),
+            _section_text(doc, layout, "DESCRIPTION"),
+        )
+    finally:
+        doc.close()
+
+
 def _section_text(
     doc: fitz.Document,
     layout: EpoImageLayout | None,

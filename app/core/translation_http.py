@@ -9,6 +9,7 @@ from pathlib import Path
 
 import httpx
 
+from app.core.openai_compat import chat_completions_url, http_hint
 from app.core.translation import TranslationProvider, TranslationResult
 
 
@@ -189,6 +190,7 @@ class LlmTranslationProvider:
     model: str
     timeout_seconds: float = 45.0
     name: str = "LLM_TRANSLATE"
+    auth_style: str = "bearer"  # "api-key" for providers such as Xiaomi MiMo
 
     def translate(
         self,
@@ -208,12 +210,21 @@ class LlmTranslationProvider:
             "temperature": 0.2,
         }
         response = httpx.post(
-            self.endpoint,
+            chat_completions_url(self.endpoint),
             json=payload,
-            headers={"Authorization": f"Bearer {self.api_key.strip()}"},
+            headers=(
+                {"api-key": self.api_key.strip()}
+                if self.auth_style == "api-key"
+                else {"Authorization": f"Bearer {self.api_key.strip()}"}
+            ),
             timeout=self.timeout_seconds,
         )
-        response.raise_for_status()
+        if response.is_error:
+            status = response.status_code
+            raise RuntimeError(
+                f"AI 翻译失败：{http_hint(status)}（HTTP {status}）"
+                f"\n原始信息：{response.text[:300]}"
+            )
         data = response.json()
         try:
             content = data["choices"][0]["message"]["content"]

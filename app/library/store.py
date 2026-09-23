@@ -48,8 +48,15 @@ def _chunked(values: Sequence[str], size: int = _BATCH_CHUNK) -> Iterator[tuple[
 
 
 class SQLitePatentLibrary:
-    def __init__(self, path: str | Path):
+    def __init__(self, path: str | Path, *, read_only: bool = False):
         self.path = Path(path)
+        self.read_only = read_only
+        if read_only:
+            # Read-only callers (e.g. agent tools) must never create or migrate a database.
+            if not self.path.is_file():
+                raise FileNotFoundError(f"LocalLibrary 数据库不存在：{self.path}")
+            self._connections = ThreadLocalSQLite(self.path, read_only=True)
+            return
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._connections = ThreadLocalSQLite(self.path)
         self._init_schema()

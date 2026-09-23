@@ -1,5 +1,7 @@
 # Agent-task definitions benchmarked against mainstream practice
 
+> **2026-09-23 决策更新：** 产品负责人批准了受控智能体（见 `docs/AI_PRODUCT_SPEC.md` 第 11 节和 `tasks/ROADMAP.md` 中的智能体路线）。下文对"自主智能体循环"的否定仍适用于不受限的循环；文末的 MCP 设想已作为 M1 实现（`tasks/SPEC-agent-mcp.md`）。
+
 ## Objective
 
 Define what "Agent task" means for the Patent Intelligence Workbench, grounded in (1) Anthropic's own workflow-vs-agent vocabulary and (2) how mainstream patent platforms (PatSnap, incoPat) expose their data to AI agents. Produce a task taxonomy this product can adopt without breaking its existing boundaries (offline-first, LocalLibrary-scoped, consent-gated AI, no fabricated legal conclusions).

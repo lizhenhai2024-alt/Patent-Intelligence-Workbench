@@ -83,6 +83,10 @@ python scripts/ai_self_audit.py --full
 The AI contract separates UI display names, filesystem archive names and legal assignee metadata,
 and defines LocalLibrary, company/entity, filename and autonomous-repair invariants.
 
+## Agent tools (MCP, read-only)
+
+An optional MCP server exposes LocalLibrary as ten read-only tools for Claude Desktop/Cowork or other MCP clients (`pip install -e ".[agent]"`, then `patent-workbench-mcp`). Private notes/projects/tags/watch rules are never returned. See [docs/AGENT_MCP.md](docs/AGENT_MCP.md).
+
 ## Development
 
 ```bash

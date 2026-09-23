@@ -156,28 +156,27 @@ def build_intelligence_tab(app) -> None:
     app.intelligence_preview = tk.Text(result, height=11, wrap="word", state="disabled")
     app.intelligence_preview.pack(fill="both", expand=True)
 
-    ai = ttk.LabelFrame(page, text="可选 AI 解读（仅在你确认后发送当前报告证据包）", padding=10)
+    ai = ttk.LabelFrame(page, text="可选 AI 解读（点按钮后才发送当前报告证据包）", padding=10)
     ai.pack(fill="x", pady=(0, 10))
-    app.intelligence_ai_endpoint_var = tk.StringVar()
-    app.intelligence_ai_model_var = tk.StringVar()
-    app.intelligence_ai_key_var = tk.StringVar()
-    app.intelligence_ai_consent_var = tk.BooleanVar(value=False)
-    for index, (label, variable, secret) in enumerate(
-        (
-            ("Chat Completions Endpoint", app.intelligence_ai_endpoint_var, False),
-            ("模型", app.intelligence_ai_model_var, False),
-            ("API Key（仅本次窗口使用）", app.intelligence_ai_key_var, True),
-        )
-    ):
-        cell = ttk.Frame(ai)
-        cell.grid(row=0, column=index, sticky="ew", padx=(0, 10))
-        ttk.Label(cell, text=label).pack(anchor="w")
-        ttk.Entry(cell, textvariable=variable, show="•" if secret else "").pack(fill="x")
-        ai.columnconfigure(index, weight=1)
-    ttk.Checkbutton(
+    app.intelligence_ai_profile_var = tk.StringVar()
+    ttk.Label(ai, text="AI 模型配置").grid(row=0, column=0, sticky="w")
+    app.intelligence_ai_profile_combo = ttk.Combobox(
+        ai, textvariable=app.intelligence_ai_profile_var, state="readonly", width=32
+    )
+    app.intelligence_ai_profile_combo.grid(row=0, column=1, sticky="w", padx=(8, 10))
+    ttk.Label(
+        ai, text="在“设置 → AI 模型配置”中新增或修改（与智能体、大模型翻译共用）",
+        style="Subtle.TLabel",
+    ).grid(row=0, column=2, sticky="w")
+    ai.columnconfigure(2, weight=1)
+    # Standing notice instead of a consent checkbox (product decision 2026-09-23,
+    # same as the 智能体 page): pressing the button is the explicit send action.
+    ttk.Label(
         ai,
-        text="我确认发送当前报告中的证据包给上述 AI 服务",
-        variable=app.intelligence_ai_consent_var,
+        text="点“请求 AI 解读”后，只发送当前报告的证据包（范围、计数、公开号、报告行和局限）"
+        "到所选配置的接口；笔记、项目、标签、监控规则不会发送。",
+        style="Subtle.TLabel",
+        wraplength=900,
     ).grid(row=1, column=0, columnspan=2, sticky="w", pady=(8, 0))
     app.intelligence_ai_button = ttk.Button(
         ai, text="请求 AI 解读", command=lambda: run_ai_interpretation(app)
@@ -448,11 +447,19 @@ def run_ai_interpretation(app) -> None:
         messagebox.showinfo("尚无报告", "请先生成并审阅一个本地报告。")
         return
     try:
+        profile = app.model_profiles.get(app.intelligence_ai_profile_var.get())
+    except KeyError:
+        messagebox.showinfo(
+            "AI 解读尚未准备好", "请先在“设置 → AI 模型配置”中保存一个配置，再在这里选择。"
+        )
+        return
+    try:
         settings = AIInterpretationSettings(
-            endpoint=app.intelligence_ai_endpoint_var.get().strip(),
-            model=app.intelligence_ai_model_var.get().strip(),
-            api_key=app.intelligence_ai_key_var.get(),
-            consent=app.intelligence_ai_consent_var.get(),
+            endpoint=profile.chat_url,
+            model=profile.model,
+            api_key=app.model_profiles.api_key(profile.name) or "",
+            consent=True,  # the button press is the send action; see notice above
+            auth_style=profile.auth_style,
         )
     except ValueError as exc:
         messagebox.showinfo("AI 解读尚未准备好", str(exc))

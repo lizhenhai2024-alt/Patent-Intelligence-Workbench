@@ -26,6 +26,12 @@ from app.core.translation_http import (
     HttpTranslationProvider,
     LlmTranslationProvider,
 )
+from app.desktop.agent_tab import (
+    build_agent_tab,
+    build_model_profiles_section,
+    init_model_profiles,
+    refresh_profiles,
+)
 from app.desktop.async_runner import TkCallbackQueue, run_async_in_thread
 from app.desktop.figure_preview import figure_scale
 from app.desktop.intelligence_tab import build_intelligence_tab
@@ -78,6 +84,29 @@ LLM_TRANSLATION_DEFAULT_ENDPOINTS = {
     "mimo": "https://api.xiaomimimo.com/v1/chat/completions",
 }
 
+# Settings → Translation: "大模型" translates with a shared AI model profile
+# (Settings → AI 模型配置), the same profiles the Agents page uses.
+LLM_SERVICE_LABEL = "大模型"
+
+
+def _translation_service_label(provider: str) -> str:
+    if provider == "llm_profile" or provider in LLM_TRANSLATION_DEFAULT_ENDPOINTS:
+        return LLM_SERVICE_LABEL
+    return provider
+
+
+def _translation_status(settings: TranslationSettings | None) -> str:
+    if settings is None:
+        return "翻译服务：未配置"
+    if settings.provider == "llm_profile":
+        return f"翻译服务：大模型（AI 模型配置“{settings.model_profile}”）"
+    if settings.provider in LLM_TRANSLATION_DEFAULT_ENDPOINTS:
+        return (
+            "翻译服务：旧版大模型配置仍在使用（API Key 以明文保存在 translation.json）；"
+            "请选择一个 AI 模型配置后重新保存"
+        )
+    return "翻译服务：已配置"
+
 
 class PatentWorkbenchApp(tk.Tk):
     def __init__(self, runtime: DesktopRuntime):
@@ -90,6 +119,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.translation_settings_path = self.runtime.paths.root / "translation.json"
         self.translation_cache_path = self.runtime.paths.root / "translation-cache.json"
         self.translation_provider = UnconfiguredTranslationProvider()
+        init_model_profiles(self)
         self._reload_translation_provider()
         self._search_technology_evidence: dict[str, tuple] = {}
         self._search_hits_by_number = {}
@@ -356,7 +386,7 @@ class PatentWorkbenchApp(tk.Tk):
         ).pack(fill="x", pady=(16, 0))
         tk.Label(
             sidebar,
-            text="Patent Intelligence",
+            text="专利情报工作台",
             bg="#1261D6",
             fg="#BFD8FF",
             font=("Segoe UI", 8),
@@ -366,7 +396,7 @@ class PatentWorkbenchApp(tk.Tk):
         ).pack(fill="x", pady=(0, 16))
         tk.Label(
             sidebar,
-            text="WORKSPACE",
+            text="工作区",
             bg="#1261D6",
             fg="#9FC5FA",
             font=("Segoe UI Semibold", 8),
@@ -386,6 +416,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.technology_tab = ttk.Frame(content, padding=14)
         self.evidence_tab = ttk.Frame(content, padding=14)
         self.intelligence_tab = ttk.Frame(content, padding=14)
+        self.agent_tab = ttk.Frame(content, padding=14)
         self.settings_tab = ttk.Frame(content, padding=14)
         self._pages = {
             "search": self.search_tab,
@@ -396,19 +427,21 @@ class PatentWorkbenchApp(tk.Tk):
             "technology": self.technology_tab,
             "evidence": self.evidence_tab,
             "intelligence": self.intelligence_tab,
+            "agents": self.agent_tab,
             "settings": self.settings_tab,
         }
         self._nav_buttons = {}
         for key, label in (
-            ("search", "⌕   Search"),
-            ("reader", "▣   Patent Reader"),
-            ("family", "◫   Patent Family"),
-            ("watch", "◉   Patent Watch"),
-            ("library", "▤   Local Library"),
-            ("technology", "⌘   Technology"),
-            ("evidence", "◇   Evidence"),
-            ("intelligence", "▥   Intelligence"),
-            ("settings", "⚙   Settings"),
+            ("search", "⌕   专利检索"),
+            ("reader", "▣   专利阅读"),
+            ("family", "◫   专利族"),
+            ("watch", "◉   专利监控"),
+            ("library", "▤   本地专利库"),
+            ("technology", "⌘   技术分类"),
+            ("evidence", "◇   证据"),
+            ("intelligence", "▥   情报分析"),
+            ("agents", "✦   智能体"),
+            ("settings", "⚙   设置"),
         ):
             button = ttk.Button(
                 sidebar,
@@ -427,6 +460,7 @@ class PatentWorkbenchApp(tk.Tk):
         self._build_technology_tab()
         self._build_evidence_tab()
         build_intelligence_tab(self)
+        build_agent_tab(self)
         self._build_settings_tab()
         self._show_page("search")
 
@@ -1263,7 +1297,9 @@ class PatentWorkbenchApp(tk.Tk):
         self._reader_translation_in_flight = True
         self._set_reader_translation("正在翻译…")
 
-        def task():
+        async def task():
+            # run_async_in_thread expects a coroutine factory; the provider call is
+            # blocking but already runs on the worker thread, never on the Tk thread.
             return self.translation_provider.translate(text)
 
         def _on_success(result):
@@ -2260,14 +2296,19 @@ class PatentWorkbenchApp(tk.Tk):
         frame.columnconfigure(0, weight=1)
         frame.columnconfigure(1, weight=1)
 
+        build_model_profiles_section(self, self.settings_tab, pady=(12, 0))
+
         translation_frame = ttk.LabelFrame(
             self.settings_tab,
-            text="Translation",
+            text="翻译设置",
             padding=12,
         )
         translation_frame.pack(fill="x", pady=(12, 0))
         self.translation_provider_var = tk.StringVar(
-            value=translation.provider if translation else "http"
+            value=_translation_service_label(translation.provider) if translation else "http"
+        )
+        self.translation_profile_var = tk.StringVar(
+            value=translation.model_profile if translation else ""
         )
         self.translation_endpoint_var = tk.StringVar(
             value=translation.endpoint if translation else ""
@@ -2278,24 +2319,12 @@ class PatentWorkbenchApp(tk.Tk):
         self.translation_model_var = tk.StringVar(
             value=translation.model if translation else ""
         )
-        self.translation_status_var = tk.StringVar(
-            value="翻译服务：已配置" if translation else "翻译服务：未配置"
-        )
+        self.translation_status_var = tk.StringVar(value=_translation_status(translation))
         ttk.Label(translation_frame, text="服务类型").grid(row=0, column=0, sticky="w")
         translation_provider_combo = ttk.Combobox(
             translation_frame,
             textvariable=self.translation_provider_var,
-            values=(
-                "http",
-                "deepl",
-                "openai",
-                "deepseek",
-                "qwen",
-                "glm",
-                "kimi",
-                "doubao",
-                "mimo",
-            ),
+            values=("http", "deepl", LLM_SERVICE_LABEL),
             state="readonly",
             width=12,
         )
@@ -2307,35 +2336,40 @@ class PatentWorkbenchApp(tk.Tk):
             translation_frame,
             text=(
                 "http = 通用 LibreTranslate 风格 JSON 接口；deepl = DeepL API；\n"
-                "openai/deepseek/qwen/glm/kimi/doubao/mimo = 对应厂商的 OpenAI 兼容 "
-                "Chat Completions 接口，用你自己的模型做翻译（模型名称需自行填写）"
+                f"{LLM_SERVICE_LABEL} = 使用上方“AI 模型配置”中的一个配置翻译"
+                "（厂商、模型和 API Key 与智能体共用）"
             ),
             style="Subtle.TLabel",
         ).grid(row=0, column=1, columnspan=3, sticky="w")
-        ttk.Label(translation_frame, text="Endpoint").grid(row=2, column=0, sticky="w")
-        ttk.Entry(
+        ttk.Label(translation_frame, text="Endpoint（http/deepl）").grid(
+            row=2, column=0, sticky="w"
+        )
+        self.translation_endpoint_entry = ttk.Entry(
             translation_frame,
             textvariable=self.translation_endpoint_var,
             width=52,
-        ).grid(row=3, column=0, padx=(0, 10), sticky="ew")
-        ttk.Label(translation_frame, text="API Key（deepl/AI API 必填）").grid(
+        )
+        self.translation_endpoint_entry.grid(row=3, column=0, padx=(0, 10), sticky="ew")
+        ttk.Label(translation_frame, text="API Key（deepl 必填）").grid(
             row=2, column=1, sticky="w"
         )
-        ttk.Entry(
+        self.translation_api_key_entry = ttk.Entry(
             translation_frame,
             textvariable=self.translation_api_key_var,
             show="●",
             width=28,
-        ).grid(row=3, column=1, padx=(0, 10), sticky="ew")
-        ttk.Label(
+        )
+        self.translation_api_key_entry.grid(row=3, column=1, padx=(0, 10), sticky="ew")
+        ttk.Label(translation_frame, text=f"AI 模型配置（{LLM_SERVICE_LABEL}）").grid(
+            row=2, column=2, sticky="w"
+        )
+        self.translation_profile_combo = ttk.Combobox(
             translation_frame,
-            text="模型（AI API 必填，如 deepseek-chat / mimo-v2.6-flash）",
-        ).grid(row=2, column=2, sticky="w")
-        ttk.Entry(
-            translation_frame,
-            textvariable=self.translation_model_var,
-            width=22,
-        ).grid(row=3, column=2, padx=(0, 10), sticky="ew")
+            textvariable=self.translation_profile_var,
+            state="readonly",
+            width=26,
+        )
+        self.translation_profile_combo.grid(row=3, column=2, padx=(0, 10), sticky="ew")
         ttk.Button(
             translation_frame,
             text="保存翻译配置",
@@ -2354,6 +2388,8 @@ class PatentWorkbenchApp(tk.Tk):
         translation_frame.columnconfigure(0, weight=1)
         translation_frame.columnconfigure(1, weight=1)
         translation_frame.columnconfigure(2, weight=1)
+        refresh_profiles(self)
+        self._apply_translation_service_state()
 
         local = ttk.LabelFrame(
             self.settings_tab,
@@ -2384,7 +2420,18 @@ class PatentWorkbenchApp(tk.Tk):
             wraplength=920,
         ).pack(anchor="w", pady=(12, 0))
 
+    def _apply_translation_service_state(self) -> None:
+        llm = self.translation_provider_var.get() == LLM_SERVICE_LABEL
+        self.translation_endpoint_entry.state(["disabled"] if llm else ["!disabled"])
+        self.translation_api_key_entry.state(["disabled"] if llm else ["!disabled"])
+        self.translation_profile_combo.state(["!disabled", "readonly"] if llm else ["disabled"])
+        if llm and not self.translation_profile_var.get():
+            names = self.translation_profile_combo.cget("values")
+            if names:
+                self.translation_profile_var.set(names[0])
+
     def _on_translation_provider_changed(self) -> None:
+        self._apply_translation_service_state()
         provider = self.translation_provider_var.get()
         current = self.translation_endpoint_var.get().strip()
         known_default_endpoints = {
@@ -2407,8 +2454,20 @@ class PatentWorkbenchApp(tk.Tk):
         if settings is None:
             self.translation_provider = UnconfiguredTranslationProvider()
             return
-        if settings.provider == "deepl":
-            base_provider: object = DeepLTranslationProvider(
+        if settings.provider == "llm_profile":
+            try:
+                profile = self.model_profiles.get(settings.model_profile)
+            except KeyError:
+                self.translation_provider = UnconfiguredTranslationProvider()
+                return
+            base_provider: object = LlmTranslationProvider(
+                endpoint=profile.chat_url,
+                api_key=self.model_profiles.api_key(profile.name) or "",
+                model=profile.model,
+                auth_style=profile.auth_style,
+            )
+        elif settings.provider == "deepl":
+            base_provider = DeepLTranslationProvider(
                 api_key=settings.api_key,
                 endpoint=settings.endpoint or DEEPL_DEFAULT_ENDPOINT,
             )
@@ -2433,6 +2492,27 @@ class PatentWorkbenchApp(tk.Tk):
         endpoint = self.translation_endpoint_var.get().strip()
         api_key = self.translation_api_key_var.get().strip()
         model = self.translation_model_var.get().strip()
+        if provider == LLM_SERVICE_LABEL:
+            name = self.translation_profile_var.get().strip()
+            try:
+                profile = self.model_profiles.get(name)
+            except KeyError:
+                messagebox.showinfo(
+                    "缺少配置", "请先在上方“AI 模型配置”中保存一个配置，再在这里选择它。"
+                )
+                return
+            if not self.model_profiles.api_key(profile.name):
+                messagebox.showinfo("缺少配置", f"AI 模型配置“{profile.name}”还没有 API Key。")
+                return
+            settings = TranslationSettings(
+                endpoint="", provider="llm_profile", model_profile=profile.name
+            )
+            save_translation_settings(self.translation_settings_path, settings)
+            self.translation_api_key_var.set("")
+            self._reload_translation_provider()
+            self.translation_status_var.set(_translation_status(settings))
+            self._set_status("翻译服务配置已保存")
+            return
         if provider == "deepl":
             if not api_key:
                 messagebox.showinfo("缺少配置", "DeepL 需要填写 API Key。")
@@ -2465,6 +2545,8 @@ class PatentWorkbenchApp(tk.Tk):
         self.translation_endpoint_var.set("")
         self.translation_api_key_var.set("")
         self.translation_model_var.set("")
+        self.translation_profile_var.set("")
+        self._apply_translation_service_state()
         self._reload_translation_provider()
         self.translation_status_var.set("翻译服务：未配置")
         self._set_status("翻译服务配置已删除")

@@ -203,23 +203,28 @@ def test_technology_category_search_shows_messagebox(app, monkeypatch):
 
 
 def test_translation_provider_switch_clears_stale_endpoint(app):
-    """Issue 4: switching providers must not leave a stale auto-filled endpoint."""
-    # Simulate DeepL endpoint set by previous provider
+    """Issue 4 (revised 2026-09-23): LLM translation uses a shared AI model profile.
+
+    DeepL still auto-fills its endpoint; "大模型" disables endpoint/key and picks a
+    profile instead, so no stale LLM endpoint or plaintext key can be left behind.
+    """
     app.translation_provider_var.set("deepl")
-    app.translation_endpoint_var.set("https://api-free.deepl.com/v2/translate")
-
-    # Switch to openai — endpoint should update to OpenAI's default
-    app.translation_provider_var.set("openai")
+    app.translation_endpoint_var.set("")
     app._on_translation_provider_changed()
-    assert app.translation_endpoint_var.get() == (
-        "https://api.openai.com/v1/chat/completions"
-    )
+    assert app.translation_endpoint_var.get() == "https://api-free.deepl.com/v2/translate"
 
-    # User-typed custom endpoint must not be overwritten
+    app.translation_provider_var.set("大模型")
+    app._on_translation_provider_changed()
+    assert "disabled" in app.translation_endpoint_entry.state()
+    assert "disabled" in app.translation_api_key_entry.state()
+    assert "disabled" not in app.translation_profile_combo.state()
+
+    # User-typed custom endpoint must not be overwritten when switching back.
+    app.translation_provider_var.set("http")
     app.translation_endpoint_var.set("https://my-custom.example/api")
-    app.translation_provider_var.set("deepseek")
     app._on_translation_provider_changed()
     assert app.translation_endpoint_var.get() == "https://my-custom.example/api"
+    assert "disabled" not in app.translation_endpoint_entry.state()
 
 
 def test_reader_translation_reentrancy_guard(app):
@@ -279,3 +284,25 @@ def test_insert_empty_placeholder_is_idempotent():
     assert len(children) == 1
     assert children[0] == _EMPTY_TREE_IID
     root.destroy()
+
+
+def test_reader_translation_shows_translated_text_not_coroutine_error(app):
+    """2026-09-23: a successful translation was shown as
+    'a coroutine was expected, got TranslationResult(...)'."""
+    import time
+
+    from app.core.translation import TranslationResult
+
+    class FakeProvider:
+        def translate(self, text):
+            return TranslationResult(text="1. 一种缓冲器", provider="fake")
+
+    app.translation_provider = FakeProvider()
+    app._translate_reader_text("1. A shock absorber")
+    deadline = time.monotonic() + 3
+    while app._reader_translation_in_flight and time.monotonic() < deadline:
+        app.update()
+        time.sleep(0.01)
+    shown = app.reader_translation_text.get("1.0", "end").strip()
+    assert shown == "1. 一种缓冲器"
+    assert "coroutine" not in shown

@@ -10,8 +10,9 @@ from pathlib import Path
 class ThreadLocalSQLite:
     """Provide one SQLite connection per calling thread for a shared database path."""
 
-    def __init__(self, path: str | Path):
+    def __init__(self, path: str | Path, *, read_only: bool = False):
         self.path = Path(path)
+        self.read_only = read_only
         self._local = threading.local()
         self._connections: list[sqlite3.Connection] = []
         self._lock = threading.Lock()
@@ -21,11 +22,20 @@ class ThreadLocalSQLite:
         if connection is not None:
             return connection
 
-        connection = sqlite3.connect(
-            self.path,
-            timeout=30.0,
-            check_same_thread=False,
-        )
+        if self.read_only:
+            # mode=ro: SQLite itself refuses every write on this connection.
+            connection = sqlite3.connect(
+                self.path.resolve().as_uri() + "?mode=ro",
+                uri=True,
+                timeout=30.0,
+                check_same_thread=False,
+            )
+        else:
+            connection = sqlite3.connect(
+                self.path,
+                timeout=30.0,
+                check_same_thread=False,
+            )
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute("PRAGMA busy_timeout = 5000")

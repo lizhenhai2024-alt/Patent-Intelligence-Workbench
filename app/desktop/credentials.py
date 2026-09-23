@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 EPO_TARGET = "PatentIntelligenceWorkbench/EPO_OPS"
+AI_TARGET_PREFIX = "PatentIntelligenceWorkbench/AI/"
 CRED_TYPE_GENERIC = 1
 CRED_PERSIST_LOCAL_MACHINE = 2
 
@@ -117,6 +118,33 @@ class DesktopCredentialStore:
 
     def delete_epo_ops(self) -> None:
         self.windows.delete_epo_ops()
+
+
+class WindowsAISecretStore:
+    """Agent model API keys in Windows Credential Manager (one entry per profile)."""
+
+    persistent = True
+
+    def get(self, profile_name: str) -> str | None:
+        record = _windows_read_generic(AI_TARGET_PREFIX + profile_name)
+        return record[1] if record and record[1] else None
+
+    def set(self, profile_name: str, secret: str) -> None:
+        if not secret.strip():
+            raise ValueError("API Key 不能为空")
+        _windows_write_generic(AI_TARGET_PREFIX + profile_name, profile_name, secret.strip())
+
+    def delete(self, profile_name: str) -> None:
+        _windows_delete_generic(AI_TARGET_PREFIX + profile_name)
+
+
+def ai_secret_store():
+    """Credential Manager on Windows; keys kept for this session only elsewhere."""
+    if os.name == "nt":
+        return WindowsAISecretStore()
+    from app.agents.model_profiles import MemorySecretStore
+
+    return MemorySecretStore()
 
 
 def _windows_read_generic(target: str) -> tuple[str, str] | None:

@@ -13,6 +13,9 @@ class TranslationSettings:
     api_key: str = ""
     provider: str = "http"
     model: str = ""
+    # provider == "llm_profile": translate with a shared AI model profile (key in the
+    # profile's secret store, never in translation.json).
+    model_profile: str = ""
 
 
 def load_translation_settings(path: Path) -> TranslationSettings | None:
@@ -23,13 +26,19 @@ def load_translation_settings(path: Path) -> TranslationSettings | None:
     except (OSError, json.JSONDecodeError):
         return None
     endpoint = str(data.get("endpoint") or "").strip()
-    if not endpoint:
+    provider = str(data.get("provider") or "http")
+    model_profile = str(data.get("model_profile") or "").strip()
+    if provider == "llm_profile":
+        if not model_profile:
+            return None
+    elif not endpoint:
         return None
     return TranslationSettings(
         endpoint=endpoint,
         api_key=str(data.get("api_key") or ""),
-        provider=str(data.get("provider") or "http"),
+        provider=provider,
         model=str(data.get("model") or ""),
+        model_profile=model_profile,
     )
 
 
@@ -42,6 +51,7 @@ def save_translation_settings(path: Path, settings: TranslationSettings) -> None
                 "api_key": settings.api_key,
                 "provider": settings.provider,
                 "model": settings.model,
+                "model_profile": settings.model_profile,
             },
             ensure_ascii=False,
             indent=2,

@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 
 import httpx
 
+from app.core.openai_compat import chat_completions_url, http_hint
 from app.intelligence.ai_packet import build_ai_prompt
 from app.intelligence.analysis import AnalysisReport
 
@@ -21,6 +22,7 @@ class AIInterpretationSettings:
     model: str
     api_key: str
     consent: bool = False
+    auth_style: str = "bearer"  # "api-key" for providers such as Xiaomi MiMo
 
     def __post_init__(self) -> None:
         parsed = urlparse(self.endpoint)
@@ -38,7 +40,7 @@ class AIInterpretationSettings:
         if not self.model.strip():
             raise ValueError("请填写 AI 模型名称")
         if not self.api_key.strip():
-            raise ValueError("请填写 API Key；该密钥仅保留在当前窗口内")
+            raise ValueError("所选 AI 模型配置还没有 API Key，请在“设置 → AI 模型配置”中补充")
         if not self.consent:
             raise ValueError("请确认后再发送当前报告的证据包给 AI 服务")
 
@@ -57,13 +59,23 @@ class OpenAICompatibleInterpreter:
         }
         try:
             response = httpx.post(
-                self.settings.endpoint,
-                headers={"Authorization": f"Bearer {self.settings.api_key.strip()}"},
+                chat_completions_url(self.settings.endpoint),
+                headers=(
+                    {"api-key": self.settings.api_key.strip()}
+                    if self.settings.auth_style == "api-key"
+                    else {"Authorization": f"Bearer {self.settings.api_key.strip()}"}
+                ),
                 json=payload,
                 timeout=45.0,
             )
             response.raise_for_status()
             content = response.json()["choices"][0]["message"]["content"]
+        except httpx.HTTPStatusError as exc:
+            status = exc.response.status_code
+            raise AIInterpretationError(
+                f"AI 解读失败：{http_hint(status)}（HTTP {status}）"
+                f"\n原始信息：{exc.response.text[:300]}"
+            ) from exc
         except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
             raise AIInterpretationError(f"AI 解读失败：{exc}") from exc
         if isinstance(content, list):

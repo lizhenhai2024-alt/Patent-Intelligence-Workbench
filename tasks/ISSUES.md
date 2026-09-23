@@ -7,7 +7,7 @@ login` set up locally, or paste a token and Claude can push them from here.
 
 ## Open
 
-(None.)
+1. **真实本地库中大量公开件缺少申请日/公开日，按日期过滤会漏掉它们。** 2026-09-23 做 M1 人工验收（"KYB 近 5 年 CDC 阀的技术路线"）时发现：智能体引用的 15 件 KYB 公开件全部没有 `filing_date` 和 `publication_date`，`search_library` 的 `from_date` 过滤会把它们全部排除，`run_*` 报告的日期范围和申请趋势也受影响（这些记录落入"日期缺失"）。验收脚本改用公开号中的年份判断，但那只是估计，不能当作日期。处理方向：在本地库同步/补全时从 EPO OPS 等数据源补齐著录日期；不从公开号推断日期写入数据库。证据：`.tmp-acceptance/mcp_acceptance_report.json`。
 
 ## Resolved (kept for reference)
 
