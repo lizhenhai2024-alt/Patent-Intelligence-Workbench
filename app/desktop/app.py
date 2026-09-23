@@ -805,11 +805,18 @@ class PatentWorkbenchApp(tk.Tk):
             text="打开 Google Patents 原文",
             command=self.open_reader_source,
         ).pack(side="left")
-        ttk.Button(
+        self.reader_open_pdf_button = ttk.Button(
             actions,
-            text="打开 / 下载 PDF",
+            text="打开 PDF",
             command=self.open_reader_pdf,
-        ).pack(side="left", padx=(6, 0))
+        )
+        self.reader_open_pdf_button.pack(side="left", padx=(6, 0))
+        self.reader_download_pdf_button = ttk.Button(
+            actions,
+            text="下载 PDF",
+            command=self.download_reader_pdf,
+        )
+        self.reader_download_pdf_button.pack(side="left", padx=(6, 0))
         self.reader_section_var = tk.StringVar(value="摘要")
         self.reader_section_box = ttk.Combobox(
             actions,
@@ -989,6 +996,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.reader_source_text.delete("1.0", "end")
         self.reader_source_text.insert("1.0", "\n".join(source) or "暂无结构化预览内容。")
         self._set_reader_translation("")
+        self._refresh_reader_pdf_buttons()
         self._show_page("reader")
         self._load_reader_document()
 
@@ -1044,6 +1052,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.reader_content_source_var.set(
             "内容源：" + (" · ".join(sources) if sources else "未取得全文内容")
         )
+        self._refresh_reader_pdf_buttons()
         self._render_reader_section(_expected_gen=_gen)
         missing = []
         if not document.claims:
@@ -1241,6 +1250,31 @@ class PatentWorkbenchApp(tk.Tk):
         webbrowser.open(url)
 
     def open_reader_pdf(self) -> None:
+        """Opens the PDF already in the library. Bound to a button that is
+        disabled (see _refresh_reader_pdf_buttons) whenever no local copy
+        exists, but guard here too in case it is invoked another way."""
+        hit = self._reader_hit
+        if hit is None:
+            return
+        try:
+            publication = normalize_patent_number(hit.publication_number)
+        except PatentNumberError as exc:
+            self._set_status(f"打开 PDF 失败：{exc}")
+            return
+
+        local_pdf = self._find_reader_library_pdf(publication.canonical)
+        if local_pdf is None:
+            self._set_status("专利库中暂无该专利的 PDF，请点击“下载 PDF”。")
+            return
+        self._ensure_reader_pdf_registered(hit, local_pdf)
+        open_local_path(local_pdf)
+        self._set_status(f"已从专利库打开 PDF：{local_pdf}")
+
+    def download_reader_pdf(self) -> None:
+        """Downloads the PDF from a provider. Bound to a button that is
+        disabled (see _refresh_reader_pdf_buttons) whenever a local copy
+        already exists, but guard here too in case it is invoked another
+        way (e.g. the Library page's 'open PDF' fallback)."""
         hit = self._reader_hit
         if hit is None:
             return
@@ -1255,6 +1289,7 @@ class PatentWorkbenchApp(tk.Tk):
             self._ensure_reader_pdf_registered(hit, local_pdf)
             open_local_path(local_pdf)
             self._set_status(f"已从专利库打开 PDF：{local_pdf}")
+            self._refresh_reader_pdf_buttons()
             return
 
         company_name = self._reader_company_folder_name(hit.applicants)
@@ -1298,6 +1333,30 @@ class PatentWorkbenchApp(tk.Tk):
             if path.is_file():
                 return path
         return None
+
+    def _refresh_reader_pdf_buttons(self) -> None:
+        """打开 PDF is enabled only when the library already has a local copy;
+        下载 PDF is enabled only when it does not — one action is always a
+        no-op, so keep it visibly disabled instead of clickable-but-useless."""
+        if not hasattr(self, "reader_open_pdf_button"):
+            return
+        hit = self._reader_hit
+        has_local_pdf = False
+        if hit is not None:
+            try:
+                publication = normalize_patent_number(hit.publication_number)
+            except PatentNumberError:
+                publication = None
+            if publication is not None:
+                has_local_pdf = (
+                    self._find_reader_library_pdf(publication.canonical) is not None
+                )
+        self.reader_open_pdf_button.state(
+            ["!disabled"] if has_local_pdf else ["disabled"]
+        )
+        self.reader_download_pdf_button.state(
+            ["disabled"] if has_local_pdf else ["!disabled"]
+        )
 
     def _reader_company_folder_name(self, applicants: tuple[str, ...]) -> str:
         registry = (
@@ -1350,6 +1409,7 @@ class PatentWorkbenchApp(tk.Tk):
         )
         open_local_path(result.path)
         self.refresh_library()
+        self._refresh_reader_pdf_buttons()
         self._set_status(f"PDF 已归档到专利库并打开：{result.path}")
 
     def _translate_reader_text(self, text: str) -> None:
@@ -2629,7 +2689,7 @@ class PatentWorkbenchApp(tk.Tk):
             return
 
         self._reader_hit = library_patent_to_search_hit(patent)
-        self.open_reader_pdf()
+        self.download_reader_pdf()
 
     def open_selected_library_folder(self) -> None:
         patent = self._selected_library_patent()

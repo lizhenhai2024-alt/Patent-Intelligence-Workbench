@@ -106,7 +106,7 @@ def test_reader_pdf_downloads_into_library_and_registers(monkeypatch, tmp_path: 
     monkeypatch.setattr(runtime.family_downloader.manager, "download", fake_download)
     monkeypatch.setattr("app.desktop.app.run_async_in_thread", run_now)
 
-    app.open_reader_pdf()
+    app.download_reader_pdf()
 
     assert len(destinations) == 1
     destination = destinations[0]
@@ -158,5 +158,43 @@ def test_reader_pdf_finds_unindexed_file_in_library(monkeypatch, tmp_path: Path)
     assert stored is not None
     assert stored.documents
     assert stored.documents[0].path == pdf
+    app.destroy()
+    runtime.close()
+
+
+def test_reader_pdf_buttons_toggle_with_local_availability(monkeypatch, tmp_path: Path):
+    """打开 PDF is only enabled when the library already has a local copy;
+    下载 PDF is only enabled when it does not -- one of the two is always a
+    no-op for a given patent, so it should be visibly disabled rather than
+    clickable-but-useless."""
+    runtime = _runtime(tmp_path)
+    app = PatentWorkbenchApp(runtime)
+    app.withdraw()
+
+    # No local PDF yet: 打开 disabled, 下载 enabled.
+    app._reader_hit = SearchHit(
+        publication_number="US20240003399A1",
+        jurisdiction="US",
+    )
+    app._refresh_reader_pdf_buttons()
+    assert "disabled" in app.reader_open_pdf_button.state()
+    assert "disabled" not in app.reader_download_pdf_button.state()
+
+    # Once a local PDF exists: 打开 enabled, 下载 disabled.
+    pdf = runtime.library_root / "Tenneco" / "US20240003399A1.pdf"
+    pdf.parent.mkdir(parents=True, exist_ok=True)
+    pdf.write_bytes(b"%PDF-1.4\n")
+    runtime.library_store.upsert_publication(
+        PatentPublication(
+            publication_number="US20240003399A1",
+            jurisdiction="US",
+        ),
+        source="TEST",
+    )
+    runtime.library_store.attach_pdf("US20240003399A1", pdf, provider="TEST")
+    app._refresh_reader_pdf_buttons()
+    assert "disabled" not in app.reader_open_pdf_button.state()
+    assert "disabled" in app.reader_download_pdf_button.state()
+
     app.destroy()
     runtime.close()
