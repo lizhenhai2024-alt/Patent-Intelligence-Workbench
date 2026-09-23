@@ -30,3 +30,13 @@ def test_existing_legacy_database_paths_are_preserved(tmp_path):
     assert paths.library_db == legacy_library
     assert paths.watch_db == legacy_watch
     assert paths.uses_unified_database is False
+
+
+def test_test_session_never_uses_real_app_data():
+    """Guard for tests/conftest.py: the default data dir must be a pytest temp dir."""
+    import os
+
+    from app.desktop.paths import AppPaths
+
+    assert "piw-app-data" in os.environ["PIW_DATA_DIR"]
+    assert "piw-app-data" in str(AppPaths.default().root)
