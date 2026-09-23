@@ -242,6 +242,9 @@ class SQLitePatentLibrary:
         self._ensure_column("library_publication", "filing_date", "TEXT")
         self._ensure_column("library_publication", "grant_date", "TEXT")
         self._ensure_column("library_publication", "language", "TEXT")
+        from app.library.fulltext import ensure_fulltext_schema  # heavy import kept lazy
+
+        self.fulltext_trigram = ensure_fulltext_schema(self.connection)
         self.connection.commit()
 
     def _ensure_column(

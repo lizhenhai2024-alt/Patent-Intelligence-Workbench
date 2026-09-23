@@ -12,10 +12,10 @@ from pathlib import Path
 
 from app.core.company_registry import CompanyGroup, CompanyRegistry
 from app.intelligence.analysis import AnalysisReport, AnalysisScope, AnalysisService
+from app.library import fulltext as ft_index
 from app.library.models import LibraryPatent, LibraryQuery
 from app.library.store import SQLitePatentLibrary
 from app.library.workbench import preferred_library_pdf
-from app.services.pdf_reader import extract_pdf_text_sections
 
 TOOL_NAMES = (
     "library_status",
@@ -30,19 +30,25 @@ TOOL_NAMES = (
     "run_comparison",
 )
 TOOL_DESCRIPTIONS = {
-    "library_status": "本地库概况：数据库位置、公开件/专利族/证据数量、最后修改时间。",
+    "library_status": (
+        "本地库概况：数据库位置、公开件/专利族/证据数量、最后修改时间，"
+        "以及全文索引覆盖（已索引、需要 OCR、未索引件数）。"
+    ),
     "list_companies": "已登记公司组（group_id、显示名、别名）。公司参数只接受这里的精确名称。",
     "list_technology_topics": (
         "本地库已有的技术主题（search_library 用）和可对比的技术路线（run_comparison 用）。"
     ),
     "search_library": (
-        "检索本地库公开件。text 匹配公开号/标题/申请人/分类号；company 为精确公司名；"
+        "检索本地库公开件。fulltext 为全文检索词列表（在权利要求和说明书正文中查找，"
+        "返回命中片段和位置；match=all 需全部命中，any 任一命中；3 个字以上最准）；"
+        "text 只匹配公开号/标题/申请人/分类号；company 为精确公司名；"
         "technology 为 list_technology_topics 的 topic 原值；日期 YYYY-MM-DD；limit 1-100。"
     ),
     "get_publication": "单个公开件的著录信息、分类号、优先权和来源类型。",
     "read_publication_text": (
-        "从本地 PDF 读取权利要求(claims)或说明书(description)文本，max_chars 1-20000。"
-        "没有本地 PDF 时返回 available=false，不联网。"
+        "读取已索引的权利要求(claims)或说明书(description)，按段返回页码；"
+        "claims 可指定权利要求编号列表只读其中几条；from_ordinal 从第几段开始；"
+        "max_chars 1-20000。未建索引时临时解析本地 PDF；没有 PDF 返回 available=false，不联网。"
     ),
     "get_family": (
         "按 family_key 或 publication_number（二选一）列出专利族成员，成员按国家公开件分列。"
@@ -83,6 +89,11 @@ class LibraryTools:
             "publications": self.store.count_patents(),
             "families": self.store.count_families(),
             "evidence_records": self.store.count_evidence(),
+            "fulltext_index": (
+                ft_index.coverage(self.store.connection)
+                if ft_index.tables_exist(self.store.connection)
+                else {"indexed": 0, "note": "尚未建立全文索引"}
+            ),
         }
         return _envelope(data, ())
 
@@ -136,9 +147,30 @@ class LibraryTools:
         from_date: str | None = None,
         to_date: str | None = None,
         limit: int = 20,
+        fulltext: list[str] | tuple[str, ...] = (),
+        match: str = "all",
     ) -> dict:
         if not 1 <= int(limit) <= MAX_SEARCH_LIMIT:
             raise ToolError(f"limit 必须在 1 到 {MAX_SEARCH_LIMIT} 之间")
+        if match not in {"all", "any"}:
+            raise ToolError("match 只能是 all 或 any")
+        notes: list[str] = []
+        fulltext_hits: dict[str, ft_index.Hit] | None = None
+        if fulltext_terms := [term for term in fulltext if str(term).strip()]:
+            if not ft_index.tables_exist(self.store.connection):
+                raise ToolError("尚未建立全文索引：请在“本地专利库”页点“更新全文索引”")
+            found, search_notes = ft_index.search(
+                self.store.connection, fulltext_terms, match=match
+            )
+            fulltext_hits = {hit.publication_number: hit for hit in found}
+            notes.extend(search_notes)
+            coverage = ft_index.coverage(self.store.connection)
+            if coverage["not_indexed"] or coverage["statuses"].get(ft_index.STATUS_NEEDS_OCR):
+                notes.append(
+                    f"全文检索只覆盖已索引的 {coverage['indexed']} 件"
+                    f"（未索引 {coverage['not_indexed']} 件，"
+                    f"需要 OCR {coverage['statuses'].get(ft_index.STATUS_NEEDS_OCR, 0)} 件）。"
+                )
         start, end = _parse_date(from_date, "from_date"), _parse_date(to_date, "to_date")
         company_groups = (self._company(company).group_id,) if company else ()
         query = LibraryQuery(
@@ -155,13 +187,27 @@ class LibraryTools:
             # The store's text filter also matches private notes; re-check public fields only.
             if (not needle or _public_text_match(patent, needle))
             and _within_dates(patent, start, end)
+            and (fulltext_hits is None or patent.publication_number in fulltext_hits)
         ]
+        if fulltext_hits is not None:
+            order = {number: i for i, number in enumerate(fulltext_hits)}
+            hits.sort(key=lambda patent: order[patent.publication_number])
         kept = hits[: int(limit)]
+        results = []
+        for patent in kept:
+            item = _publication(patent)
+            if fulltext_hits is not None:
+                hit = fulltext_hits[patent.publication_number]
+                item["matched_segments"] = hit.matched_segments
+                item["snippets"] = list(hit.snippets)
+            results.append(item)
+        if start or end:
+            notes.append(DATE_BASIS_NOTE)
         return _envelope(
-            {"total_matches": len(hits), "results": [_publication(p) for p in kept]},
+            {"total_matches": len(hits), "results": results},
             (p.publication_number for p in kept),
             truncated=len(hits) > len(kept),
-            notes=(DATE_BASIS_NOTE,) if start or end else (),
+            notes=tuple(notes),
         )
 
     def get_publication(self, publication_number: str) -> dict:
@@ -191,31 +237,77 @@ class LibraryTools:
         publication_number: str,
         section: str = "claims",
         max_chars: int = 8000,
+        claims: list[int] | tuple[int, ...] = (),
+        from_ordinal: int = 1,
     ) -> dict:
         if section not in {"claims", "description"}:
             raise ToolError("section 只能是 claims 或 description（本地库不存摘要）")
         if not 1 <= int(max_chars) <= MAX_TEXT_CHARS:
             raise ToolError(f"max_chars 必须在 1 到 {MAX_TEXT_CHARS} 之间")
+        if int(from_ordinal) < 1:
+            raise ToolError("from_ordinal 从 1 开始")
         patent = self._patent(publication_number)
-        pdf = preferred_library_pdf(patent)
-        if pdf is None:
-            data = {"publication_number": patent.publication_number, "available": False}
-            return _envelope(data, (), notes=("本地库没有该公开件的 PDF；本工具不联网获取。",))
-        claims, description = extract_pdf_text_sections(pdf)
-        text = claims if section == "claims" else description
-        notes = () if text else ("PDF 中未识别出该章节，可能是扫描件或版式未识别。",)
+        number = patent.publication_number
+        connection = self.store.connection
+        source = (
+            ft_index.text_source(connection, number)
+            if ft_index.tables_exist(connection)
+            else None
+        )
+        if source is not None and source["status"] != ft_index.STATUS_FAILED:
+            segments = ft_index.read_segments(connection, number, section)
+            notes = [f"文本来源：{source['source_type']}（{source['status']}）"]
+            if source["detail"]:
+                notes.append(source["detail"])
+        else:
+            pdf = preferred_library_pdf(patent)
+            if pdf is None:
+                data = {"publication_number": number, "available": False}
+                return _envelope(data, (), notes=("本地库没有该公开件的 PDF；本工具不联网获取。",))
+            parsed = ft_index.parse_pdf(pdf)
+            segments = [
+                {
+                    "ordinal": s.ordinal, "claim_number": s.claim_number,
+                    "page_start": s.page_start, "page_end": s.page_end, "text": s.text,
+                }
+                for s in parsed.segments
+                if s.section == section
+            ]
+            source = {"source_type": "PDF", "status": parsed.status}
+            notes = ["该件尚未建全文索引，本次临时解析本地 PDF。"]
+            if parsed.detail:
+                notes.append(parsed.detail)
+        wanted = {int(n) for n in claims}
+        selected = [
+            s
+            for s in segments
+            if s["ordinal"] >= int(from_ordinal)
+            and (not wanted or section != "claims" or s["claim_number"] in wanted)
+        ]
+        out, used, truncated = [], 0, False
+        for segment in selected:
+            remaining = int(max_chars) - used
+            if remaining <= 0:
+                truncated = True
+                break
+            text = segment["text"]
+            if len(text) > remaining:
+                text, truncated = text[:remaining], True
+            out.append({**segment, "text": text})
+            used += len(text)
+        if not segments:
+            notes.append("未识别出该章节，可能是扫描件或版式未识别。")
         data = {
-            "publication_number": patent.publication_number,
+            "publication_number": number,
             "available": True,
             "section": section,
-            "text": text[: int(max_chars)],
-            "total_chars": len(text),
+            "source_type": source["source_type"],
+            "status": source["status"],
+            "segments": out,
+            "total_segments": len(segments),
         }
         return _envelope(
-            data,
-            (patent.publication_number,),
-            truncated=len(text) > int(max_chars),
-            notes=notes,
+            data, (number,) if out else (), truncated=truncated, notes=tuple(notes)
         )
 
     def get_family(

@@ -370,11 +370,10 @@ def _json_type(hint) -> dict:
     origin = typing.get_origin(hint)
     if origin in (types.UnionType, typing.Union):
         args = [a for a in typing.get_args(hint) if a is not type(None)]
-        if all(typing.get_origin(a) in (list, tuple) for a in args):
-            return {"type": "array", "items": {"type": "string"}}
         return _json_type(args[0])
     if origin in (list, tuple):
-        return {"type": "array", "items": {"type": "string"}}
+        inner = typing.get_args(hint)[0] if typing.get_args(hint) else str
+        return {"type": "array", "items": _json_type(inner)}
     if hint is str:
         return {"type": "string"}
     if hint is int:

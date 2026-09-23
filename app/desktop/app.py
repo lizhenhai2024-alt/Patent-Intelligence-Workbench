@@ -28,6 +28,7 @@ from app.desktop.agent_tab import (
 )
 from app.desktop.async_runner import TkCallbackQueue, run_async_in_thread
 from app.desktop.figure_preview import figure_scale
+from app.desktop.fulltext_ui import build_fulltext_controls
 from app.desktop.intelligence_tab import build_intelligence_tab
 from app.desktop.opening import open_local_path
 from app.desktop.presenters import patent_row, watch_history_row, watch_rule_row
@@ -1637,6 +1638,7 @@ class PatentWorkbenchApp(tk.Tk):
             textvariable=self.library_enrich_status_var,
             style="SurfaceSubtle.TLabel",
         ).pack(side="left", padx=(10, 0))
+        build_fulltext_controls(self, library_toolbar_card)
 
         quick = ttk.Frame(library_toolbar_card, style="Surface.TFrame")
         quick.pack(fill="x", pady=(8, 0))

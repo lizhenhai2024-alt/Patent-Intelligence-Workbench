@@ -162,12 +162,17 @@ def test_search_limits_dates_and_truncation(tools):
 
 
 def test_read_publication_text_uses_local_pdf_only(tools):
+    # Not indexed yet: the tool parses the local PDF on the fly (read-only, no network).
     claims = tools.read_publication_text("US20240000001A1", "claims", max_chars=10)
     assert claims["data"]["available"] is True
-    assert claims["data"]["text"] == "1. A damper"[:10]
+    assert claims["data"]["segments"][0]["text"] == "1. A damper"[:10]
+    assert claims["data"]["segments"][0]["claim_number"] == 1
     assert claims["truncated"] is True
+    assert any("尚未建全文索引" in note for note in claims["notes"])
+    second = tools.read_publication_text("US20240000001A1", "claims", claims=[2])
+    assert [s["claim_number"] for s in second["data"]["segments"]] == [2]
     description = tools.read_publication_text("US20240000001A1", "description")
-    assert "[0001]" in description["data"]["text"]
+    assert "[0001]" in description["data"]["segments"][0]["text"]
     missing = tools.read_publication_text("EP4000001A1")
     assert missing["data"]["available"] is False and missing["receipts"] == []
     with pytest.raises(ToolError):
