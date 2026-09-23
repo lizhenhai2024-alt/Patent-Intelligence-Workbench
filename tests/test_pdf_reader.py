@@ -1,9 +1,27 @@
 from pathlib import Path
 
-import fitz
+import pymupdf as fitz
 
 from app.providers.epo_ops import EpoImageLayout
 from app.services.pdf_reader import extract_pdf_reader_document
+
+
+def test_pdf_import_does_not_pollute_stdout():
+    """fitz deprecation warnings on stdout break MCP JSON-RPC framing."""
+    import contextlib
+    import importlib
+    import io
+    import sys
+
+    for name in list(sys.modules):
+        if name in {"app.services.pdf_reader", "app.services.reader_service"} or name.startswith(
+            "fitz"
+        ):
+            sys.modules.pop(name, None)
+    buffer = io.StringIO()
+    with contextlib.redirect_stdout(buffer):
+        importlib.import_module("app.services.pdf_reader")
+    assert buffer.getvalue() == ""
 
 
 def _write_test_pdf(path: Path) -> None:

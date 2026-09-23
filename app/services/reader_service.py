@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 from pathlib import Path
 
-import fitz
+import pymupdf as fitz
 
 from app.core.patent_number import PatentNumber, PatentNumberError, normalize_patent_number
 from app.domain.family import FamilyType

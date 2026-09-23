@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import fitz
+import pymupdf as fitz
 
 from app.domain.reader import PatentFigure, PatentReaderDocument
 from app.providers.epo_ops import EpoImageLayout
