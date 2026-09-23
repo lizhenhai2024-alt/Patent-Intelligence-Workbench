@@ -331,7 +331,47 @@ def refresh_readiness(app) -> None:
     guide = _selected_guide(app)
     readiness = assess_library_readiness(app.runtime.library_store, guide)
     app._intelligence_readiness = readiness
-    app.intelligence_readiness_var.set(f"{readiness.summary}\n{readiness.detail}")
+    base_text = f"{readiness.summary}\n{readiness.detail}"
+    app.intelligence_readiness_var.set(base_text)
+    companies = _split(app.intelligence_companies_var.get())
+    if companies and app.runtime.search_service:
+        _check_coverage_async(app, companies[0], base_text)
+
+
+def _check_coverage_async(app, company: str, base_text: str) -> None:
+    import asyncio
+
+    from app.library.coverage import check_coverage
+
+    search_service = app.runtime.search_service
+    store = app.runtime.library_store
+
+    def worker() -> None:
+        try:
+            loop = asyncio.new_event_loop()
+            report = loop.run_until_complete(
+                check_coverage(store, search_service, company)
+            )
+            loop.close()
+        except Exception:
+            return
+        lines = [base_text, ""]
+        if report.external_total is not None:
+            pct = f"{report.ratio:.0%}" if report.ratio is not None else "—"
+            lines.append(
+                f"覆盖率：本地 {report.local_total} / 外部约 {report.external_total}（{pct}）"
+            )
+        else:
+            lines.append(f"覆盖率：本地 {report.local_total} 件（外部总数未知）")
+        if report.local_without_dates > 0:
+            lines.append(f"日期缺失：{report.local_without_dates} 件")
+        if report.ratio is not None and report.ratio < 0.5:
+            lines.append("建议补库：覆盖率低于 50%，可使用批量补库补充。")
+        app._ui_callbacks.submit(
+            lambda: app.intelligence_readiness_var.set("\n".join(lines))
+        )
+
+    threading.Thread(target=worker, daemon=True).start()
 
 
 def continue_task(app, action: str | None = None) -> None:
