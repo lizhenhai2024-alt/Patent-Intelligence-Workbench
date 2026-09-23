@@ -518,19 +518,21 @@ class PatentWorkbenchApp(tk.Tk):
         metrics = ttk.Frame(self.search_tab)
         metrics.pack(fill="x", pady=(0, 10))
         self.dashboard_patents_var = tk.StringVar(value="0")
+        self.dashboard_pdf_patents_var = tk.StringVar(value="0")
         self.dashboard_families_var = tk.StringVar(value="0")
         self.dashboard_watch_var = tk.StringVar(value="0")
         self.dashboard_evidence_var = tk.StringVar(value="0")
-        for index, (label, variable, target) in enumerate(
-            (
-                ("Local patents", self.dashboard_patents_var, "library"),
-                ("Patent families", self.dashboard_families_var, "family"),
-                ("Watch rules", self.dashboard_watch_var, "watch"),
-                ("Evidence", self.dashboard_evidence_var, "evidence"),
-            )
-        ):
+        dashboard_metrics = (
+            ("Local patents", self.dashboard_patents_var, "library"),
+            ("PDF patents", self.dashboard_pdf_patents_var, "library"),
+            ("Patent families", self.dashboard_families_var, "family"),
+            ("Watch rules", self.dashboard_watch_var, "watch"),
+            ("Evidence", self.dashboard_evidence_var, "evidence"),
+        )
+        last_index = len(dashboard_metrics) - 1
+        for index, (label, variable, target) in enumerate(dashboard_metrics):
             card = ttk.Frame(metrics, style="Surface.TFrame", padding=(14, 10))
-            card.grid(row=0, column=index, sticky="ew", padx=(0, 8 if index < 3 else 0))
+            card.grid(row=0, column=index, sticky="ew", padx=(0, 8 if index < last_index else 0))
             value_label = ttk.Label(card, textvariable=variable, style="MetricValue.TLabel")
             value_label.pack(anchor="w")
             caption = ttk.Label(card, text=f"{label}  →", style="MetricLabel.TLabel")
@@ -3383,6 +3385,7 @@ class PatentWorkbenchApp(tk.Tk):
             return
         store = self.runtime.library_store
         self.dashboard_patents_var.set(str(store.count_patents()))
+        self.dashboard_pdf_patents_var.set(str(store.count_patents_with_pdf()))
         self.dashboard_families_var.set(str(store.count_families()))
         self.dashboard_watch_var.set(str(len(self.runtime.watch_store.list_rules())))
         self.dashboard_evidence_var.set(str(store.count_evidence()))

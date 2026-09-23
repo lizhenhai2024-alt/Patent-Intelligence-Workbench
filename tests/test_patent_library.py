@@ -112,6 +112,26 @@ def test_library_relations_pdf_favorite_note_and_filters(tmp_path):
     library.close()
 
 
+def test_count_patents_with_pdf_only_counts_patents_that_have_one(tmp_path):
+    """Dashboard shows 'Local patents' and 'PDF patents' side by side so it is
+    obvious when a backfill added records but their PDFs failed to download."""
+    library = SQLitePatentLibrary(tmp_path / "library.db")
+    library.upsert_family(_family())
+
+    assert library.count_patents() == 2
+    assert library.count_patents_with_pdf() == 0
+
+    library.attach_pdf(
+        "JP2024000123A",
+        tmp_path / "JP" / "JP2024000123A.pdf",
+        provider="GOOGLE_PATENTS",
+    )
+
+    assert library.count_patents() == 2
+    assert library.count_patents_with_pdf() == 1
+    library.close()
+
+
 def test_duplicate_relations_are_idempotent(tmp_path):
     library = SQLitePatentLibrary(tmp_path / "library.db")
     library.upsert_family(_family())

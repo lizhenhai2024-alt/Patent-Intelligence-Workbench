@@ -853,6 +853,12 @@ class SQLitePatentLibrary:
         ).fetchone()
         return int(row["count"])
 
+    def count_patents_with_pdf(self) -> int:
+        row = self.connection.execute(
+            "SELECT COUNT(DISTINCT publication_number) AS count FROM library_pdf"
+        ).fetchone()
+        return int(row["count"])
+
     def count_families(self) -> int:
         row = self.connection.execute(
             "SELECT COUNT(*) AS count FROM library_family"
