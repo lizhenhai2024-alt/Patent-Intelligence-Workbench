@@ -1013,7 +1013,7 @@ class PatentWorkbenchApp(tk.Tk):
         def _on_loaded(document):
             if self._reader_load_gen != gen:
                 return
-            self._on_reader_document_loaded(document)
+            self._on_reader_document_loaded(document, _gen=gen)
 
         def _on_error(exc):
             if self._reader_load_gen != gen:
@@ -1027,7 +1027,9 @@ class PatentWorkbenchApp(tk.Tk):
             schedule_ui=self._ui_callbacks.submit,
         )
 
-    def _on_reader_document_loaded(self, document: PatentReaderDocument) -> None:
+    def _on_reader_document_loaded(self, document: PatentReaderDocument, *, _gen: int) -> None:
+        if self._reader_load_gen != _gen:
+            return
         hit = self._reader_hit
         if hit is None or document.publication_number != hit.publication_number:
             return
@@ -1042,7 +1044,7 @@ class PatentWorkbenchApp(tk.Tk):
         self.reader_content_source_var.set(
             "内容源：" + (" · ".join(sources) if sources else "未取得全文内容")
         )
-        self._render_reader_section()
+        self._render_reader_section(_expected_gen=_gen)
         missing = []
         if not document.claims:
             missing.append("权利要求")
@@ -1072,7 +1074,9 @@ class PatentWorkbenchApp(tk.Tk):
         self._reader_translation_in_flight = False
         self._render_reader_section()
 
-    def _render_reader_section(self) -> None:
+    def _render_reader_section(self, *, _expected_gen: int | None = None) -> None:
+        if _expected_gen is not None and self._reader_load_gen != _expected_gen:
+            return
         document = self._reader_document
         if document is None:
             return
@@ -1356,6 +1360,8 @@ class PatentWorkbenchApp(tk.Tk):
             return
         gen = self._reader_translation_gen
         section = self.reader_section_var.get()
+        hit = self._reader_hit
+        pub_number = hit.publication_number if hit else None
         self._reader_translation_in_flight = True
         self._set_reader_translation("正在翻译…")
 
@@ -1366,11 +1372,15 @@ class PatentWorkbenchApp(tk.Tk):
             self._reader_translation_in_flight = False
             if self._reader_translation_gen != gen or self.reader_section_var.get() != section:
                 return
+            if self._reader_hit is None or self._reader_hit.publication_number != pub_number:
+                return
             self._set_reader_translation(result.text)
 
         def _on_error(exc):
             self._reader_translation_in_flight = False
             if self._reader_translation_gen != gen:
+                return
+            if self._reader_hit is None or self._reader_hit.publication_number != pub_number:
                 return
             self._set_reader_translation(str(exc))
 

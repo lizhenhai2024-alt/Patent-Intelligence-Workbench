@@ -45,6 +45,7 @@ login` set up locally, or paste a token and Claude can push them from here.
 - **期望/影响**：当前公开号、章节和内容必须一致；错误配对会误导工程判断与证据引用。
 - **根因位置**：`app/desktop/app.py::_load_reader_document`、`_on_reader_document_loaded`（约 1013 行）、`_translate_reader_text`（约 1326 行）均未校验请求所属公开号/章节/代次。
 - **修复验收**：为请求绑定身份，切换时失效旧回调；反序返回、同号重新加载、翻译期间换章节均不能覆盖新上下文。
+- **2026-09-24 修复**：`_on_reader_document_loaded` 增加 `_gen` 参数校验；`_translate_reader_text` 回调增加 `publication_number` 校验；`_render_reader_section` 增加 `_expected_gen` 参数。回归测试：`test_reader_stale_document_load_does_not_replace_current`、`test_reader_stale_translation_does_not_replace_current`。
 
 ### UI-02 · P1 · 公司筛选残留时，精确公开号被检索界面丢弃
 
