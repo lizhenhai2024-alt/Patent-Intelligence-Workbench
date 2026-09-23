@@ -37,7 +37,11 @@
                     "piston valve",
                     "damper piston valve"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F9/14",
+                    "F16F9/50"
+                  ]
                 },
                 {
                   "id": "base_valve",
@@ -47,7 +51,11 @@
                     "foot valve",
                     "bottom valve"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F9/16",
+                    "F16F9/512"
+                  ]
                 },
                 {
                   "id": "disc_stack",
@@ -57,7 +65,10 @@
                     "disc valve",
                     "valve disc"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F9/14"
+                  ]
                 },
                 {
                   "id": "rebound_valve",
@@ -66,7 +77,11 @@
                     "rebound valve",
                     "extension valve"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F9/14",
+                    "F16F9/50"
+                  ]
                 },
                 {
                   "id": "compression_valve",
@@ -75,7 +90,11 @@
                     "compression valve",
                     "bump valve"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F9/16",
+                    "F16F9/512"
+                  ]
                 },
                 {
                   "id": "blowoff_relief",
@@ -92,7 +111,10 @@
                     "泄压结构",
                     "pressure relief"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F9/18"
+                  ]
                 },
                 {
                   "id": "check_valve",
@@ -104,7 +126,10 @@
                     "单向阀",
                     "止回阀"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F9/14"
+                  ]
                 },
                 {
                   "id": "orifice_bleed",
@@ -119,7 +144,10 @@
                     "节流通道",
                     "泄流孔"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F9/12"
+                  ]
                 },
                 {
                   "id": "preload_spring",
@@ -129,7 +157,10 @@
                     "spring preload",
                     "preload valve"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F3/00"
+                  ]
                 },
                 {
                   "id": "valve_seat_flow",
@@ -146,8 +177,14 @@
                     "流路",
                     "补油路径"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F9/12"
+                  ]
                 }
+              ],
+              "classifications": [
+                "F16F9/02"
               ]
             },
             {
@@ -175,7 +212,10 @@
                     "frequency dependent valve",
                     "frequency sensitive valve"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F9/46"
+                  ]
                 },
                 {
                   "id": "hydraulic_delay",
@@ -185,7 +225,10 @@
                     "hydraulic time constant damping",
                     "delay chamber damper"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F9/46"
+                  ]
                 },
                 {
                   "id": "fsd_aux_chamber",
@@ -195,7 +238,10 @@
                     "damper auxiliary chamber",
                     "control chamber frequency damping"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F9/46"
+                  ]
                 },
                 {
                   "id": "fsd_bypass_flow",
@@ -205,7 +251,10 @@
                     "damper bypass flow",
                     "bypass passage damping"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F9/46"
+                  ]
                 },
                 {
                   "id": "fsd_pressure_switching",
@@ -215,7 +264,10 @@
                     "pressure switching valve damper",
                     "pressure responsive damping valve"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F9/46"
+                  ]
                 },
                 {
                   "id": "fsd_inertial_switching",
@@ -225,7 +277,10 @@
                     "mechanical frequency selective damper",
                     "inertia controlled damping valve"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F9/46"
+                  ]
                 }
               ],
               "level": "technology",
@@ -243,6 +298,9 @@
                 "frequency selective filter"
               ]
             }
+          ],
+          "classifications": [
+            "F16F9/00"
           ]
         },
         {
@@ -292,7 +350,11 @@
                 "连续可变阻尼",
                 "阻尼力连续可调"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G17",
+                "F16F9/22"
+              ]
             },
             {
               "id": "pilot_valve",
@@ -317,6 +379,7 @@
                 "pilot operated valve"
               ],
               "classifications": [
+                "F16F9/22",
                 "F16F9/46"
               ],
               "include_terms": [
@@ -341,7 +404,11 @@
                 "外置控制阀",
                 "外部电磁阀"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/22",
+                "F16F9/28"
+              ]
             },
             {
               "id": "internal_solenoid_valve",
@@ -356,7 +423,11 @@
                 "内置控制阀",
                 "活塞集成电磁阀"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/22",
+                "F16F9/24"
+              ]
             },
             {
               "id": "back_pressure_control",
@@ -370,7 +441,10 @@
                 "先导压力腔",
                 "控制腔"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/28"
+              ]
             },
             {
               "id": "floating_piston",
@@ -389,6 +463,7 @@
                 "floating valve piston"
               ],
               "classifications": [
+                "F16F9/42",
                 "F16F9/46"
               ],
               "include_terms": [
@@ -414,7 +489,10 @@
                 "紧急操作阀",
                 "紧急阀"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/22"
+              ]
             },
             {
               "id": "solenoid_actuator",
@@ -435,7 +513,10 @@
                 "电磁线圈",
                 "永磁体"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "H01F7/00"
+              ]
             },
             {
               "id": "digital_valve",
@@ -447,7 +528,10 @@
                 "数字阀",
                 "数字式阀"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/22"
+              ]
             },
             {
               "id": "control_electronics",
@@ -465,8 +549,14 @@
                 "印刷电路板",
                 "集成电子电路"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G17"
+              ]
             }
+          ],
+          "classifications": [
+            "B60G17"
           ]
         },
         {
@@ -489,7 +579,11 @@
                 "hydraulic active damper",
                 "hydraulic suspension actuator"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G17",
+                "F16F9/00"
+              ]
             },
             {
               "id": "electromechanical_active",
@@ -499,7 +593,10 @@
                 "electromechanical damper",
                 "electric suspension actuator"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G17"
+              ]
             },
             {
               "id": "hydraulic_pump",
@@ -509,7 +606,10 @@
                 "active suspension pump",
                 "hydraulic pump suspension"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F04B"
+              ]
             },
             {
               "id": "accumulator",
@@ -519,7 +619,10 @@
                 "hydraulic accumulator suspension",
                 "active suspension accumulator"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/42"
+              ]
             },
             {
               "id": "active_actuator",
@@ -529,7 +632,10 @@
                 "active damper actuator",
                 "suspension force actuator"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G17"
+              ]
             },
             {
               "id": "pressure_control",
@@ -539,7 +645,10 @@
                 "hydraulic pressure control suspension",
                 "pressure regulating valve suspension"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/18"
+              ]
             },
             {
               "id": "energy_recovery",
@@ -549,7 +658,10 @@
                 "energy recovery damper",
                 "energy harvesting suspension"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G17"
+              ]
             },
             {
               "id": "active_fail_safe",
@@ -559,8 +671,14 @@
                 "fail safe active damper",
                 "fallback damping mode"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/22"
+              ]
             }
+          ],
+          "classifications": [
+            "B60G17"
           ]
         },
         {
@@ -579,7 +697,11 @@
                 "pneumatic spring",
                 "air suspension spring"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G11",
+                "F16F5/00"
+              ]
             },
             {
               "id": "air_supply_unit",
@@ -589,7 +711,10 @@
                 "air supply module suspension",
                 "pneumatic supply unit vehicle"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G11"
+              ]
             },
             {
               "id": "compressor",
@@ -599,7 +724,10 @@
                 "pneumatic suspension compressor",
                 "vehicle suspension compressor"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F04B"
+              ]
             },
             {
               "id": "reservoir",
@@ -609,7 +737,10 @@
                 "compressed air reservoir suspension",
                 "air tank suspension"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G11"
+              ]
             },
             {
               "id": "valve_block",
@@ -619,7 +750,10 @@
                 "pneumatic valve manifold suspension",
                 "air distribution valve suspension"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G11"
+              ]
             },
             {
               "id": "height_control",
@@ -629,7 +763,10 @@
                 "ride height control",
                 "level control suspension"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G17"
+              ]
             },
             {
               "id": "ride_height_sensor",
@@ -639,7 +776,10 @@
                 "suspension height sensor",
                 "vehicle level sensor"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G17"
+              ]
             },
             {
               "id": "air_dryer",
@@ -649,7 +789,10 @@
                 "compressed air dryer suspension",
                 "pneumatic dryer vehicle"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G11"
+              ]
             },
             {
               "id": "air_fail_safe",
@@ -659,8 +802,15 @@
                 "air suspension emergency mode",
                 "air suspension fallback mode"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G11"
+              ]
             }
+          ],
+          "classifications": [
+            "B60G11",
+            "B60G17"
           ]
         },
         {
@@ -684,7 +834,10 @@
                 "hydraulic anti roll actuator",
                 "hydraulic roll control actuator"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G21"
+              ]
             },
             {
               "id": "aar_electromechanical_actuator",
@@ -694,7 +847,10 @@
                 "electric anti roll actuator",
                 "electromechanical roll control actuator"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G21"
+              ]
             },
             {
               "id": "aar_rotary_actuator",
@@ -704,7 +860,10 @@
                 "rotary anti roll actuator",
                 "rotary roll control actuator"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G21"
+              ]
             },
             {
               "id": "aar_decoupling",
@@ -714,7 +873,10 @@
                 "anti roll bar disconnect",
                 "active stabilizer clutch"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G21"
+              ]
             },
             {
               "id": "aar_roll_control",
@@ -724,7 +886,10 @@
                 "vehicle roll control",
                 "active stabilizer control"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G21"
+              ]
             },
             {
               "id": "aar_pressure_control",
@@ -734,7 +899,10 @@
                 "hydraulic roll pressure control",
                 "anti roll hydraulic pressure control"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G21"
+              ]
             },
             {
               "id": "aar_transmission",
@@ -744,7 +912,10 @@
                 "anti roll gear transmission",
                 "stabilizer actuator transmission"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G21"
+              ]
             },
             {
               "id": "aar_sensor_control",
@@ -754,7 +925,10 @@
                 "roll control sensor",
                 "active anti roll control unit"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G21"
+              ]
             },
             {
               "id": "aar_fail_safe",
@@ -764,8 +938,14 @@
                 "active anti roll fail safe",
                 "roll control fallback mode"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G21"
+              ]
             }
+          ],
+          "classifications": [
+            "B60G21"
           ]
         },
         {
@@ -783,7 +963,10 @@
                 "coil spring suspension",
                 "helical suspension spring"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F3/00"
+              ]
             },
             {
               "id": "composite_spring",
@@ -792,7 +975,10 @@
                 "composite suspension spring",
                 "fiber reinforced suspension spring"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F3/00"
+              ]
             },
             {
               "id": "variable_rate_spring",
@@ -802,7 +988,10 @@
                 "variable rate spring suspension",
                 "dual rate suspension spring"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F3/00"
+              ]
             },
             {
               "id": "auxiliary_spring",
@@ -811,7 +1000,10 @@
                 "auxiliary suspension spring",
                 "helper spring suspension"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F3/00"
+              ]
             },
             {
               "id": "spring_seat",
@@ -848,7 +1040,10 @@
                 "coil spring isolator",
                 "spring pad suspension"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F3/00"
+              ]
             },
             {
               "id": "jounce_bumper_spring",
@@ -858,8 +1053,15 @@
                 "bump stop suspension",
                 "compression stop bumper"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F3/00"
+              ]
             }
+          ],
+          "classifications": [
+            "B60G11",
+            "F16F3/00"
           ]
         },
         {
@@ -893,7 +1095,9 @@
               "aliases": [
                 "HRS"
               ],
-              "classifications": [],
+              "classifications": [
+                "F16F9/00"
+              ],
               "include_terms": [
                 "hydraulic rebound buffer",
                 "hydraulic extension stop"
@@ -918,7 +1122,9 @@
               "aliases": [
                 "HCS"
               ],
-              "classifications": [],
+              "classifications": [
+                "F16F9/00"
+              ],
               "include_terms": [
                 "hydraulic compression buffer",
                 "hydraulic jounce stop"
@@ -943,7 +1149,9 @@
               "aliases": [
                 "extension stop spring"
               ],
-              "classifications": [],
+              "classifications": [
+                "F16F3/00"
+              ],
               "include_terms": [
                 "rebound stop spring",
                 "rebound buffer spring"
@@ -959,7 +1167,10 @@
                 "mechanical rebound stop",
                 "extension stop damper"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/00"
+              ]
             },
             {
               "id": "compression_bump_stop",
@@ -969,7 +1180,10 @@
                 "compression stop damper",
                 "jounce stop damper"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F3/00"
+              ]
             },
             {
               "id": "end_stop_valve",
@@ -979,7 +1193,10 @@
                 "travel stop valve suspension",
                 "hydraulic stop valve damper"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/00"
+              ]
             },
             {
               "id": "progressive_end_stop",
@@ -988,8 +1205,14 @@
                 "progressive end stop suspension",
                 "progressive hydraulic stop damper"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/00"
+              ]
             }
+          ],
+          "classifications": [
+            "F16F9/00"
           ]
         },
         {
@@ -1007,7 +1230,10 @@
                 "macpherson strut",
                 "macpherson suspension strut"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G15"
+              ]
             },
             {
               "id": "double_wishbone",
@@ -1016,7 +1242,10 @@
                 "double wishbone suspension",
                 "double control arm suspension"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G15"
+              ]
             },
             {
               "id": "multi_link",
@@ -1025,7 +1254,10 @@
                 "multi link suspension",
                 "multilink suspension"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G15"
+              ]
             },
             {
               "id": "control_arm",
@@ -1034,7 +1266,10 @@
                 "suspension control arm",
                 "wishbone control arm"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G15"
+              ]
             },
             {
               "id": "trailing_arm",
@@ -1043,7 +1278,10 @@
                 "trailing arm suspension",
                 "semi trailing arm suspension"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G15"
+              ]
             },
             {
               "id": "knuckle_carrier",
@@ -1053,7 +1291,10 @@
                 "wheel carrier suspension",
                 "steering knuckle suspension"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G15"
+              ]
             },
             {
               "id": "subframe",
@@ -1062,7 +1303,10 @@
                 "suspension subframe",
                 "vehicle suspension subframe"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G15"
+              ]
             },
             {
               "id": "damper_fork",
@@ -1072,7 +1316,10 @@
                 "shock absorber clevis",
                 "strut fork mounting"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G15"
+              ]
             },
             {
               "id": "strut_mounting_interface",
@@ -1082,8 +1329,14 @@
                 "damper mounting interface",
                 "shock absorber mounting bracket"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G15"
+              ]
             }
+          ],
+          "classifications": [
+            "B60G15"
           ]
         },
         {
@@ -1102,7 +1355,10 @@
                 "strut mount",
                 "suspension top mount"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F15/00"
+              ]
             },
             {
               "id": "strut_bearing",
@@ -1111,7 +1367,10 @@
                 "strut bearing",
                 "suspension strut bearing"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F15/00"
+              ]
             },
             {
               "id": "rubber_bushing",
@@ -1120,7 +1379,10 @@
                 "suspension rubber bushing",
                 "elastomer bushing suspension"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F15/00"
+              ]
             },
             {
               "id": "hydraulic_bushing",
@@ -1129,7 +1391,10 @@
                 "hydraulic bushing suspension",
                 "hydro bushing suspension"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F15/00"
+              ]
             },
             {
               "id": "control_arm_bushing",
@@ -1138,7 +1403,10 @@
                 "control arm bushing",
                 "wishbone bushing"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F15/00"
+              ]
             },
             {
               "id": "subframe_mount",
@@ -1147,7 +1415,10 @@
                 "subframe mount",
                 "subframe bushing"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F15/00"
+              ]
             },
             {
               "id": "damper_eye_bushing",
@@ -1156,7 +1427,10 @@
                 "damper eye bushing",
                 "shock absorber eye bushing"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F15/00"
+              ]
             },
             {
               "id": "vibration_isolator",
@@ -1165,8 +1439,14 @@
                 "suspension vibration isolator",
                 "damper isolator mounting"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F15/00"
+              ]
             }
+          ],
+          "classifications": [
+            "F16F15/00"
           ]
         },
         {
@@ -1189,7 +1469,10 @@
                 "damper rod seal",
                 "shock absorber rod seal"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/32"
+              ]
             },
             {
               "id": "seal_package",
@@ -1198,7 +1481,10 @@
                 "damper oil seal",
                 "shock absorber seal package"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/32"
+              ]
             },
             {
               "id": "dust_seal",
@@ -1207,7 +1493,10 @@
                 "damper dust seal",
                 "rod scraper shock absorber"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/32"
+              ]
             },
             {
               "id": "o_ring",
@@ -1216,7 +1505,10 @@
                 "damper o ring",
                 "shock absorber o-ring seal"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16J15/00"
+              ]
             },
             {
               "id": "rod_guide",
@@ -1225,7 +1517,10 @@
                 "damper rod guide",
                 "shock absorber rod guide"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/32"
+              ]
             },
             {
               "id": "guide_bushing",
@@ -1234,7 +1529,10 @@
                 "damper guide bushing",
                 "rod guide bushing shock absorber"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/32"
+              ]
             },
             {
               "id": "piston_band",
@@ -1243,7 +1541,10 @@
                 "damper piston band",
                 "shock absorber piston band"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/32"
+              ]
             },
             {
               "id": "ptfe_band",
@@ -1253,7 +1554,10 @@
                 "wear ring shock absorber",
                 "ptfe guide ring damper"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/32"
+              ]
             },
             {
               "id": "low_friction_coating",
@@ -1262,7 +1566,10 @@
                 "low friction coating damper",
                 "friction reducing coating shock absorber"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/32"
+              ]
             },
             {
               "id": "friction_control",
@@ -1271,8 +1578,14 @@
                 "damper friction control",
                 "shock absorber friction reduction"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/32"
+              ]
             }
+          ],
+          "classifications": [
+            "F16F9/32"
           ]
         },
         {
@@ -1295,7 +1608,10 @@
                 "shock absorber piston rod",
                 "damper piston rod"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/32"
+              ]
             },
             {
               "id": "damper_piston",
@@ -1304,7 +1620,10 @@
                 "shock absorber piston",
                 "damper piston"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/32"
+              ]
             },
             {
               "id": "pressure_tube",
@@ -1313,7 +1632,10 @@
                 "shock absorber pressure tube",
                 "damper working cylinder"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/32"
+              ]
             },
             {
               "id": "reservoir_tube",
@@ -1322,7 +1644,10 @@
                 "shock absorber reservoir tube",
                 "damper outer tube"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/32"
+              ]
             },
             {
               "id": "rod_guide_housing",
@@ -1331,7 +1656,10 @@
                 "rod guide housing damper",
                 "shock absorber guide housing"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/32"
+              ]
             },
             {
               "id": "end_cap",
@@ -1340,7 +1668,10 @@
                 "damper end cap",
                 "shock absorber closure cap"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/32"
+              ]
             },
             {
               "id": "gas_chamber",
@@ -1349,7 +1680,10 @@
                 "damper gas chamber",
                 "shock absorber gas chamber"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/42"
+              ]
             },
             {
               "id": "separating_piston",
@@ -1363,7 +1697,9 @@
               "aliases": [
                 "gas separating piston"
               ],
-              "classifications": [],
+              "classifications": [
+                "F16F9/42"
+              ],
               "include_terms": [
                 "oil gas separating piston",
                 "separator piston damper"
@@ -1380,7 +1716,10 @@
                 "external reservoir damper",
                 "remote reservoir shock absorber"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/42"
+              ]
             },
             {
               "id": "bottom_base_assembly",
@@ -1389,7 +1728,10 @@
                 "damper base assembly",
                 "shock absorber bottom assembly"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/32"
+              ]
             },
             {
               "id": "mounting_eye",
@@ -1398,7 +1740,10 @@
                 "shock absorber mounting eye",
                 "damper eye mount"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/32"
+              ]
             },
             {
               "id": "damper_bracket",
@@ -1407,7 +1752,10 @@
                 "shock absorber bracket",
                 "damper mounting bracket"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/32"
+              ]
             },
             {
               "id": "clevis_fork",
@@ -1416,7 +1764,10 @@
                 "shock absorber clevis",
                 "damper fork mount"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/32"
+              ]
             },
             {
               "id": "strut_knuckle_clamp",
@@ -1426,8 +1777,14 @@
                 "macpherson strut clamp",
                 "strut steering knuckle connection"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "B60G15"
+              ]
             }
+          ],
+          "classifications": [
+            "F16F9/32"
           ]
         },
         {
@@ -1458,7 +1815,10 @@
                     "damper valve chatter",
                     "valve flutter shock absorber"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F9/00"
+                  ]
                 },
                 {
                   "id": "valve_buzz",
@@ -1488,8 +1848,14 @@
                     "damper switching noise",
                     "valve impact noise shock absorber"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F9/00"
+                  ]
                 }
+              ],
+              "classifications": [
+                "F16F9/00"
               ]
             },
             {
@@ -1507,7 +1873,10 @@
                     "jet noise hydraulic valve",
                     "shear layer noise damper valve"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F9/00"
+                  ]
                 },
                 {
                   "id": "cavity_resonance",
@@ -1516,7 +1885,10 @@
                     "valve cavity resonance damper",
                     "hydraulic cavity resonance shock absorber"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F9/00"
+                  ]
                 },
                 {
                   "id": "helmholtz_resonance",
@@ -1525,8 +1897,14 @@
                     "helmholtz resonance damper valve",
                     "hydraulic helmholtz resonance shock absorber"
                   ],
-                  "children": []
+                  "children": [],
+                  "classifications": [
+                    "F16F9/00"
+                  ]
                 }
+              ],
+              "classifications": [
+                "F16F9/00"
               ]
             },
             {
@@ -1540,7 +1918,10 @@
                 "空化",
                 "气蚀"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/00"
+              ]
             },
             {
               "id": "aeration",
@@ -1550,7 +1931,10 @@
                 "shock absorber foaming",
                 "hydraulic oil aeration damper"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/00"
+              ]
             },
             {
               "id": "hydraulic_pulsation",
@@ -1559,7 +1943,10 @@
                 "damper pressure pulsation",
                 "hydraulic pulsation shock absorber"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/00"
+              ]
             },
             {
               "id": "stick_slip_noise",
@@ -1568,7 +1955,10 @@
                 "damper stick slip noise",
                 "shock absorber friction noise"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/00"
+              ]
             },
             {
               "id": "knock_noise",
@@ -1577,7 +1967,10 @@
                 "shock absorber knock noise",
                 "damper mechanical impact noise"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/00"
+              ]
             },
             {
               "id": "structure_borne_noise",
@@ -1586,8 +1979,14 @@
                 "suspension structure borne noise",
                 "damper structure borne noise"
               ],
-              "children": []
+              "children": [],
+              "classifications": [
+                "F16F9/00"
+              ]
             }
+          ],
+          "classifications": [
+            "F16F9/00"
           ]
         },
         {
@@ -1870,6 +2269,9 @@
             }
           ]
         }
+      ],
+      "classifications": [
+        "B60G"
       ]
     }
   ]
